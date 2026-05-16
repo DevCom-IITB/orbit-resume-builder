@@ -20,3 +20,9 @@ cd client
 npm install
 npm start
 ```
+
+## Note to contributors
+- Please run `ruff . --fix` in the `server` directory before committing to ensure code quality and consistency.
+- Please run `pytest` in the `server` directory to ensure all tests pass before pushing your changes.
+- Please run `npm test` in the `client` directory to ensure all frontend tests pass before pushing your changes.
+- Please lint your JavaScript code using `eslint` in the `client` directory and checking with `npm run lint` before committing to maintain code quality and consistency.
