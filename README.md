@@ -1,53 +1,22 @@
-# Resume Renderer
+# Resume Builder
 
-Minimal Django service that renders structured resume data into PDF using LaTeX.
+Django + React app to generate PDF resumes from user input.
 
-## Setup
+## Setup Backend
 
 ```bash
+cd server
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-```
-
-## Run
-
-```bash
 python3 manage.py migrate
 python3 manage.py runserver
 ```
 
-## Test
+## Setup Frontend
 
 ```bash
-pytest
+cd client
+npm install
+npm start
 ```
-
-## API
-
-POST `/api/resume-renderer/render/`
-
-```json
-{
-  "header": {
-    "name": "Jane Doe",
-    "edu": "B.Tech",
-    "contact": {
-      "email": "jane@example.com",
-      "phone": "+1 555 000",
-      "linkedin": "jane-doe",
-      "github": "janedoe"
-    }
-  },
-  "education": [],
-  "experience": [],
-  "key_projects": [],
-  "config": {
-    "compact": false,
-    "header_style": "short",
-    "use_header": true
-  }
-}
-```
-
-Response: PDF bytes.
