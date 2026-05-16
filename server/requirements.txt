@@ -4,3 +4,4 @@ django-cors-headers==4.4.0
 docker==7.1.0
 pytest==8.2.2
 pytest-django==4.8.0
+ruff==0.15.13
