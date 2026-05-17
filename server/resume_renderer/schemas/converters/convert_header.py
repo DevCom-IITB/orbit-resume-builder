@@ -1,6 +1,7 @@
 """Convert header JSON into LaTeX."""
 
-from .json_sanitizer import sanitize_text
+from ...services.json_sanitizer import sanitize_text
+from ...services.markdown_parser import MarkdownParser
 
 
 TEMPLATE = r"""
@@ -18,24 +19,25 @@ TEMPLATE = r"""
 
 def convert_header(header: dict) -> str:
     """Convert header JSON into LaTeX.
-    
+
     Args:
         header: A dictionary containing the header information.
-        
+
     Returns:
         A string containing the LaTeX code for the header section of the resume.
-        
+
     Raises:
         ValueError: If the input data is not in the expected format.
     """
     try:
-        name = sanitize_text(header["name"])
-        edu = sanitize_text(header["edu"])
+        markdown_parser = MarkdownParser()
+        name = markdown_parser.parse(sanitize_text(header["name"]))
+        edu = markdown_parser.parse(sanitize_text(header["edu"]))
         contact = header["contact"]
-        email = sanitize_text(contact["email"])
-        phone = sanitize_text(contact["phone"])
-        linkedin = sanitize_text(contact["linkedin"])
-        github = sanitize_text(contact["github"])
+        email = markdown_parser.parse(sanitize_text(contact["email"]))
+        phone = markdown_parser.parse(sanitize_text(contact["phone"]))
+        linkedin = markdown_parser.parse(sanitize_text(contact["linkedin"]))
+        github = markdown_parser.parse(sanitize_text(contact["github"]))
 
         return (
             TEMPLATE.replace("__NAME__", name)

@@ -49,8 +49,12 @@ class LatexRenderSerializer(serializers.Serializer):
 
         for idx, item in enumerate(experience):
             bullets = item.get("bullets") if isinstance(item, dict) else None
-            if not isinstance(bullets, list) or not all(isinstance(b, str) for b in bullets):
-                raise serializers.ValidationError(f"Experience[{idx}].bullets must be a list of strings.")
+            if not isinstance(bullets, list) or not all(
+                isinstance(b, str) for b in bullets
+            ):
+                raise serializers.ValidationError(
+                    f"Experience[{idx}].bullets must be a list of strings."
+                )
 
     def validate_key_projects(self, key_projects: list) -> None:
         if not isinstance(key_projects, list):
@@ -58,8 +62,12 @@ class LatexRenderSerializer(serializers.Serializer):
 
         for idx, item in enumerate(key_projects):
             bullets = item.get("bullets") if isinstance(item, dict) else None
-            if not isinstance(bullets, list) or not all(isinstance(b, str) for b in bullets):
-                raise serializers.ValidationError(f"Key projects[{idx}].bullets must be a list of strings.")
+            if not isinstance(bullets, list) or not all(
+                isinstance(b, str) for b in bullets
+            ):
+                raise serializers.ValidationError(
+                    f"Key projects[{idx}].bullets must be a list of strings."
+                )
 
     def validate(self, attrs):
         self._validate_no_latex(attrs)
