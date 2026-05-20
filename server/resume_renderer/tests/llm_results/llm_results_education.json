@@ -1,0 +1,73 @@
+[
+  {
+    "section_type": "education",
+    "test_case": 1,
+    "input": "BTech in Aerospace Engineering from IIT Bombay cpi 9.22/10 year 2025-2029",
+    "output": [
+      {
+        "degree": "B.Tech. in Aerospace Engineering",
+        "institution": "Indian Institute of Technology Bombay",
+        "cpi": "9.22/10",
+        "year": "2025-2029"
+      }
+    ]
+  },
+  {
+    "section_type": "education",
+    "test_case": 2,
+    "input": "class 12 cbse 92.3 percent from Delhi Public School Lucknow 2024 and class 10 icse 96.6 percent from La Martiniere College 2022",
+    "output": [
+      {
+        "degree": "Class XII (CBSE)",
+        "institution": "Delhi Public School, Lucknow",
+        "cpi": "92.3%",
+        "year": "2024"
+      },
+      {
+        "degree": "Class X (ICSE)",
+        "institution": "La Martiniere College",
+        "cpi": "96.6%",
+        "year": "2022"
+      }
+    ]
+  },
+  {
+    "section_type": "education",
+    "test_case": 3,
+    "input": "Bachelor of Technology in Computer Science and Engineering Indian Institute of Technology Bombay CPI 8.91 year 2024-2028",
+    "output": [
+      {
+        "degree": "Bachelor of Technology in Computer Science and Engineering",
+        "institution": "Indian Institute of Technology Bombay",
+        "cpi": "8.91",
+        "year": "2024 - 2028"
+      }
+    ]
+  },
+  {
+    "section_type": "education",
+    "test_case": 4,
+    "input": "B.S. in Mathematics IIT Bombay 2023-2027 CPI 9.12",
+    "output": [
+      {
+        "degree": "B.S. in Mathematics",
+        "institution": "Indian Institute of Technology Bombay",
+        "cpi": "9.12/10",
+        "year": "2023 - 2027"
+      }
+    ]
+  },
+  {
+    "section_type": "education",
+    "test_case": 5,
+    "input": "MSc Chemistry from Indian Institute of Technology Bombay 2022-2024 CGPA 8.7/10",
+    "output": [
+      {
+        "degree": "M.Sc. Chemistry",
+        "institution": "Indian Institute of Technology Bombay",
+        "cpi": "8.7/10",
+        "year": "2022-2024"
+      }
+    ]
+  }
+]

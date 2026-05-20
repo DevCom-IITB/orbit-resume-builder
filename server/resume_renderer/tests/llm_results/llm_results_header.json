@@ -1,0 +1,77 @@
+[
+  {
+    "section_type": "header",
+    "test_case": 1,
+    "input": "Kushagra Misra btech cse iit bombay email kushagra@gmail.com phone 9876543210 linkedin kushagra-misra github kushagramisra06",
+    "output": {
+      "name": "Kushagra Misra",
+      "edu": "B.Tech. in Computer Science and Engineering, IIT Bombay",
+      "contact": {
+        "email": "kushagra@gmail.com",
+        "phone": "9876543210",
+        "linkedin": "kushagra-misra",
+        "github": "kushagramisra06"
+      }
+    }
+  },
+  {
+    "section_type": "header",
+    "test_case": 2,
+    "input": "Siddhant Sharma B.Tech in Aerospace Engineering sid@siddshr.in +91 12345 67890 linkedin 1783717828 github siddhantshr",
+    "output": {
+      "name": "Siddhant Sharma",
+      "edu": "B.Tech. in Aerospace Engineering",
+      "contact": {
+        "email": "sid@siddshr.in",
+        "phone": "+91 12345 67890",
+        "linkedin": "1783717828",
+        "github": "siddhantshr"
+      }
+    }
+  },
+  {
+    "section_type": "header",
+    "test_case": 3,
+    "input": "Prathmesh S chemical engineering undergrad at IIT Bombay email prathmesh@iitb.ac.in phone 9988776655 linkedin prathmesh-s github prathmeshcodes",
+    "output": {
+      "name": "Prathmesh S",
+      "edu": "Chemical Engineering Undergraduate, IIT Bombay",
+      "contact": {
+        "email": "prathmesh@iitb.ac.in",
+        "phone": "9988776655",
+        "linkedin": "prathmesh-s",
+        "github": "prathmeshcodes"
+      }
+    }
+  },
+  {
+    "section_type": "header",
+    "test_case": 4,
+    "input": "Aarav Mehta dual degree electrical engineering IITB aaravmehta@gmail.com linkedin aarav-mehta github aaravm no phone",
+    "output": {
+      "name": "Aarav Mehta",
+      "edu": "Dual Degree in Electrical Engineering, IITB",
+      "contact": {
+        "email": "aaravmehta@gmail.com",
+        "phone": "",
+        "linkedin": "aarav-mehta",
+        "github": "aaravm"
+      }
+    }
+  },
+  {
+    "section_type": "header",
+    "test_case": 5,
+    "input": "Riya Gupta B.S. Economics IIT Bombay email riya.gupta@gmail.com phone 9123456789 github riyagpt linkedin linkedin.com/in/riya-gupta",
+    "output": {
+      "name": "Riya Gupta",
+      "edu": "B.S. in Economics, IIT Bombay",
+      "contact": {
+        "email": "riya.gupta@gmail.com",
+        "phone": "9123456789",
+        "linkedin": "riya-gupta",
+        "github": "riyagpt"
+      }
+    }
+  }
+]
