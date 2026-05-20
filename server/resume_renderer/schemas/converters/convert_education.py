@@ -1,7 +1,26 @@
-"""Convert education JSON into LaTeX."""
+"""
+Converts education JSON data into LaTeX format for the resume.
+
+example json:
+[
+    {
+        "degree": "Bachelor of Technology in Computer Science and Engineering",
+        "institution": "Indian Institute of Technology, Bombay",
+        "cpi": "9.2",
+        "year": "2020 - 2024"
+    },
+    {
+        "degree": "High School",
+        "institution": "ABC High School",
+        "cpi": "95%",
+        "year": "2018 - 2020"
+    }
+]
+
+"""
 
 from ...services.json_sanitizer import sanitize_text
-from ...services.markdown_parser import MarkdownParser
+from ...services.markdown_parser import MARKDOWN_PARSER
 
 
 def convert_education(education: list) -> str:
@@ -16,27 +35,56 @@ def convert_education(education: list) -> str:
     Raises:
         ValueError: If the input data is not in the expected format.
     """
-    parts: list[str] = []
-    parts.append(r"\section{Education}")
-    parts.append(r"\noindent")
-    parts.append(
-        r"\begin{tabularx}{\linewidth}{@{} l X r r @{}} \textbf{Degree} & \textbf{Institution} & \textbf{CPI / \%} & \textbf{Year} \\[2pt] \hline\\[-6pt]"
-    )
-    markdown_parser = MarkdownParser()
-
     if not isinstance(education, list):
         raise ValueError("Input must be a list of education entries.")
 
+    if not education:
+        return ""
+
+    parts: list[str] = [
+        r"""
+%============================================================================
+%   Education SECTION
+%----------------------------------------------------------------------------
+\section*{\color{myblue}{\large EDUCATION}\xfilll[0pt]{0.5pt}}
+
+\noindent
+\begin{tabularx}{\linewidth}{@{}lXrr@{}}
+\textbf{Degree} &
+\textbf{Institution} &
+\textbf{CPI / \%} &
+\textbf{Year} \\[2pt]
+\hline
+\\[-5pt]
+"""
+    ]
+
     for edu in education:
         try:
-            degree = markdown_parser.parse(sanitize_text(edu["degree"]))
-            institution = markdown_parser.parse(sanitize_text(edu["institution"]))
-            cpi = markdown_parser.parse(sanitize_text(edu["cpi"]))
-            year = markdown_parser.parse(sanitize_text(edu["year"]))
+            degree = MARKDOWN_PARSER.parse(sanitize_text(edu["degree"]))
 
-            parts.append(rf"{degree} & {institution} & {cpi} & {year} \\")
+            institution = MARKDOWN_PARSER.parse(sanitize_text(edu["institution"]))
+
+            cpi = MARKDOWN_PARSER.parse(sanitize_text(edu["cpi"]))
+
+            year = MARKDOWN_PARSER.parse(sanitize_text(edu["year"]))
+
+            parts.append(
+                rf"{degree} & "
+                rf"{institution} & "
+                rf"{cpi} & "
+                rf"{year} \\"
+            )
+
         except KeyError as e:
             raise ValueError(f"Missing key in education entry: {e}")
 
-    parts.append(r"\end{tabularx}")
+    parts.extend(
+        [
+            r"\end{tabularx}",
+            r"%----------------------------------------------------------------------------",
+            r"%============================================================================",
+        ]
+    )
+
     return "\n".join(parts)

@@ -7,6 +7,7 @@ import re
 
 class MarkdownParser:
     def __init__(self):
+        # Precompile regex patterns for performance
         self.bold_pattern = re.compile(r"\*\*(.*?)\*\*")
         self.italic_pattern = re.compile(r"\*(.*?)\*")
         self.underline_pattern = re.compile(r"_(.*?)_")
@@ -32,3 +33,6 @@ class MarkdownParser:
         # Underline last
         text = self.underline_pattern.sub(r"\\underline{\1}", text)
         return text
+
+
+MARKDOWN_PARSER = MarkdownParser()
