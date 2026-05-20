@@ -1,8 +1,8 @@
-from resume_renderer.schemas.convert_education import convert_education
-from resume_renderer.schemas.convert_experience import convert_experience
-from resume_renderer.schemas.convert_header import convert_header
-from resume_renderer.schemas.convert_key_project import convert_key_project
-from resume_renderer.schemas.json_sanitizer import sanitize_text
+from resume_renderer.schemas.converters.convert_education import convert_education
+from resume_renderer.schemas.converters.convert_experience import convert_experience
+from resume_renderer.schemas.converters.convert_header import convert_header
+from resume_renderer.schemas.converters.convert_key_project import convert_key_project
+from resume_renderer.services.json_sanitizer import sanitize_text
 
 
 def test_sanitize_text_escapes_special_chars():
@@ -72,6 +72,7 @@ def test_convert_experience_includes_items():
     assert "\\begin{itemize}" in latex
     assert "Did work" in latex
     assert "Wrote tests" in latex
+
 
 def test_convert_key_project_includes_items():
     """Test that convert_key_project includes bullet points in the output."""

@@ -1,7 +1,6 @@
 venv/
 .venv/
 .env
-.env.*
 .pytest_cache/
 __pycache__/
 *.py[cod]
@@ -30,7 +29,6 @@ db.sqlite3
 db.sqlite3-journal
 media/
 staticfiles/
-.env
 
 # Logs
 logs

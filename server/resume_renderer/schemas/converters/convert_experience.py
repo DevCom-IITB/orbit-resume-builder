@@ -1,11 +1,12 @@
 """Convert experience JSON into LaTeX."""
 
-from .json_sanitizer import sanitize_text
+from ...services.json_sanitizer import sanitize_text
+from ...services.markdown_parser import MarkdownParser
 
 
 def convert_experience(experiences: list) -> str:
     """Convert experience JSON into LaTeX.
-    
+
     Args:
         experiences: A list of dictionaries, each containing 'title', 'organisation', 'location',
                         'timeline', and 'bullets'.
@@ -18,22 +19,25 @@ def convert_experience(experiences: list) -> str:
     """
     parts: list[str] = []
     parts.append(r"\section{Professional Experience}")
+    markdown_parser = MarkdownParser()
 
     if not isinstance(experiences, list):
         raise ValueError("Input must be a list of experiences.")
 
     for exp in experiences:
         try:
-            title = sanitize_text(exp["title"])
-            organisation = sanitize_text(exp["organisation"])
-            location = sanitize_text(exp["location"])
-            timeline = sanitize_text(exp["timeline"])
+            title = markdown_parser.parse(sanitize_text(exp["title"]))
+            organisation = markdown_parser.parse(sanitize_text(exp["organisation"]))
+            location = markdown_parser.parse(sanitize_text(exp["location"]))
+            timeline = markdown_parser.parse(sanitize_text(exp["timeline"]))
             bullets = exp["bullets"]
 
-            parts.append(rf"\entry{{{title}}}{{{organisation}}}{{{location}}}{{{timeline}}}")
+            parts.append(
+                rf"\entry{{{title}}}{{{organisation}}}{{{location}}}{{{timeline}}}"
+            )
             parts.append(r"\begin{itemize}")
             for bullet in bullets:
-                parts.append(rf"  \item {sanitize_text(bullet)}")
+                parts.append(rf"  \item {markdown_parser.parse(sanitize_text(bullet))}")
             parts.append(r"\end{itemize}")
             parts.append(r"\vspace{4pt}")
         except KeyError as e:
