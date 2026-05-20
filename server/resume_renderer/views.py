@@ -9,6 +9,12 @@ from .schemas.converters.convert_education import convert_education
 from .schemas.converters.convert_experience import convert_experience
 from .schemas.converters.convert_header import convert_header
 from .schemas.converters.convert_key_project import convert_key_project
+from .schemas.converters.convert_pors import convert_pors
+from .schemas.converters.convert_scholastic_achievements import (
+    convert_scholastic_achievements,
+)
+from .schemas.converters.convert_courses import convert_courses
+from .schemas.converters.convert_technical_skills import convert_technical_skills
 from .serializers import LatexRenderSerializer
 from .services import renderer
 from rest_framework.permissions import IsAuthenticated
@@ -37,6 +43,10 @@ class LatexRenderView(APIView):
         education = data.get("education", [])
         experience = data.get("experience", [])
         key_projects = data.get("key_projects", [])
+        pors = data.get("pors", [])
+        scholastic_achievements = data.get("scholastic_achievements", [])
+        courses = data.get("courses", [])
+        technical_skills = data.get("technical_skills", [])
         config_data = data.get("config", {})
 
         serializer = LatexRenderSerializer(
@@ -45,6 +55,10 @@ class LatexRenderView(APIView):
                 "education": education,
                 "experience": experience,
                 "key_projects": key_projects,
+                "pors": pors,
+                "scholastic_achievements": scholastic_achievements,
+                "courses": courses,
+                "technical_skills": technical_skills,
                 "config": config_data,
             }
         )
@@ -64,8 +78,21 @@ class LatexRenderView(APIView):
             education_latex = convert_education(education)
             experience_latex = convert_experience(experience)
             key_projects_latex = convert_key_project(key_projects)
+            pors_latex = convert_pors(pors)
+            scholastic_latex = convert_scholastic_achievements(scholastic_achievements)
+            courses_latex = convert_courses(courses)
+            technical_latex = convert_technical_skills(technical_skills)
             latex = "\n".join(
-                [header_latex, education_latex, experience_latex, key_projects_latex]
+                [
+                    header_latex,
+                    education_latex,
+                    experience_latex,
+                    key_projects_latex,
+                    pors_latex,
+                    scholastic_latex,
+                    courses_latex,
+                    technical_latex,
+                ]
             )
             pdf_bytes = renderer.compile_latex(latex)
         except RuntimeError as e:

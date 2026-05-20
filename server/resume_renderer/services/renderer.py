@@ -11,8 +11,14 @@ LATEX_IMAGE_NAME = os.getenv("LATEX_IMAGE_NAME", "resume-renderer:latest")
 DOCKERFILE_PATH = os.path.join(os.path.dirname(__file__), "..", "Dockerfile")
 
 
-def ensure_image_exists():
+def ensure_image_exists(force_rebuild=False):
     """Build the LaTeX image if it is not already available locally."""
+    if force_rebuild:
+        print("Force rebuilding the LaTeX image...")
+        try:
+            client.images.remove(LATEX_IMAGE_NAME, force=True)
+        except docker.errors.ImageNotFound:
+            pass  # Image doesn't exist, no need to remove
     try:
         client.images.get(LATEX_IMAGE_NAME)
     except docker.errors.ImageNotFound:
@@ -36,17 +42,37 @@ except docker.errors.NotFound:
 
 
 TEMPLATE = r"""
-\documentclass[10pt, a4paper]{article}
-
-% ---------- packages ----------
-\usepackage[
-  top=0.5in, bottom=0.5in,
-  left=0.6in, right=0.6in
-]{geometry}
+%============================================================================
+\documentclass[a4paper,10.9pt]{article}
+\usepackage[a4paper, bottom = 0.4mm, left = 14.11mm, right = 14.11mm, top = 0.6in]{geometry}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{amsmath}
 \usepackage{array}
+\usepackage{enumitem}
+%\usepackage{enumitem,xcolor}
+\usepackage{microtype}
 \usepackage{tabularx}
+\usepackage{wrapfig}
+\usepackage{titlesec}
+\usepackage{comment}
+\usepackage{verbatim}
+\usepackage[dvipsnames]{xcolor}
 \usepackage{hyperref}
-\usepackage{xcolor}
+\usepackage{colortbl}
+\definecolor{myblue}{RGB}{75,65,200}
+\newcommand{\xfilll}[2][1ex]{
+\dimen0=#2\advance\dimen0 by #1
+\leaders\hrule height \dimen0 depth -#1\hfill}
+\titleformat{\section}{\Large\bfseries\color{myblue}\raggedright}{}{0em}{}
+\titlespacing*{\section}{0pt}{2pt}{1pt}
+\renewcommand\labelitemi{\raisebox{0.4ex}{\tiny$\bullet$}}
+\renewcommand{\labelitemii}{$\cdot$}
+\pagenumbering{gobble}
+
+\newenvironment{localsize}[1]
+{\fontsize{#1}{#1}\selectfont}
+{}
 
 % ---------- colours ----------
 \definecolor{iitbblue}{RGB}{0, 51, 102}
@@ -84,7 +110,7 @@ __CONTENT__
 def compile_latex(latex: str) -> bytes:
     """Compile LaTeX into PDF bytes using a Dockerized TeX Live image."""
 
-    ensure_image_exists()
+    ensure_image_exists(force_rebuild=False)
     container = None
 
     try:
@@ -100,6 +126,8 @@ def compile_latex(latex: str) -> bytes:
         )
 
         full_document = TEMPLATE.replace("__CONTENT__", latex)
+        # print(full_document) # Debug
+        # return
         encoded = full_document.encode("utf-8")
 
         tar_buffer = BytesIO()
