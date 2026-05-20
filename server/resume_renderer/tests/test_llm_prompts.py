@@ -30,7 +30,7 @@ def bullet_has_acceptable_length(bullet: str) -> bool:
     We use word count as a simple proxy.
     """
     word_count = len(bullet.split())
-    return 18 <= word_count <= 35
+    return 15 <= word_count <= 35
 
 
 def extract_bullets(section_type: str, output):

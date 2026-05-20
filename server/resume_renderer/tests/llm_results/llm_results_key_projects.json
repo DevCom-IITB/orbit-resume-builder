@@ -1,0 +1,88 @@
+[
+  {
+    "section_type": "key_projects",
+    "test_case": 1,
+    "input": "made ai resume builder project using react django gemini api and latex where user enters rough points and ai converts them into resume bullets and pdf is generated",
+    "output": [
+      {
+        "title": "AI-Powered Resume Builder",
+        "guide": "",
+        "location": "",
+        "timeline": "",
+        "bullets": [
+          "Developed a full-stack web application utilizing React for the frontend and Django for the backend to streamline the process of professional resume creation.",
+          "Integrated the Gemini API to process informal, rough user inputs and dynamically transform them into polished, high-impact resume bullet points.",
+          "Engineered an automated PDF generation pipeline using LaTeX to compile the AI-refined bullet points into structured, recruiter-friendly resume templates."
+        ]
+      }
+    ]
+  },
+  {
+    "section_type": "key_projects",
+    "test_case": 2,
+    "input": "cataract detection ai project used eye images trained cnn model to classify cataract and normal eyes used python tensorflow and evaluated model accuracy",
+    "output": [
+      {
+        "title": "Cataract Detection AI",
+        "guide": "",
+        "location": "",
+        "timeline": "",
+        "bullets": [
+          "Developed a Convolutional Neural Network (CNN) model using Python and TensorFlow to classify ocular images into cataract and normal categories.",
+          "Preprocessed the image dataset and evaluated the model's classification accuracy to ensure robust performance for automated cataract detection."
+        ]
+      }
+    ]
+  },
+  {
+    "section_type": "key_projects",
+    "test_case": 3,
+    "input": "built redis clone in python implemented get set delete expiry and basic in memory key value store used socket programming for client server communication",
+    "output": [
+      {
+        "title": "Redis Clone",
+        "guide": "",
+        "location": "",
+        "timeline": "",
+        "bullets": [
+          "Developed a custom in-memory key-value database clone of Redis in Python, implementing core commands including GET, SET, DELETE, and key expiration mechanisms.",
+          "Engineered a robust client-server communication architecture utilizing socket programming to handle concurrent requests and ensure low-latency data transmission."
+        ]
+      }
+    ]
+  },
+  {
+    "section_type": "key_projects",
+    "test_case": 4,
+    "input": "kernelmind project reinforcement learning based os scheduler made simulation environment in python and used q learning to decide which process gets cpu time",
+    "output": [
+      {
+        "title": "KernelMind: Reinforcement Learning-based OS Scheduler",
+        "guide": "",
+        "location": "",
+        "timeline": "",
+        "bullets": [
+          "Developed a custom operating system simulation environment in Python to model process scheduling and CPU resource allocation dynamics.",
+          "Implemented a Q-learning algorithm to dynamically allocate CPU time slices to processes, optimizing scheduling efficiency and minimizing average waiting time."
+        ]
+      }
+    ]
+  },
+  {
+    "section_type": "key_projects",
+    "test_case": 5,
+    "input": "portfolio website project made personal website using nextjs tailwind added projects section skills section contact form and deployed it on vercel",
+    "output": [
+      {
+        "title": "Personal Portfolio Website",
+        "guide": "",
+        "location": "",
+        "timeline": "",
+        "bullets": [
+          "Designed and developed a responsive personal portfolio website using Next.js and Tailwind CSS to showcase academic projects, technical skills, and professional experience.",
+          "Integrated an interactive contact form and deployed the optimized production build on Vercel to ensure high performance, fast loading times, and seamless user experience."
+        ]
+      }
+    ]
+  }
+]
