@@ -24,5 +24,9 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // This is to allow setState withing useEffect
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])
