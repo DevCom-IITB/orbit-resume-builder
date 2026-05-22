@@ -69,7 +69,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: client/package-lock.json
 
@@ -81,6 +81,11 @@ jobs:
       - name: Run lint
         run: |
           npm run lint
+        working-directory: client
+
+      - name: Check formatting
+        run: |
+          npx prettier --check .
         working-directory: client
 
       - name: Build
