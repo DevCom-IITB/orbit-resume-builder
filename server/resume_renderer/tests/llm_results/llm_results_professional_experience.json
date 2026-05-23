@@ -6,82 +6,12 @@
     "output": [
       {
         "title": "Frontend Intern",
-        "organisation": "Awaasdhan",
+        "organization": "Awaasdhan",
         "location": "",
         "timeline": "",
         "bullets": [
-          "Developed and deployed responsive web pages using React and Tailwind CSS, enhancing the user interface and visual appeal of the platform.",
-          "Identified and resolved critical responsiveness and layout issues, ensuring seamless cross-platform compatibility and optimal performance across various devices."
-        ]
-      }
-    ]
-  },
-  {
-    "section_type": "professional_experience",
-    "test_case": 2,
-    "input": "worked with prof sharma in summer 2025 on agriculture project mostly helped in collecting and cleaning crop disease data and testing some models for prediction also made presentations and helped with documentation",
-    "output": [
-      {
-        "title": "Research Intern",
-        "organisation": "Prof. Sharma",
-        "location": "",
-        "timeline": "Summer 2025",
-        "bullets": [
-          "Curated and preprocessed a comprehensive dataset of crop disease records, performing rigorous data cleaning and normalization to ensure high-quality inputs for predictive modeling.",
-          "Evaluated and benchmarked multiple machine learning models for crop disease prediction, analyzing key performance metrics to identify the most accurate forecasting approach.",
-          "Documented project methodologies and research findings, creating detailed technical presentations to effectively communicate progress and insights to the research team."
-        ]
-      }
-    ]
-  },
-  {
-    "section_type": "professional_experience",
-    "test_case": 3,
-    "input": "backend intern at FinTrack from may 2025 to july 2025 built django apis for expense tracking connected postgres database and tested endpoints using postman",
-    "output": [
-      {
-        "title": "Backend Developer Intern",
-        "organisation": "FinTrack",
-        "location": "",
-        "timeline": "May 2025 - July 2025",
-        "bullets": [
-          "Developed robust Django APIs for the expense tracking system to facilitate seamless data retrieval and management.",
-          "Integrated and configured a PostgreSQL database, ensuring efficient data persistence and structured storage for user financial records.",
-          "Conducted comprehensive endpoint testing and API validation using Postman to ensure optimal performance and reliability."
-        ]
-      }
-    ]
-  },
-  {
-    "section_type": "professional_experience",
-    "test_case": 4,
-    "input": "research intern under prof rao at iit bombay worked on CFD simulation of reentry vehicle used python and openfoam validated heat flux results with available data",
-    "output": [
-      {
-        "title": "Research Intern (under Prof. Rao)",
-        "organisation": "IIT Bombay",
-        "location": "Mumbai",
-        "timeline": "",
-        "bullets": [
-          "Conducted Computational Fluid Dynamics (CFD) simulations of a reentry vehicle using OpenFOAM to analyze aerodynamic heating and flow characteristics",
-          "Developed Python scripts for post-processing and validated simulated heat flux results against available experimental and numerical benchmark data"
-        ]
-      }
-    ]
-  },
-  {
-    "section_type": "professional_experience",
-    "test_case": 5,
-    "input": "marketing intern at startup called SkillBridge handled instagram posts wrote captions coordinated with design team and helped improve reach of internship campaign",
-    "output": [
-      {
-        "title": "Marketing Intern",
-        "organisation": "SkillBridge",
-        "location": "",
-        "timeline": "",
-        "bullets": [
-          "Managed the official Instagram account by drafting engaging captions and scheduling posts to maintain a consistent brand presence and drive audience engagement.",
-          "Collaborated closely with the design team to produce visually appealing content, successfully enhancing the overall reach and visibility of the internship campaign."
+          "Developed and designed multiple website pages using React and Tailwind CSS, significantly improving the user interface aesthetics.",
+          "Identified and resolved responsiveness issues across various screen sizes to ensure a seamless and consistent user experience."
         ]
       }
     ]

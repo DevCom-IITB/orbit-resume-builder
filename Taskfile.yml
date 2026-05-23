@@ -1,0 +1,113 @@
+version: '3'
+
+vars:
+  SERVER_DIR: server
+  CLIENT_DIR: client
+  PYTHON: python3
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  setup:
+    desc: Install backend and frontend dependencies
+    deps:
+      - server:install
+      - client:install
+
+  dev:
+    desc: Start the backend and frontend dev servers in separate terminals
+    cmds:
+      - task server:run & task client:dev
+
+  check:
+    desc: Run the main backend and frontend checks
+    deps:
+      - server:test
+      - server:lint
+      - client:lint
+      - client:build
+
+  server:install:
+    desc: Install Python dependencies
+    dir: "{{.SERVER_DIR}}"
+    cmds:
+      - "{{.PYTHON}} -m pip install -r requirements.txt"
+
+  server:migrate:
+    desc: Apply Django database migrations
+    dir: "{{.SERVER_DIR}}"
+    cmds:
+      - "{{.PYTHON}} manage.py migrate"
+
+  server:run:
+    desc: Run the Django development server
+    dir: "{{.SERVER_DIR}}"
+    cmds:
+      - "{{.PYTHON}} manage.py runserver"
+
+  server:test:
+    desc: Run backend tests
+    dir: "{{.SERVER_DIR}}"
+    cmds:
+      - pytest
+
+  server:lint:
+    desc: Lint backend code with Ruff
+    dir: "{{.SERVER_DIR}}"
+    cmds:
+      - ruff check .
+
+  server:format:
+    desc: Format backend code with Ruff
+    dir: "{{.SERVER_DIR}}"
+    cmds:
+      - ruff format .
+
+  server:fix:
+    desc: Fix backend lint issues and format code
+    dir: "{{.SERVER_DIR}}"
+    cmds:
+      - ruff check . --fix
+      - ruff format .
+
+  server:clean:
+    desc: Clean up Python cache files
+    dir: "{{.SERVER_DIR}}"
+    cmds:
+      - find . -type d -name "__pycache__" -exec rm -rf {} +
+      - find . -type f -name "*.pyc" -delete
+      - rm -rf .pytest_cache
+      - rm -rf .ruff_cache
+
+  client:install:
+    desc: Install frontend dependencies
+    dir: "{{.CLIENT_DIR}}"
+    cmds:
+      - npm install
+
+  client:dev:
+    desc: Run the Vite development server
+    dir: "{{.CLIENT_DIR}}"
+    cmds:
+      - npm run dev
+
+  client:build:
+    desc: Build the frontend for production
+    dir: "{{.CLIENT_DIR}}"
+    cmds:
+      - npm run build
+
+  client:lint:
+    desc: Lint frontend code
+    dir: "{{.CLIENT_DIR}}"
+    cmds:
+      - npm run lint
+
+  client:preview:
+    desc: Preview the production build locally
+    dir: "{{.CLIENT_DIR}}"
+    cmds:
+      - npm run preview

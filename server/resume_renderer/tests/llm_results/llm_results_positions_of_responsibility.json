@@ -1,0 +1,19 @@
+[
+  {
+    "section_type": "positions_of_responsibility",
+    "test_case": 1,
+    "input": "developer at devcom iit bombay from mar 2025 to present working on ai resume builder and career research portal for students and professors",
+    "output": [
+      {
+        "role": "Developer",
+        "organization": "DevCom, IIT Bombay",
+        "duration": "Mar '25 - Present",
+        "summary": "Developing digital platforms to assist students and professors with career planning and resume building",
+        "bullets": [
+          "Developing an AI-powered resume builder designed to streamline the resume creation and refinement process for students.",
+          "Contributing to the design and implementation of a comprehensive career research portal to facilitate academic and professional guidance for students and professors."
+        ]
+      }
+    ]
+  }
+]

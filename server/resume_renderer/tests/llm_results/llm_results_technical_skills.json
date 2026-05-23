@@ -1,0 +1,45 @@
+[
+  {
+    "section_type": "technical_skills",
+    "test_case": 1,
+    "input": "python c++ js react django html css tailwind sql postgres git github docker figma tensorflow pytorch",
+    "output": [
+      {
+        "category": "Programming Languages",
+        "skills": [
+          "Python",
+          "C++",
+          "JavaScript",
+          "SQL"
+        ]
+      },
+      {
+        "category": "Web Development",
+        "skills": [
+          "React.js",
+          "Django",
+          "HTML",
+          "CSS",
+          "Tailwind CSS"
+        ]
+      },
+      {
+        "category": "Machine Learning",
+        "skills": [
+          "TensorFlow",
+          "PyTorch"
+        ]
+      },
+      {
+        "category": "Tools & Databases",
+        "skills": [
+          "PostgreSQL",
+          "Git",
+          "GitHub",
+          "Docker",
+          "Figma"
+        ]
+      }
+    ]
+  }
+]
