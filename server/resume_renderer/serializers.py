@@ -1,5 +1,5 @@
 import re
-
+from resume_renderer.JSONSchema.jsonschema import get_supported_section_types
 from rest_framework import serializers
 
 BAD_PATTERNS = [
@@ -152,3 +152,17 @@ class LatexRenderSerializer(serializers.Serializer):
             for pattern in COMPILED_PATTERNS:
                 if pattern.search(data):
                     raise serializers.ValidationError("LaTeX commands are not allowed.")
+from rest_framework import serializers
+
+from resume_renderer.JSONSchema.jsonschema import get_supported_section_types
+
+
+from rest_framework import serializers
+
+
+class ResumeSectionRefineSerializer(serializers.Serializer):
+    user_input = serializers.CharField(
+        allow_blank=False,
+        trim_whitespace=True,
+        max_length=5000,
+    )
