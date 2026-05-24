@@ -42,6 +42,13 @@ General rules:
 13. Do not add extra keys outside the schema.
 14. Keep spelling consistent with the schema field names exactly.
 15. The response should be directly usable by a JSON-to-LaTeX converter.
+Line-length rules for all bullet points:
+The LaTeX text column is approximately 95 characters wide.
+Each bullet must land cleanly on either 1 line (80–95 chars) or 2 lines (160–190 chars).
+Bullets between 96–155 chars are forbidden — they create an ugly trailing half-line.
+Before finalizing each bullet, mentally count its length and adjust accordingly.
+To shorten: remove filler words, combine clauses, use abbreviations where natural.
+To lengthen: add the method used, tool name, metric context, or outcome — only from provided facts.
 """
 
 
