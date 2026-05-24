@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import GeneratedTextArea from './generated-textarea'
 import ItemTextArea from './item-textarea'
 import type { Item } from '../../types/editor-panel/item'
+import { generateSectionData, type SectionType } from '../../lib/api'
 import { useSortable } from '@dnd-kit/sortable'
 
 import deleteIcon from '../../assets/editor-panel/delete.png'
@@ -14,6 +16,7 @@ interface SectionItemProps {
   item: Item
   label: string
   displayIndex: number
+  sectionType: SectionType
   sectionId?: number
   isReorderEnabled: boolean
 
@@ -28,6 +31,7 @@ const SectionItem = ({
   item,
   label,
   displayIndex,
+  sectionType,
   sectionId,
   isReorderEnabled,
   onToggleCollapse,
@@ -36,6 +40,11 @@ const SectionItem = ({
   onTextGenerated,
   onUpdateGeneratedText,
 }: SectionItemProps) => {
+  // TODO: Extend with an explicit "idle" state if the UI needs it later.
+  const [generateStatus, setGenerateStatus] = useState<
+    'loading' | 'success' | 'error'
+  >('success')
+
   const isCollapsed = item.isCollapsed
 
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -47,19 +56,40 @@ const SectionItem = ({
   const handleUpdateDesc = (updatedText: string) => {
     onDescChange(item.id, updatedText)
   }
+  //=============================================================================
+  // API CALL
+  //============================================================================
+  const handleGenerateText = async (textVal: string) => {
+    setGenerateStatus('loading')
 
-  const handleGenerateText = (textVal: string) => {
-    // API Call to Generate Text Goes here
+    try {
+      const data = await generateSectionData(sectionType, textVal)
 
-    // The below line is only to pass the test, make sure to remove it before working on your functionality
-    // Keep in mind that whatever you pass as genText, will appear in the GeneratedTextArea component
-    const genText = textVal
-    onTextGenerated(item.id, genText)
+      // TODO: Update this mapping when the backend response schema is finalized.
+      const apiText =
+        typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+
+      onTextGenerated(item.id, apiText)
+      setGenerateStatus('success')
+    } catch (error) {
+      console.error('Error generating text:', error)
+      // onTextGenerated(item.id, textVal)
+      setGenerateStatus('error')
+    }
   }
 
   const handleUpdateGeneratedDesc = (updatedText: string) => {
     onUpdateGeneratedText(item.id, updatedText)
   }
+
+  const generateButtonLabel =
+    generateStatus === 'loading'
+      ? 'Generating...'
+      : generateStatus === 'error'
+        ? 'Retry'
+        : item.generatedText
+          ? 'Regenerate'
+          : 'Generate'
 
   return (
     <div
@@ -134,7 +164,14 @@ const SectionItem = ({
             desc={item.desc}
             updateDesc={handleUpdateDesc}
             onGenerateClicked={handleGenerateText}
+            generateStatus={generateStatus}
+            generateButtonLabel={generateButtonLabel}
           />
+          {generateStatus === 'error' && (
+            <div className="error-message">
+              An error occurred. Please try again.
+            </div>
+          )}
           <GeneratedTextArea
             generatedText={item.generatedText}
             updateGeneratedText={handleUpdateGeneratedDesc}

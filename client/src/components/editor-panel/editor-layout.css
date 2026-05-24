@@ -180,18 +180,22 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: clamp(0.5rem, 0.9vw, 0.85rem);
-  border: 0.08em solid #d9d9d9;
+  gap: clamp(
+    0.35rem,
+    0.75vw,
+    0.65rem
+  ); /*decreaded the section vertical length*/
+  border: 0.08em solid #131313;
   border-radius: clamp(1.2rem, 1.4vw, 1.5rem);
   background: #fff;
-  padding: clamp(1rem, 1.2vw, 1.3rem);
+  padding: clamp(0.7rem, 1vw, 1.05rem);
   transition:
     border-color 0.22s ease,
     box-shadow 0.22s ease,
     transform 0.22s ease;
 }
 .resume-section-card:hover {
-  border-color: #cfd5ff;
+  border-color: #131313;
   box-shadow: 0 0.5em 1.5em rgba(0, 0, 0, 0.045);
 }
 .resume-section-card::after {
@@ -225,6 +229,7 @@ body {
 }
 
 .resume-section-topbar h1 {
+  margin: 0;
   font-size: clamp(1.1rem, 1.3vw, 1.35rem);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -604,12 +609,32 @@ body {
   color: white;
   font-weight: 700;
   cursor: pointer;
+  /* Keeps label and spinner aligned on one line. */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   transition: all 0.2s ease;
 }
 
 .generate-text-button:hover {
   transform: translateY(-1px);
   box-shadow: 0px 6px 14px rgba(59, 78, 255, 0.25);
+}
+
+/* Spinner inside the generate button when loading. */
+.generate-spinner {
+  inline-size: 0.95rem;
+  block-size: 0.95rem;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  animation: generate-spin 0.75s linear infinite;
+}
+
+@keyframes generate-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .gentext-container {
@@ -650,4 +675,40 @@ body {
 .generated-text-edit-button:hover {
   border-color: #3b4eff;
   color: #3b4eff;
+}
+
+/*----------------------------------
+    Error Message for failed generation
+    */
+.error-message {
+  color: #dc2626;
+  font-size: 13px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* style for the  main wrapper and splitter for resume-viewer and sections */
+/* Layout: split editor and viewer side-by-side */
+/* 1. Lock the main container to the screen height */
+.editor-page {
+  display: flex;
+  gap: 16px;
+  height: 100vh; /* 100vh means 100% of the Viewport (screen) Height */
+  overflow: hidden; /* Prevents the main page itself from scrolling */
+}
+
+/* 2. Left side: Takes half, but scrolls internally if content is too long */
+.editor-pane {
+  flex: 1; /* This is a cleaner way to say take up half the remaining space */
+  height: 100%;
+  overflow-y: auto; /* Adds a scrollbar ONLY to the left side when dropdowns open */
+  padding-right: 8px; /* Optional: adds a little breathing room for the scrollbar */
+}
+
+/* 3. Right side: Takes half, stays exactly 100% height constantly */
+.viewer-pane {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column; /* Ensures children (like the iframe) can fill the space */
 }

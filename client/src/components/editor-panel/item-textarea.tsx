@@ -4,12 +4,16 @@ interface ItemTextAreaProps {
   desc: string
   updateDesc: (updatedDesc: string) => void
   onGenerateClicked: (textVal: string) => void
+  generateStatus: 'loading' | 'success' | 'error'
+  generateButtonLabel: string
 }
 
 const ItemTextArea = ({
   desc = '',
   updateDesc,
   onGenerateClicked,
+  generateStatus,
+  generateButtonLabel,
 }: ItemTextAreaProps) => {
   const [textVal, setTextVal] = useState(desc)
 
@@ -59,11 +63,15 @@ const ItemTextArea = ({
       <div className="generate-button">
         <button
           className="generate-text-button"
+          disabled={generateStatus === 'loading'}
           onClick={() => {
             onGenerateClicked(textVal)
           }}
         >
-          Generate
+          {generateButtonLabel}
+          {generateStatus === 'loading' && (
+            <span className="generate-spinner" aria-hidden="true" />
+          )}
         </button>
       </div>
     </div>

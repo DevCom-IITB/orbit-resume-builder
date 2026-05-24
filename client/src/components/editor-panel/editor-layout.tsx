@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ResumeSection from './resume-section'
 import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import {
@@ -12,12 +12,69 @@ import reorderIcon from '../../assets/editor-panel/reorder.png'
 import type { Section } from '../../types/editor-panel/section'
 import type { Item } from '../../types/editor-panel/item'
 
-const EditorPanel = () => {
+//======prop for comping data feature===========
+interface EditorPanelProps {
+  onDataChange: (compiledData: Record<string, unknown[]>) => void
+}
+//===========================================
+
+//==============Compiling all json results for pdf generation - function========================
+
+const compileMasterPayload = (sections: Section[]) => {
+  const sectionTypeMap: Record<string, string> = {
+    education: 'education',
+    professional_experience: 'experience',
+    key_projects: 'key_projects',
+    positions_of_responsibility: 'pors',
+    scholastic_achievements: 'scholastic_achievements',
+    courses: 'courses',
+    technical_skills: 'technical_skills',
+  }
+  const payload: Record<string, unknown[]> = {}
+
+  sections.forEach((section) => {
+    // 1. Get all items in this section that actually have generated text
+    const validItems = section.items.filter(
+      (item) => item.generatedText && item.generatedText.trim() !== ''
+    )
+
+    // 2. Try to parse the stringified JSON back into real objects
+    const sectionData = validItems.map((item) => {
+      try {
+        // If the API returned JSON and we stringified it for the textarea,
+        // this parses it back into a native object for the final payload.
+        return JSON.parse(item.generatedText as string)
+      } catch {
+        // If it was just raw plain text, return the string as-is.
+        return item.generatedText
+      }
+    })
+
+    const payloadKey =
+      sectionTypeMap[section.sectionType] ?? section.sectionType
+
+    // 3. Initialize the array if this sectionType hasn't been seen yet
+    if (!payload[payloadKey]) {
+      payload[payloadKey] = []
+    }
+
+    // 4. Push the data into the master payload
+    payload[payloadKey].push(...sectionData)
+  })
+
+  return payload
+}
+
+//==============================================================================
+
+const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
   const [sections, setSections] = useState<Section[]>([
     {
       id: 0,
-      title: 'Exp',
+      title: 'Experience',
       label: 'Experience',
+      // TODO: Update this when backend section keys change.
+      sectionType: 'professional_experience',
       isCollapsed: true,
       items: [
         {
@@ -38,6 +95,8 @@ const EditorPanel = () => {
       id: 1,
       title: 'POR',
       label: 'POR',
+      // TODO: Update this when backend section keys change.
+      sectionType: 'positions_of_responsibility',
       isCollapsed: true,
       items: [
         {
@@ -50,13 +109,57 @@ const EditorPanel = () => {
     },
     {
       id: 2,
-      title: 'Skills',
-      label: 'Skill',
+      title: 'Scholastic Achievements',
+      label: 'Scholastic Achievement',
+      // TODO: Replace with real section key when skills API is available.
+      sectionType: 'scholastic_achievements',
+      isCollapsed: true,
+      items: [],
+    },
+    {
+      id: 3,
+      title: 'Education',
+      label: 'Education',
+      sectionType: 'education',
+      isCollapsed: true,
+      items: [],
+    },
+    {
+      id: 4,
+      title: 'Key Projects',
+      label: 'Key Project',
+      sectionType: 'key_projects',
+      isCollapsed: true,
+      items: [],
+    },
+    {
+      id: 5,
+      title: 'Courses',
+      label: 'Course',
+      sectionType: 'courses',
+      isCollapsed: true,
+      items: [],
+    },
+    {
+      id: 6,
+      title: 'Technical Skills',
+      label: 'Technical Skill',
+      sectionType: 'technical_skills',
       isCollapsed: true,
       items: [],
     },
   ])
+  //=================use effect to watch for changes in sections and compile data for pdf generation========================
 
+  useEffect(() => {
+    // Run the aggregation logic we wrote in Phase 1
+    const compiledPayload = compileMasterPayload(sections)
+
+    // Send it to App.tsx
+    onDataChange(compiledPayload)
+  }, [sections, onDataChange]) // Runs every time 'sections' updates
+
+  //=============================================================================
   const [isPanelCollapsed, setPanelCollapse] = useState(false)
 
   const [fileName, setFileName] = useState('File name')

@@ -214,6 +214,7 @@ const ResumeSection = ({
                     key={`${section.id}-${item.id}`}
                     item={item}
                     label={section.label}
+                    sectionType={section.sectionType}
                     sectionId={section.id}
                     displayIndex={index}
                     isReorderEnabled={isReorderEnabled}
