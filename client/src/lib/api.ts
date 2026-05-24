@@ -54,9 +54,12 @@ export async function generateSectionData(
   try {
     // Axios handles stringifying the body and parsing the JSON response automatically.
     // We dynamically inject the sectionName directly into the URL path.
-    const response = await APIInstance.post(`/generate/${sectionName}`, {
-      input: rawInputText,
-    })
+    const response = await APIInstance.post(
+      `/api/resume-renderer/${sectionName}`,
+      {
+        input: rawInputText,
+      }
+    )
 
     // response.data contains the already-parsed JSON from your backend
     return response.data
@@ -81,7 +84,7 @@ export async function generatePdfData(
   try {
     // We pass a third argument to override specific configurations just for THIS request
     const response = await APIInstance.post(
-      'api/resume-renderer/render/',
+      '/api/resume-renderer/render/',
       resumeData,
       {
         headers: {
