@@ -92,3 +92,9 @@ jobs:
         run: |
           npm run build
         working-directory: client
+
+      # --- NEW DOCKER STEP ADDED HERE ---
+      - name: Build Docker Image
+        run: |
+          docker build -t orbit-client-dev:latest .
+        working-directory: client
