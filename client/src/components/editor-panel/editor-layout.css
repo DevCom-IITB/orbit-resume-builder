@@ -1,0 +1,714 @@
+/* CSS file for the Editor Panel Component 
+EditorPanel contains multiple components within it:
+1. EditorPanel (editor-layout.tsx) contains ResumeSection (resume-section.tsx)
+2. ResumeSection contains SectionItem (section-item.tsx)
+3. SectionItem contains ItemTextArea (item-textarea.tsx) AND GeneratedTextArea (generated-textarea.tsx)
+*/
+
+/* General Component styles */
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+.button-icon {
+  inline-size: clamp(0.85rem, 0.95vw, 1rem);
+  block-size: clamp(0.85rem, 0.95vw, 1rem);
+}
+
+.icon-button {
+  inline-size: clamp(1rem, 1.2vw, 1.25rem);
+  block-size: clamp(1rem, 1.2vw, 1.25rem);
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+/* Style for editor-layout.tsx */
+
+.editor-panel {
+  inline-size: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 1vw, 1.5rem);
+  padding: clamp(0.75rem, 1.2vw, 1.5rem);
+  box-sizing: border-box;
+  min-inline-size: 0;
+  overflow-x: hidden;
+}
+
+.resume-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(0.5rem, 1vw, 1rem);
+  flex-wrap: wrap;
+  min-inline-size: 0;
+}
+
+/* All styles for panel collapse/expand button */
+.panel-collapse-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: clamp(2.6rem, 3vw, 3rem);
+  padding-inline: clamp(1rem, 1.5vw, 1.4rem);
+  border-radius: 1rem;
+  border: 1px solid #d9d9d9;
+  background-color: #ffffff;
+  color: #151515;
+  font-size: clamp(0.9rem, 0.95vw, 1rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.panel-collapse-button:hover {
+  border-color: #4b57ff;
+  background-color: #f4f6ff;
+}
+
+.panel-collapse-button:active {
+  transform: scale(0.97);
+}
+
+.panel-collapse-icon {
+  inline-size: clamp(1rem, 1.2vw, 1.25rem);
+  block-size: clamp(1rem, 1.2vw, 1.25rem);
+  transition:
+    transform 250ms ease,
+    opacity 180ms ease;
+}
+
+.panel-collapse-icon.collapsed {
+  transform: rotate(180deg);
+}
+
+/* ---------------------------------------------------------------------- */
+
+.file-name-input {
+  border: none;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  background: transparent;
+  font-size: clamp(1.4rem, 2vw, 2.4rem);
+  font-weight: 700;
+  inline-size: 100%;
+  max-inline-size: 22ch;
+  min-block-size: auto;
+  line-height: 1.1;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Styles For Section Reorder Button */
+
+.section-reorder-button {
+  min-block-size: clamp(2.5rem, 3vw, 2.8rem);
+  padding-inline: clamp(1rem, 1.5vw, 1.4rem);
+  border-radius: clamp(0.7rem, 1vw, 0.9rem);
+  border: 1px solid #3b4eff;
+  background: white;
+  color: #3b4eff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.5rem, 0.8vw, 0.8rem);
+  font-size: clamp(0.95rem, 1vw, 1.05rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.section-reorder-button:disabled {
+  min-block-size: clamp(2.5rem, 3vw, 2.8rem);
+  padding-inline: clamp(0.9rem, 1.3vw, 1.15rem);
+  border-radius: clamp(0.7rem, 1vw, 0.9rem);
+  border: 1px solid white;
+  cursor: not-allowed;
+  background-color: #ff2c2c;
+  color: white;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.section-reorder-button:enabled:hover {
+  background-color: #eef1ff;
+}
+
+/* -------------------------------------- lil lazy to type :(
+    Also resume-section styles here
+*/
+
+.resume-section {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.8rem, 1vw, 1rem);
+  align-items: stretch;
+  inline-size: 100%;
+  overflow: hidden;
+  transition:
+    max-height 320ms ease,
+    opacity 240ms ease,
+    transform 260ms ease;
+}
+
+.panel-hidden {
+  max-height: 0;
+  opacity: 0;
+  transform: translateX(clamp(-1rem, -2vw, -1.5rem));
+  pointer-events: none;
+}
+
+.panel-visible {
+  max-height: 100%;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Styles for resume-section.tsx */
+.resume-section-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(
+    0.35rem,
+    0.75vw,
+    0.65rem
+  ); /*decreaded the section vertical length*/
+  border: 0.08em solid #131313;
+  border-radius: clamp(1.2rem, 1.4vw, 1.5rem);
+  background: #fff;
+  padding: clamp(0.7rem, 1vw, 1.05rem);
+  transition:
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s ease;
+}
+.resume-section-card:hover {
+  border-color: #131313;
+  box-shadow: 0 0.5em 1.5em rgba(0, 0, 0, 0.045);
+}
+.resume-section-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.04),
+    0 4px 14px rgba(16, 24, 40, 0.04);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.resume-section-card:hover::after {
+  opacity: 1;
+}
+
+.resume-section-card:has(.section-item-container.collapsed) {
+  align-content: start;
+}
+
+/* Resume Section Topbar (or header whichever you prefer, also including the controls and stuff) */
+.resume-section-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(0.75rem, 1vw, 1rem);
+  min-block-size: max-content;
+}
+
+.resume-section-topbar h1 {
+  margin: 0;
+  font-size: clamp(1.1rem, 1.3vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #3047ff;
+  flex: 1;
+  align-items: center;
+}
+
+.resume-section-topbar-controls {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(0.5rem, 0.8vw, 0.8rem);
+  min-width: max-content;
+}
+
+.section-item-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(0.5rem, 0.8vw, 0.8rem);
+}
+
+.item-reorder-toggle-button {
+  inline-size: auto;
+  max-inline-size: max-content;
+  min-block-size: 2.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 1rem;
+  flex-shrink: 0;
+  border-radius: 0.9rem;
+  border: 1px solid #4b57ff;
+  background-color: #ffffff;
+  color: #4b57ff;
+  font-size: clamp(0.88rem, 0.95vw, 0.95rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.resume-section-topbar-controls .section-collapse-container {
+  order: 2;
+}
+
+.section-collapse-container {
+  display: flex;
+  align-items: center;
+}
+
+.section-collapse-button .icon-button {
+  align-items: center;
+  inline-size: clamp(2.35rem, 2.5vw, 2.5rem);
+  block-size: clamp(2.45rem, 2.5vw, 2.5rem);
+}
+
+.section-collapse-button {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  inline-size: clamp(2rem, 2.4vw, 2.5rem);
+  block-size: clamp(2rem, 2.4vw, 2.5rem);
+  flex-shrink: 0;
+}
+
+.section-drag-container {
+  display: flex;
+  align-items: center;
+}
+
+.resume-section-topbar-controls .section-drag-container {
+  order: 1;
+}
+
+.section-drag-button {
+  min-block-size: clamp(2rem, 2.4vw, 2.5rem);
+  min-inline-size: clamp(2rem, 2.4vw, 2.5rem);
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: clamp(0.7rem, 0.9vw, 0.9rem);
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.section-drag-button:hover {
+  background: transparent;
+}
+
+.section-drag-button .icon-button {
+  align-items: center;
+  padding-top: 1.75rem;
+  inline-size: clamp(1.95rem, 2vw, 2rem);
+  block-size: clamp(1.95rem, 2vw, 2rem);
+}
+
+.section-item-container {
+  inline-size: 100%;
+  min-inline-size: 0;
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  transition:
+    grid-template-rows 280ms ease,
+    opacity 220ms ease;
+}
+
+.section-item-container.expanded {
+  grid-template-rows: 1fr;
+}
+
+.section-item-container.collapsed {
+  grid-template-rows: 0fr;
+}
+
+.section-item-container.collapsed .section-content-wrapper {
+  opacity: 0;
+  transform: translateY(-0.25em);
+  pointer-events: none;
+}
+
+.section-content-wrapper {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.9rem, 1vw, 1.2rem);
+  padding-top: clamp(0.75rem, 1vw, 1rem);
+  opacity: 1;
+  transition:
+    opacity 220ms ease,
+    transform 250ms ease;
+}
+
+.section-content-wrapper > div,
+.item-content-wrapper > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.item-data-container {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 1vw, 1rem);
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.section-item-add {
+  margin-top: clamp(1rem, 1.5vw, 1.35rem);
+  display: flex;
+  justify-content: center;
+}
+
+.add-section-item-button {
+  width: 85%;
+  min-height: 2.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  border: 1px solid #3b4eff;
+  background-color: #f5f7ff;
+  color: #3b4eff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-section-item-button:hover {
+  background-color: #eef1ff;
+}
+
+/* Styles for section-item.tsx */
+.section-item-card {
+  padding: clamp(0.75rem, 1vw, 1rem);
+  border-radius: clamp(0.9rem, 1vw, 1rem);
+  background-color: #f8f8f8;
+  border: 1px solid #eeeeee;
+  margin-top: clamp(0.65rem, 1vw, 0.9rem);
+  inline-size: 100%;
+  min-inline-size: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.section-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: clamp(0.5rem, 1vw, 0.75rem);
+  flex-wrap: wrap;
+  min-inline-size: 0;
+}
+
+.section-item-title {
+  font-size: clamp(0.85rem, 0.95vw, 0.95rem);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.item-drag-button {
+  border: none;
+  background: transparent;
+  color: #3b4eff;
+  cursor: grab;
+}
+
+.item-drag-button:hover {
+  background: transparent;
+}
+
+.item-drag-button .icon-button {
+  align-items: center;
+  padding-top: 0.3rem;
+  inline-size: clamp(1.95rem, 2vw, 2rem);
+  block-size: clamp(1.95rem, 2vw, 2rem);
+}
+
+.delete-item-button,
+.item-drag-button,
+.collapse-item-button {
+  inline-size: max-content;
+  block-size: max-content;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.delete-item-button,
+.collapse-item-button {
+  cursor: pointer;
+}
+
+.section-item-controls {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 0.8vw, 0.75rem);
+  flex-wrap: wrap;
+}
+
+.delete-item-button .icon-button {
+  inline-size: clamp(1.8rem, 1.85vw, 1.9rem);
+  block-size: clamp(1.8rem, 1.85vw, 1.9rem);
+  cursor: pointer;
+}
+
+.delete-item-button:hover {
+  opacity: 0.75;
+}
+
+.collapse-item-button .icon-button {
+  inline-size: clamp(2.35rem, 2.5vw, 2.5rem);
+  block-size: clamp(2.45rem, 2.5vw, 2.5rem);
+}
+
+.collapse-item-button:hover {
+  opacity: 0.75;
+}
+
+.item-content-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    grid-template-rows 240ms ease,
+    opacity 220ms ease;
+}
+
+.item-content-wrapper.expanded {
+  grid-template-rows: 1fr;
+
+  opacity: 1;
+}
+
+.item-content-wrapper > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Styles in item-textarea.tsx AND generated-textarea.tsx */
+.item-textarea-container {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 1vw, 1rem);
+  margin-top: clamp(0.85rem, 1vw, 1rem);
+  min-inline-size: 0;
+}
+
+.text-area-div,
+.gentext-textarea,
+.gentext-container {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.item-description-textarea,
+.generated-textarea {
+  inline-size: 100%;
+  min-block-size: clamp(8rem, 18vh, 14rem);
+  resize: vertical;
+  border-radius: clamp(0.9rem, 1vw, 1rem);
+  border: 1px solid #d8d8d8;
+  padding: clamp(0.85rem, 1vw, 1rem);
+  font-size: clamp(0.9rem, 0.9vw, 1rem);
+  line-height: 1.6;
+  background-color: #ffffff;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.item-description-textarea:focus,
+.generated-textarea:focus {
+  border-color: #3b4eff;
+}
+
+.qol-buttons {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 0.8vw, 0.75rem);
+  flex-wrap: wrap;
+}
+
+.qol-button {
+  min-block-size: clamp(2rem, 2.4vw, 2.2rem);
+  padding-inline: clamp(0.7rem, 1vw, 0.9rem);
+  border-radius: clamp(0.55rem, 0.8vw, 0.7rem);
+  border: 1px solid #d0d0d0;
+  background-color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.qol-button:hover {
+  border-color: #3b4eff;
+  color: #3b4eff;
+}
+
+.generate-button {
+  display: flex;
+  justify-content: flex-end;
+  inline-size: 100%;
+}
+
+.generate-text-button {
+  min-block-size: clamp(2.5rem, 3vw, 2.8rem);
+  padding-inline: clamp(0.9rem, 1.3vw, 1.2rem);
+  border-radius: clamp(0.7rem, 0.9vw, 0.9rem);
+  border: none;
+  background-color: #3b4eff;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  /* Keeps label and spinner aligned on one line. */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.generate-text-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0px 6px 14px rgba(59, 78, 255, 0.25);
+}
+
+/* Spinner inside the generate button when loading. */
+.generate-spinner {
+  inline-size: 0.95rem;
+  block-size: 0.95rem;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  animation: generate-spin 0.75s linear infinite;
+}
+
+@keyframes generate-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.gentext-container {
+  inline-size: 100%;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.7rem, 1vw, 0.9rem);
+  margin-top: clamp(0.9rem, 1.2vw, 1.15rem);
+}
+
+.gentext-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(0.5rem, 1vw, 1rem);
+  flex-wrap: wrap;
+}
+
+.generated-text-title {
+  font-size: clamp(0.85rem, 0.95vw, 0.95rem);
+  font-weight: 700;
+  color: #3b4eff;
+  text-transform: uppercase;
+}
+
+.generated-text-edit-button {
+  min-block-size: clamp(2rem, 2.4vw, 2.2rem);
+  padding-inline: clamp(0.7rem, 1vw, 0.9rem);
+  border-radius: clamp(0.55rem, 0.8vw, 0.7rem);
+  border: 1px solid #d0d0d0;
+  background-color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.generated-text-edit-button:hover {
+  border-color: #3b4eff;
+  color: #3b4eff;
+}
+
+/*----------------------------------
+    Error Message for failed generation
+    */
+.error-message {
+  color: #dc2626;
+  font-size: 13px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* style for the  main wrapper and splitter for resume-viewer and sections */
+/* Layout: split editor and viewer side-by-side */
+/* 1. Lock the main container to the screen height */
+.editor-page {
+  display: flex;
+  gap: 16px;
+  height: 100vh; /* 100vh means 100% of the Viewport (screen) Height */
+  overflow: hidden; /* Prevents the main page itself from scrolling */
+}
+
+/* 2. Left side: Takes half, but scrolls internally if content is too long */
+.editor-pane {
+  flex: 1; /* This is a cleaner way to say take up half the remaining space */
+  height: 100%;
+  overflow-y: auto; /* Adds a scrollbar ONLY to the left side when dropdowns open */
+  padding-right: 8px; /* Optional: adds a little breathing room for the scrollbar */
+}
+
+/* 3. Right side: Takes half, stays exactly 100% height constantly */
+.viewer-pane {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column; /* Ensures children (like the iframe) can fill the space */
+}

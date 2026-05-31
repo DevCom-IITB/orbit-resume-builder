@@ -21,7 +21,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework",
+    "ssoAuth",
     "resume_renderer",
+    "resumes",
 ]
 
 MIDDLEWARE = [
