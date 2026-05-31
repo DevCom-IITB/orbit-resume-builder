@@ -10,7 +10,20 @@ SERVICE_KEY = os.getenv('RB_SERVICE_KEY', 'dev-resume-key-1')
 
 def token_required(view_func):
     @wraps(view_func)
-    def _wrapped(request, *args, **kwargs):
+    def _wrapped(*args, **kwargs):
+        if not args:
+            return JsonResponse({'error': 'Invalid request'}, status=500)
+
+        # Support function-based views and class-based view methods.
+        if hasattr(args[0], 'META'):
+            request = args[0]
+            bound_args = args
+        else:
+            if len(args) < 2:
+                return JsonResponse({'error': 'Invalid request'}, status=500)
+            request = args[1]
+            bound_args = args
+
         auth_header = request.headers.get('Authorization') or request.META.get('HTTP_AUTHORIZATION')
         if not auth_header or not auth_header.startswith('Bearer '):
             return JsonResponse({'error': 'Authorization header missing or invalid'}, status=401)
@@ -36,6 +49,6 @@ def token_required(view_func):
         User = get_user_model()
         user, _ = User.objects.get_or_create(username=username)
         request.user = user
-        return view_func(request, *args, **kwargs)
+        return view_func(*bound_args, **kwargs)
 
     return _wrapped
