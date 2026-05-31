@@ -1,12 +1,10 @@
-import json
-from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.core.paginator import Paginator
 
 from .serializers import ResumeSerializer
-from .models import Resume, Section, Version
+from .models import Resume, Version
 from utils.token_dec import token_required
 
 
