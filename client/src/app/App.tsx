@@ -1,18 +1,12 @@
-import './App.css'
-import { IntroSteps, ResumesList, Sidebar, TopBar } from '../components'
-import { resumes } from '../data/resumes'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import Home from './pages/Home'
 
 function App() {
   return (
-    <div className="app">
-      <TopBar />
-      <div className="app__body">
-        <Sidebar />
-        <div className="app__main">
-          {resumes.length === 0 ? <IntroSteps /> : <ResumesList items={resumes} />}
-        </div>
-      </div>
-    </div>
+    <Routes>
+      <Route path="/" element={<Navigate to="/home" replace />} />
+      <Route path="/home" element={<Home />} />
+    </Routes>
   )
 }
 
