@@ -14,7 +14,7 @@ PROFESSIONAL_EXPERIENCE_TEST_INPUTS = [
 
 
 KEY_PROJECT_TEST_INPUTS = [
-    "made ai resume builder project using react django gemini api and latex where user enters rough points and ai converts them into resume bullets and pdf is generated",
+    "made ai resume builder project using react django and latex where user enters rough points and the system converts them into resume bullets and pdf is generated",
 ]
 
 

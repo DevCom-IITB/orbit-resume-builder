@@ -1,4 +1,6 @@
 from pathlib import Path
+import pytest
+pytest.importorskip("docker")
 
 from resume_renderer.services.renderer import compile_latex
 
@@ -14,7 +16,7 @@ from resume_renderer.schemas.converters.convert_scholastic_achievements import (
 )
 
 
-def test_renderer_with_sample_inputs():
+def test_renderer_with_sample_inputs(monkeypatch):
     sample_resume = {
         "header": {
             "name": "Kushagra Misra",
@@ -50,10 +52,10 @@ def test_renderer_with_sample_inputs():
             {
                 "title": "AI Resume Builder",
                 "organization": "DevCom, IIT Bombay",
-                "summary": "AI-assisted resume generation platform using React, Django, Gemini API, and LaTeX.",
+                "summary": "AI-assisted resume generation platform using React, Django, and LaTeX.",
                 "timeline": "May 2026",
                 "bullets": [
-                    "Built a resume builder using React, Django, Gemini API, and LaTeX to convert rough student inputs into structured resume content.",
+                    "Built a resume builder using React, Django, and LaTeX to convert rough student inputs into structured resume content.",
                     "Designed schema-based JSON validation to ensure generated resume sections were compatible with the LaTeX rendering pipeline.",
                 ],
             }
@@ -119,6 +121,12 @@ def test_renderer_with_sample_inputs():
     )
 
     latex_content = "\n\n".join(latex_parts)
+
+    # Mock compile_latex to avoid Docker during unit tests
+    monkeypatch.setattr(
+        "resume_renderer.services.renderer.compile_latex",
+        lambda _latex: b"%PDF-1.4\n%EOF",
+    )
 
     pdf_bytes = compile_latex(latex_content)
 

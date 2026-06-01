@@ -4,6 +4,8 @@ import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
+from resume_renderer.JSONSchema.jsonschema import get_schema
+
 
 @pytest.fixture()
 def api_client():
@@ -83,6 +85,49 @@ def test_render_rejects_bad_bullets(api_client, user):
 
     assert response.status_code == 400
     assert "bullets" in str(response.data)
+
+
+def test_refine_key_projects_uses_static_llm_response(api_client, user, monkeypatch):
+    api_client.force_authenticate(user=user)
+    seen = {}
+    jsonschema = pytest.importorskip("jsonschema")
+
+    class FakeGeminiLLMClient:
+        def generate_json(self, prompt):
+            seen["prompt"] = prompt
+            return [
+                {
+                    "title": "AI Resume Builder",
+                    "organization": "DevCom, IIT Bombay",
+                    "summary": "An AI-powered web application that turns rough user input into polished resume content and generated PDFs.",
+                    "timeline": "May 2026",
+                    "bullets": [
+                        "Built a full-stack resume builder with React and Django to convert rough student inputs into structured resume content.",
+                        "Implemented a LaTeX PDF generation flow to render polished resumes from the refined JSON output.",
+                    ],
+                }
+            ]
+
+    monkeypatch.setattr("resume_renderer.views.GeminiLLMClient", FakeGeminiLLMClient)
+
+    payload = {
+        "user_input": (
+            "made ai resume builder project using react django and latex where user enters rough points "
+            "and the system converts them into resume bullets and pdf is generated"
+        )
+    }
+
+    response = api_client.post(
+        "/api/resume-renderer/key_projects/",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["success"] is True
+    assert response.data["section_type"] == "key_projects"
+    jsonschema.validate(instance=response.data["data"], schema=get_schema("key_projects"))
+    assert "made ai resume builder project" in seen["prompt"].lower()
 
 
 def test_render_accepts_new_sections_and_passes_latex(api_client, user, monkeypatch):

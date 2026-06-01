@@ -2,10 +2,18 @@ import os
 import tarfile
 from io import BytesIO
 
-import docker
+try:
+    import docker
+except Exception:
+    docker = None
 
 
-client = docker.from_env()
+client = None
+if docker is not None:
+    try:
+        client = docker.from_env()
+    except Exception:
+        client = None
 
 LATEX_IMAGE_NAME = os.getenv("LATEX_IMAGE_NAME", "resume-renderer:latest")
 DOCKERFILE_PATH = os.path.join(os.path.dirname(__file__), "..", "Dockerfile")
@@ -13,15 +21,20 @@ DOCKERFILE_PATH = os.path.join(os.path.dirname(__file__), "..", "Dockerfile")
 
 def ensure_image_exists(force_rebuild=False):
     """Build the LaTeX image if it is not already available locally."""
+    if client is None:
+        raise RuntimeError(
+            "Docker client is not available. Install docker SDK and ensure Docker daemon is running."
+        )
+
     if force_rebuild:
         print("Force rebuilding the LaTeX image...")
         try:
             client.images.remove(LATEX_IMAGE_NAME, force=True)
-        except docker.errors.ImageNotFound:
+        except Exception:
             pass  # Image doesn't exist, no need to remove
     try:
         client.images.get(LATEX_IMAGE_NAME)
-    except docker.errors.ImageNotFound:
+    except Exception:
         if not os.path.exists(DOCKERFILE_PATH):
             raise RuntimeError(f"Dockerfile not found at {DOCKERFILE_PATH}")
 
@@ -35,10 +48,15 @@ def ensure_image_exists(force_rebuild=False):
 
 
 LATEX_CACHE_VOLUME = "latex-cache"
-try:
-    cache_volume = client.volumes.get(LATEX_CACHE_VOLUME)
-except docker.errors.NotFound:
-    cache_volume = client.volumes.create(LATEX_CACHE_VOLUME)
+cache_volume = None
+if client is not None:
+    try:
+        cache_volume = client.volumes.get(LATEX_CACHE_VOLUME)
+    except Exception:
+        try:
+            cache_volume = client.volumes.create(LATEX_CACHE_VOLUME)
+        except Exception:
+            cache_volume = None
 
 
 TEMPLATE = r"""
@@ -109,6 +127,8 @@ __CONTENT__
 
 def compile_latex(latex: str) -> bytes:
     """Compile LaTeX into PDF bytes using a Dockerized TeX Live image."""
+    if client is None:
+        raise RuntimeError("Docker client is not available. Skipping LaTeX compilation.")
 
     ensure_image_exists(force_rebuild=False)
     container = None

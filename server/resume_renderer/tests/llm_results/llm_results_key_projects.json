@@ -2,16 +2,16 @@
   {
     "section_type": "key_projects",
     "test_case": 1,
-    "input": "made ai resume builder project using react django gemini api and latex where user enters rough points and ai converts them into resume bullets and pdf is generated",
+    "input": "made ai resume builder project using react django and latex where user enters rough points and the system converts them into resume bullets and pdf is generated",
     "output": [
       {
         "title": "AI-Powered Resume Builder",
         "organization": "",
-        "summary": "A full-stack web application that leverages generative AI to transform rough user inputs into polished resume bullets and generate downloadable PDFs.",
+        "summary": "A full-stack web application that transforms rough user inputs into polished resume bullets and generates downloadable PDFs.",
         "timeline": "",
         "bullets": [
           "Developed a full-stack web application utilizing React for a responsive user interface and Django for robust backend API management.",
-          "Integrated the Gemini API to process informal, rough user inputs and dynamically generate polished, professional resume bullet points.",
+          "Integrated an LLM workflow to process informal, rough user inputs and dynamically generate polished, professional resume bullet points.",
           "Implemented a LaTeX compilation pipeline to automatically format the AI-generated content and generate downloadable, high-quality PDF resumes."
         ]
       }

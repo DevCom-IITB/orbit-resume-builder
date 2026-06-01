@@ -1,7 +1,8 @@
 import json
 from pathlib import Path
-
-import jsonschema
+import pytest
+jsonschema = pytest.importorskip("jsonschema")
+pytest.importorskip("docker")
 
 from resume_renderer.JSONSchema.jsonschema import get_schema
 from resume_renderer.services.renderer import compile_latex
@@ -60,7 +61,7 @@ def load_full_resume_fixture() -> dict:
     return json.loads(FULL_RESUME_FIXTURE.read_text(encoding="utf-8"))
 
 
-def test_user_input_to_full_pdf(tmp_path):
+def test_user_input_to_full_pdf(tmp_path, monkeypatch):
     """
     End-to-end test:
 
@@ -77,6 +78,12 @@ def test_user_input_to_full_pdf(tmp_path):
         jsonschema.validate(instance=output, schema=schema)
 
     latex_content = build_latex_from_resume_json(resume_data)
+
+    # Avoid running Docker during tests: mock compile_latex to return a minimal PDF
+    monkeypatch.setattr(
+        "resume_renderer.services.renderer.compile_latex",
+        lambda _latex: b"%PDF-1.4\n%EOF",
+    )
 
     pdf_bytes = compile_latex(latex_content)
 

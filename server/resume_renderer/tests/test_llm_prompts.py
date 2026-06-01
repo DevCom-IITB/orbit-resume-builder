@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-import jsonschema
 import pytest
+jsonschema = pytest.importorskip("jsonschema")
 
 from resume_renderer.JSONSchema.jsonschema import get_schema
 from .test_inputs import TEST_INPUTS_BY_SECTION
@@ -105,7 +105,7 @@ def test_llm_prompt_outputs_match_schema(section_type, inputs):
             assert isinstance(bullet, str), (
                 f"\nBullet is not a string."
                 f"\nSection: {section_type}"
-                f"\nInput: {user_input}"
+                f"\nInput: {entry['input']}"
                 f"\nBullet value: {bullet}"
             )
 

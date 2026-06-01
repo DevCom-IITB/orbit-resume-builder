@@ -37,7 +37,7 @@
       "timeline": "May 2026",
       "bullets": [
         "Built a full-stack web application using React for frontend and Django for backend services.",
-        "Integrated Gemini API to transform rough user inputs into polished, professional resume bullets.",
+        "Integrated an LLM workflow to transform rough user inputs into polished, professional resume bullets.",
         "Implemented a LaTeX-based PDF generation engine to compile and export resumes in real time."
       ]
     }
