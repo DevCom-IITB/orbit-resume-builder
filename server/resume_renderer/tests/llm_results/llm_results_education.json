@@ -1,0 +1,15 @@
+[
+  {
+    "section_type": "education",
+    "test_case": 1,
+    "input": "BTech in Computer Science and Engineering from IIT Bombay cpi 9.22/10 year 2025-2029",
+    "output": [
+      {
+        "degree": "B.Tech. in Computer Science and Engineering",
+        "institution": "Indian Institute of Technology Bombay",
+        "cpi": "9.22/10",
+        "year": "2025-2029"
+      }
+    ]
+  }
+]

@@ -1,0 +1,19 @@
+[
+  {
+    "section_type": "professional_experience",
+    "test_case": 1,
+    "input": "worked as frontend intern at Awaasdhan made website pages using react and tailwind improved ui and fixed responsiveness issues",
+    "output": [
+      {
+        "title": "Frontend Intern",
+        "organization": "Awaasdhan",
+        "location": "",
+        "timeline": "",
+        "bullets": [
+          "Developed and designed multiple website pages using React and Tailwind CSS, significantly improving the user interface aesthetics.",
+          "Identified and resolved responsiveness issues across various screen sizes to ensure a seamless and consistent user experience."
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "section_type": "courses",
+    "test_case": 1,
+    "input": "courses done are data structures and algorithms, database management systems, operating systems, machine learning, linear algebra, probability and statistics",
+    "output": [
+      {
+        "category": "Computer Science",
+        "courses": [
+          "Data Structures and Algorithms",
+          "Database Management Systems",
+          "Operating Systems"
+        ]
+      },
+      {
+        "category": "Mathematics and Statistics",
+        "courses": [
+          "Linear Algebra",
+          "Probability and Statistics"
+        ]
+      },
+      {
+        "category": "Machine Learning",
+        "courses": [
+          "Machine Learning"
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,121 @@
+{
+  "header": {
+    "name": "Kushagra Misra",
+    "edu": "B.Tech. in Computer Science and Engineering, IIT Bombay",
+    "contact": {
+      "email": "kushagra@example.com",
+      "phone": "+91 9876543210",
+      "linkedin": "kushagra-misra",
+      "github": "kushagramisra06"
+    }
+  },
+  "education": [
+    {
+      "degree": "B.Tech. in Computer Science and Engineering",
+      "institution": "Indian Institute of Technology Bombay",
+      "cpi": "9.22/10",
+      "year": "2025-2029"
+    }
+  ],
+  "professional_experience": [
+    {
+      "title": "Frontend Intern",
+      "organization": "Awaasdhan",
+      "location": "Remote",
+      "timeline": "May 2025 - Jul 2025",
+      "bullets": [
+        "Developed responsive website pages using React and Tailwind CSS to improve the user interface.",
+        "Identified and resolved responsiveness and UI issues to ensure a consistent user experience."
+      ]
+    }
+  ],
+  "key_projects": [
+    {
+      "title": "AI Resume Builder",
+      "organization": "DevCom, IIT Bombay",
+      "summary": "An AI-powered web application that refines rough user inputs into professional resume bullets and generates PDFs.",
+      "timeline": "May 2026",
+      "bullets": [
+        "Built a full-stack web application using React for frontend and Django for backend services.",
+        "Integrated Gemini API to transform rough user inputs into polished, professional resume bullets.",
+        "Implemented a LaTeX-based PDF generation engine to compile and export resumes in real time."
+      ]
+    }
+  ],
+  "technical_skills": [
+    {
+      "category": "Programming Languages",
+      "skills": [
+        "Python",
+        "C++",
+        "JavaScript",
+        "SQL"
+      ]
+    },
+    {
+      "category": "Web Development",
+      "skills": [
+        "React.js",
+        "Django",
+        "HTML",
+        "CSS",
+        "Tailwind CSS"
+      ]
+    },
+    {
+      "category": "Databases",
+      "skills": [
+        "PostgreSQL"
+      ]
+    },
+    {
+      "category": "Machine Learning",
+      "skills": [
+        "TensorFlow",
+        "PyTorch"
+      ]
+    },
+    {
+      "category": "Tools & Frameworks",
+      "skills": [
+        "Git",
+        "GitHub",
+        "Docker",
+        "Figma"
+      ]
+    }
+  ],
+  "courses": [
+    {
+      "category": "Computer Science",
+      "courses": [
+        "Data Structures and Algorithms",
+        "Database Management Systems",
+        "Operating Systems",
+        "Machine Learning"
+      ]
+    },
+    {
+      "category": "Mathematics & Statistics",
+      "courses": [
+        "Linear Algebra",
+        "Probability and Statistics"
+      ]
+    }
+  ],
+  "positions_of_responsibility": [
+    {
+      "role": "Developer",
+      "organization": "DevCom, IIT Bombay",
+      "duration": "Mar '25 - Present",
+      "summary": "Developer community at IIT Bombay",
+      "bullets": [
+        "Developing an AI-powered resume builder and a career research portal to streamline professional profile creation and academic opportunities for IIT Bombay students and professors"
+      ]
+    }
+  ],
+  "scholastic_achievements": [
+    "Secured All India Rank 3809 in JEE Advanced and achieved 99.5 percentile in JEE Mains",
+    "Achieved 92.3% in CBSE Class XII Board Exams and 96.6% in ICSE Class X Board Exams"
+  ]
+}

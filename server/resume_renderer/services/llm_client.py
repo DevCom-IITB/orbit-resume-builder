@@ -1,0 +1,64 @@
+import json
+import os
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
+
+load_dotenv()
+
+class LLMClientError(Exception):
+    """Custom error for LLM client failures."""
+    pass
+
+
+class GeminiLLMClient:
+    def __init__(self):
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        self.model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+
+        if not self.api_key:
+            raise LLMClientError("GEMINI_API_KEY is missing. Add it to your .env file.")
+
+        self.client = genai.Client(api_key=self.api_key)
+
+    def generate_text(self, prompt) :
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.2,
+                ),
+            )
+
+            if not response.text:
+                raise LLMClientError("Gemini returned an empty response.")
+
+            return response.text.strip()
+
+        except Exception as error:
+            raise LLMClientError(f"Gemini API call failed: {str(error)}")
+
+    def generate_json(self, prompt):
+        raw_text = self.generate_text(prompt)
+        cleaned_text = self._clean_json_text(raw_text)
+
+        try:
+            return json.loads(cleaned_text)
+        except json.JSONDecodeError as error:
+            raise LLMClientError(
+                f"Gemini returned invalid JSON.\n\nRaw response:\n{raw_text}\n\nError:\n{str(error)}"
+            )
+
+    @staticmethod
+    def _clean_json_text(text):
+        text = text.strip()
+        if text.startswith("```json"):
+            text = text[len("```json"):].strip()
+
+        if text.startswith("```"):
+            text = text[len("```"):].strip()
+
+        if text.endswith("```"):
+            text = text[:-3].strip()
+        return text

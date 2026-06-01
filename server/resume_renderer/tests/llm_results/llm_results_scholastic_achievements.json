@@ -1,0 +1,13 @@
+[
+  {
+    "section_type": "scholastic_achievements",
+    "test_case": 1,
+    "input": "jee mains 99.5 percentile jee advanced rank 3809 class 12 cbse 92.3 percent class 10 icse 96.6 percent",
+    "output": [
+      "Achieved Rank 3809 in JEE Advanced",
+      "Secured 99.5 percentile in JEE Main",
+      "Secured 92.3% marks in CBSE Class XII Board Examinations",
+      "Secured 96.6% marks in ICSE Class X Board Examinations"
+    ]
+  }
+]

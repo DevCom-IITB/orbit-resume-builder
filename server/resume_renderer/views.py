@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ParseError
-
+from rest_framework.decorators import api_view
 from .schemas.config import RenderConfig
 from .schemas.converters.convert_education import convert_education
 from .schemas.converters.convert_experience import convert_experience
@@ -19,7 +19,14 @@ from .serializers import LatexRenderSerializer
 from .services import renderer
 from rest_framework.permissions import IsAuthenticated
 
-
+import jsonschema
+from resume_renderer.JSONSchema.jsonschema import (
+    get_schema,
+    get_supported_section_types,
+)
+from resume_renderer.serializers import ResumeSectionRefineSerializer
+from resume_renderer.services.llm_client import GeminiLLMClient, LLMClientError
+from resume_renderer.services.prompts import build_resume_prompt
 class LatexRenderView(APIView):
     """Render resume data into a PDF."""
 
@@ -101,3 +108,100 @@ class LatexRenderView(APIView):
             )
 
         return HttpResponse(pdf_bytes, content_type="application/pdf")
+@api_view(["POST"])
+def refine_resume_section(request, section_type):
+    """
+    Refine rough user input into resume-ready JSON using the LLM.
+
+    URL:
+        POST /api/resume-renderer/<section_type>/
+
+    Example:
+        POST /api/resume-renderer/professional_experience/
+
+    Expected request body:
+    {
+        "user_input": "worked as frontend intern at Awaasdhan..."
+    }
+
+    Response:
+    {
+        "success": true,
+        "section_type": "professional_experience",
+        "data": [...]
+    }
+    """
+
+    supported_sections = get_supported_section_types()
+
+    if section_type not in supported_sections:
+        return Response(
+            {
+                "success": False,
+                "error": "Unsupported section type.",
+                "section_type": section_type,
+                "supported_section_types": supported_sections,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    serializer = ResumeSectionRefineSerializer(data=request.data)
+
+    if not serializer.is_valid():
+        return Response(
+            {
+                "success": False,
+                "errors": serializer.errors,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user_input = serializer.validated_data["user_input"]
+
+    try:
+        prompt = build_resume_prompt(section_type, user_input)
+
+        llm_client = GeminiLLMClient()
+        llm_output = llm_client.generate_json(prompt)
+
+        schema = get_schema(section_type)
+        jsonschema.validate(instance=llm_output, schema=schema)
+
+        return Response(
+            {
+                "success": True,
+                "section_type": section_type,
+                "data": llm_output,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    except jsonschema.ValidationError as error:
+        return Response(
+            {
+                "success": False,
+                "error": "LLM output did not match the expected JSON schema.",
+                "details": error.message,
+            },
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    except LLMClientError as error:
+        return Response(
+            {
+                "success": False,
+                "error": "LLM generation failed.",
+                "details": str(error),
+            },
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    except Exception as error:
+        return Response(
+            {
+                "success": False,
+                "error": "Unexpected server error.",
+                "details": str(error),
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
