@@ -1,0 +1,148 @@
+.intro {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 36px;
+  max-width: 1588px;
+  width: 100%;
+}
+
+.intro__title {
+  margin: 0;
+  font-family: 'Lato', sans-serif;
+  font-weight: 500;
+  font-size: 36px;
+  line-height: 43px;
+  color: #000000;
+}
+
+.intro__steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.intro__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 0 7px;
+  min-height: 330px;
+}
+
+.intro__art {
+  width: 100%;
+  height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.intro__image {
+  width: 190px;
+  height: 190px;
+  object-fit: contain;
+}
+
+.intro__divider {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+}
+
+.intro__line {
+  flex: 1;
+  height: 0;
+  border-top: 0.75px solid #000000;
+}
+
+.intro__badge {
+  width: 43px;
+  height: 43px;
+  border-radius: 999px;
+  border: 0.9px solid #000000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Lato', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: #000000;
+}
+
+.intro__text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intro__label {
+  font-family: 'Lato', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 29px;
+  color: #030a0d;
+}
+
+.intro__description {
+  font-family: 'Lato', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 19px;
+  color: #000000;
+}
+
+.intro__actions {
+  width: 100%;
+}
+
+.intro__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 20px;
+  background: #2645f2;
+  border-radius: 12px;
+  border: none;
+  color: #ffffff;
+  font-family: 'Lato', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 29px;
+  cursor: pointer;
+}
+
+.intro__button-icon {
+  width: 24px;
+  height: 24px;
+}
+
+@media (max-width: 1200px) {
+  .intro__steps {
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .intro {
+    padding: 16px;
+  }
+
+  .intro__steps {
+    grid-template-columns: 1fr;
+  }
+
+  .intro__image {
+    width: 160px;
+    height: 160px;
+  }
+
+  .intro__button {
+    font-size: 20px;
+  }
+}
