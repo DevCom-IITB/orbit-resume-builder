@@ -61,9 +61,30 @@ function IntroSteps() {
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
           >
-            <circle cx="12" cy="12" r="10" fill="none" stroke="#ffffff" strokeWidth="1.5" />
-            <line x1="12" y1="7" x2="12" y2="17" stroke="#ffffff" strokeWidth="1.5" />
-            <line x1="7" y1="12" x2="17" y2="12" stroke="#ffffff" strokeWidth="1.5" />
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="1.5"
+            />
+            <line
+              x1="12"
+              y1="7"
+              x2="12"
+              y2="17"
+              stroke="#ffffff"
+              strokeWidth="1.5"
+            />
+            <line
+              x1="7"
+              y1="12"
+              x2="17"
+              y2="12"
+              stroke="#ffffff"
+              strokeWidth="1.5"
+            />
           </svg>
           Create a resume
         </button>

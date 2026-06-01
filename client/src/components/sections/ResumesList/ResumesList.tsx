@@ -120,7 +120,7 @@ const MenuDotsIcon = () => (
 
 function ResumesList({ items }: { items: ResumeItem[] }) {
   const sortedItems = [...items].sort(
-    (a, b) => Number(Boolean(b.starred)) - Number(Boolean(a.starred)),
+    (a, b) => Number(Boolean(b.starred)) - Number(Boolean(a.starred))
   )
 
   return (
@@ -134,9 +134,30 @@ function ResumesList({ items }: { items: ResumeItem[] }) {
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
           >
-            <circle cx="12" cy="12" r="10" fill="none" stroke="#ffffff" strokeWidth="1.5" />
-            <line x1="12" y1="7" x2="12" y2="17" stroke="#ffffff" strokeWidth="1.5" />
-            <line x1="7" y1="12" x2="17" y2="12" stroke="#ffffff" strokeWidth="1.5" />
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="1.5"
+            />
+            <line
+              x1="12"
+              y1="7"
+              x2="12"
+              y2="17"
+              stroke="#ffffff"
+              strokeWidth="1.5"
+            />
+            <line
+              x1="7"
+              y1="12"
+              x2="17"
+              y2="12"
+              stroke="#ffffff"
+              strokeWidth="1.5"
+            />
           </svg>
           Create a resume
         </button>
@@ -149,11 +170,20 @@ function ResumesList({ items }: { items: ResumeItem[] }) {
               <FolderIcon />
               {headerItems[0]}
             </div>
-            <div className="resumes__cell resumes__cell--pages">{headerItems[1]}</div>
-            <div className="resumes__cell resumes__cell--type">{headerItems[2]}</div>
-            <div className="resumes__cell resumes__cell--date">{headerItems[3]}</div>
+            <div className="resumes__cell resumes__cell--pages">
+              {headerItems[1]}
+            </div>
+            <div className="resumes__cell resumes__cell--type">
+              {headerItems[2]}
+            </div>
+            <div className="resumes__cell resumes__cell--date">
+              {headerItems[3]}
+            </div>
           </div>
-          <div className="resumes__actions resumes__actions--spacer" aria-hidden="true"></div>
+          <div
+            className="resumes__actions resumes__actions--spacer"
+            aria-hidden="true"
+          ></div>
         </div>
 
         {sortedItems.map((item) => (
@@ -163,9 +193,15 @@ function ResumesList({ items }: { items: ResumeItem[] }) {
                 {item.starred ? <StarIcon /> : <FileIcon />}
                 {item.name}
               </div>
-              <div className="resumes__cell resumes__cell--pages">{item.pages} Page</div>
-              <div className="resumes__cell resumes__cell--type">{item.type}</div>
-              <div className="resumes__cell resumes__cell--date">{item.updatedAt}</div>
+              <div className="resumes__cell resumes__cell--pages">
+                {item.pages} Page
+              </div>
+              <div className="resumes__cell resumes__cell--type">
+                {item.type}
+              </div>
+              <div className="resumes__cell resumes__cell--date">
+                {item.updatedAt}
+              </div>
             </div>
             <div className="resumes__actions">
               <DownloadIcon />
