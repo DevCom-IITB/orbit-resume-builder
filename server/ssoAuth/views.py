@@ -74,8 +74,8 @@ def gymkhana_callback(request):
         response = requests.post(TOKEN_URL, data=data, headers=headers, timeout=10)
         response.raise_for_status()
         token_data = response.json()
-    except requests.RequestException as exc:
-        return JsonResponse({'error': f'Token request failed: {str(exc)}'}, status=400)
+    except requests.RequestException:
+        return JsonResponse({'error': 'Token request failed'}, status=400)
     except ValueError:
         return JsonResponse({'error': 'Invalid response from token endpoint'}, status=400)
 
@@ -88,8 +88,8 @@ def gymkhana_callback(request):
         profile_response = requests.get(PROFILE_URL, headers=profile_headers, timeout=10)
         profile_response.raise_for_status()
         profile_data = profile_response.json()
-    except requests.RequestException as exc:
-        return JsonResponse({'error': f'Profile request failed: {str(exc)}'}, status=400)
+    except requests.RequestException:
+        return JsonResponse({'error': 'Profile request failed'}, status=400)
     except ValueError:
         return JsonResponse({'error': 'Invalid response from profile endpoint'}, status=400)
 

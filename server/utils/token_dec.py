@@ -32,8 +32,8 @@ def token_required(view_func):
 
         try:
             resp = requests.get(REACH_VERIFY, headers={'Authorization': f'Bearer {token}', 'X-Service-Key': SERVICE_KEY}, timeout=5)
-        except Exception as e:
-            return JsonResponse({'error': f'Failed to reach REACH: {str(e)}'}, status=502)
+        except Exception:
+            return JsonResponse({'error': 'Failed to reach REACH'}, status=502)
 
         if resp.status_code != 200:
             try:

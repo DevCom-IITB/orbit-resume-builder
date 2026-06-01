@@ -26,7 +26,7 @@ def verify_reach(request):
 
     try:
         resp = requests.get(REACH_VERIFY, headers={'Authorization': f'Bearer {token}', 'X-Service-Key': SERVICE_KEY}, timeout=5)
-    except Exception as e:
-        return JsonResponse({'error': f'request failed: {str(e)}'}, status=502)
+    except Exception:
+        return JsonResponse({'error': 'request failed'}, status=502)
 
     return JsonResponse(resp.json(), status=resp.status_code)
