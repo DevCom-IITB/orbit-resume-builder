@@ -1,11 +1,12 @@
+from resume_renderer.JSONSchema.jsonschema import get_schema
+from .test_inputs import TEST_INPUTS_BY_SECTION
+
 import json
 from pathlib import Path
 
 import pytest
-jsonschema = pytest.importorskip("jsonschema")
 
-from resume_renderer.JSONSchema.jsonschema import get_schema
-from .test_inputs import TEST_INPUTS_BY_SECTION
+jsonschema = pytest.importorskip("jsonschema")
 
 
 BULLET_SECTIONS = {"professional_experience", "key_projects"}

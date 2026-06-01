@@ -27,6 +27,8 @@ from resume_renderer.JSONSchema.jsonschema import (
 from resume_renderer.serializers import ResumeSectionRefineSerializer
 from resume_renderer.services.llm_client import GeminiLLMClient, LLMClientError
 from resume_renderer.services.prompts import build_resume_prompt
+
+
 class LatexRenderView(APIView):
     """Render resume data into a PDF."""
 
@@ -108,6 +110,8 @@ class LatexRenderView(APIView):
             )
 
         return HttpResponse(pdf_bytes, content_type="application/pdf")
+
+
 @api_view(["POST"])
 def refine_resume_section(request, section_type):
     """

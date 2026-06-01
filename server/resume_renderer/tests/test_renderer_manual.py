@@ -1,5 +1,6 @@
 from pathlib import Path
 import pytest
+
 pytest.importorskip("docker")
 
 from resume_renderer.services.renderer import compile_latex
@@ -8,7 +9,9 @@ from resume_renderer.schemas.converters.convert_header import convert_header
 from resume_renderer.schemas.converters.convert_education import convert_education
 from resume_renderer.schemas.converters.convert_experience import convert_experience
 from resume_renderer.schemas.converters.convert_key_project import convert_key_project
-from resume_renderer.schemas.converters.convert_technical_skills import convert_technical_skills
+from resume_renderer.schemas.converters.convert_technical_skills import (
+    convert_technical_skills,
+)
 from resume_renderer.schemas.converters.convert_courses import convert_courses
 from resume_renderer.schemas.converters.convert_pors import convert_pors
 from resume_renderer.schemas.converters.convert_scholastic_achievements import (

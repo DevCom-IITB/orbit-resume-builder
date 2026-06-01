@@ -87,7 +87,6 @@ Rules:
 7. Do not add IIT Bombay inside the "edu" field unless the user explicitly wrote it.
 8. Do not create bullet points for this section.
 """,
-
     "education": """
 Section-specific instructions for EDUCATION:
 
@@ -121,7 +120,6 @@ Rules:
 8. Do not create bullet points for education.
 9. Do not convert percentages into CPI or CPI into percentages.
 """,
-
     "professional_experience": """
 Section-specific instructions for PROFESSIONAL EXPERIENCE:
 
@@ -171,7 +169,6 @@ Rules:
 18. Prefer safe verbs like developed, created, improved, redesigned, assisted, collaborated, and contributed when the user gives limited details.
 19. Do not convert a simple frontend task into advanced engineering claims.
 """,
-
     "key_projects": """
 Section-specific instructions for KEY PROJECTS:
 
@@ -221,7 +218,6 @@ Rules:
 16. Do not add a technology just because it sounds likely.
 17. If the input is short, generate fewer but accurate bullets.
 """,
-
     "technical_skills": """
 Section-specific instructions for TECHNICAL SKILLS:
 
@@ -253,7 +249,6 @@ Rules:
 11. Do not add technologies just because they commonly go together.
 12. Do not duplicate skills across multiple categories.
 """,
-
     "courses": """
 Section-specific instructions for COURSES UNDERTAKEN:
 
@@ -286,7 +281,6 @@ Rules:
 9. Do not add grades, credits, professors, or course codes unless explicitly given.
 10. Keep course names concise and resume-ready.
 """,
-
     "positions_of_responsibility": """
 Section-specific instructions for POSITIONS OF RESPONSIBILITY:
 
@@ -327,7 +321,6 @@ Rules:
 13. Use strong action verbs such as Led, Coordinated, Managed, Organized, Executed, Developed, Represented, Handled, Supervised, Collaborated.
 14. Do not exaggerate responsibility level beyond what the user provided.
 """,
-
     "scholastic_achievements": """
 Section-specific instructions for SCHOLASTIC ACHIEVEMENTS:
 
@@ -350,7 +343,7 @@ Rules:
 9. Do not add bullet symbols; the LaTeX converter will add bullets.
 10. Do not convert scores or percentages into another format.
 11. Do not mention the word "achievement" repeatedly inside each string.
-"""
+""",
 }
 
 
@@ -377,7 +370,9 @@ def build_resume_prompt(section_type: str, user_input: str) -> str:
     section_instruction = SECTION_INSTRUCTIONS.get(section_type)
 
     if section_instruction is None:
-        raise ValueError(f"No prompt instructions found for section type: {section_type}")
+        raise ValueError(
+            f"No prompt instructions found for section type: {section_type}"
+        )
 
     schema_text = json.dumps(schema, indent=2)
 

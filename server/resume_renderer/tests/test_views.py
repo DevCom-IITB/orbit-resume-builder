@@ -126,7 +126,9 @@ def test_refine_key_projects_uses_static_llm_response(api_client, user, monkeypa
     assert response.status_code == 200
     assert response.data["success"] is True
     assert response.data["section_type"] == "key_projects"
-    jsonschema.validate(instance=response.data["data"], schema=get_schema("key_projects"))
+    jsonschema.validate(
+        instance=response.data["data"], schema=get_schema("key_projects")
+    )
     assert "made ai resume builder project" in seen["prompt"].lower()
 
 

@@ -128,7 +128,9 @@ __CONTENT__
 def compile_latex(latex: str) -> bytes:
     """Compile LaTeX into PDF bytes using a Dockerized TeX Live image."""
     if client is None:
-        raise RuntimeError("Docker client is not available. Skipping LaTeX compilation.")
+        raise RuntimeError(
+            "Docker client is not available. Skipping LaTeX compilation."
+        )
 
     ensure_image_exists(force_rebuild=False)
     container = None

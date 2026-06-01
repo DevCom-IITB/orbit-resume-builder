@@ -2,5 +2,5 @@ from django.apps import AppConfig
 
 
 class SsoAuthConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'ssoAuth'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "ssoAuth"

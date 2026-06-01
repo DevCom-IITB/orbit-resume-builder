@@ -6,8 +6,10 @@ from google.genai import types
 
 load_dotenv()
 
+
 class LLMClientError(Exception):
     """Custom error for LLM client failures."""
+
     pass
 
 
@@ -21,7 +23,7 @@ class GeminiLLMClient:
 
         self.client = genai.Client(api_key=self.api_key)
 
-    def generate_text(self, prompt) :
+    def generate_text(self, prompt):
         try:
             response = self.client.models.generate_content(
                 model=self.model,
@@ -54,10 +56,10 @@ class GeminiLLMClient:
     def _clean_json_text(text):
         text = text.strip()
         if text.startswith("```json"):
-            text = text[len("```json"):].strip()
+            text = text[len("```json") :].strip()
 
         if text.startswith("```"):
-            text = text[len("```"):].strip()
+            text = text[len("```") :].strip()
 
         if text.endswith("```"):
             text = text[:-3].strip()

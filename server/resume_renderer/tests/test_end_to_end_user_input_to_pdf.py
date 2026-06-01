@@ -1,9 +1,3 @@
-import json
-from pathlib import Path
-import pytest
-jsonschema = pytest.importorskip("jsonschema")
-pytest.importorskip("docker")
-
 from resume_renderer.JSONSchema.jsonschema import get_schema
 from resume_renderer.services.renderer import compile_latex
 
@@ -20,6 +14,12 @@ from resume_renderer.schemas.converters.convert_scholastic_achievements import (
     convert_scholastic_achievements,
 )
 
+import json
+from pathlib import Path
+import pytest
+
+jsonschema = pytest.importorskip("jsonschema")
+pytest.importorskip("docker")
 
 RESULTS_DIR = Path(__file__).resolve().parent / "llm_results"
 FULL_RESUME_FIXTURE = RESULTS_DIR / "full_resume_generated_json.json"
