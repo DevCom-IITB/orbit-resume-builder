@@ -693,6 +693,7 @@ body {
 .editor-page {
   display: flex;
   gap: 16px;
+  width: 100%;
   height: 100vh; /* 100vh means 100% of the Viewport (screen) Height */
   overflow: hidden; /* Prevents the main page itself from scrolling */
 }
