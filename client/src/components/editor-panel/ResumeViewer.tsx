@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import styled, { keyframes } from 'styled-components'
-
 import PdfCanvas from './PdfCanvas'
+import PdfToolbar from './PdfToolbar'
 import { generatePdfData } from '../../lib/api'
 
 // --- Styled Components ---
@@ -10,6 +10,34 @@ const ViewerContainer = styled.div`
   flex-direction: column;
   gap: 16px;
   height: 100%;
+  position: relative;
+`
+
+const ExpandButton = styled.button`
+  position: absolute;
+  top: 150px;
+  left: 12px;
+  z-index: 10;
+  width: 34px;
+  height: 34px;
+  background-color: #2563eb;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
+  &:hover {
+    background-color: #1d4ed8;
+    transform: scale(1.05);
+  }
+  &:active {
+    transform: scale(0.95);
+  }
 `
 
 const ErrorMessage = styled.div`
@@ -28,29 +56,22 @@ const GenerateButton = styled.button`
   font-weight: 600;
   width: 100%;
   cursor: pointer;
-  /* Keeps label and spinner aligned on one line. */
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   transition: background-color 0.2s ease-in-out;
-
-  /* Automatically applies when disabled={true} is passed */
   &:disabled {
     background-color: #9ca3af;
     cursor: not-allowed;
   }
-
-  /* Optional: A nice hover effect only when it's NOT disabled */
   &:hover:not(:disabled) {
     background-color: #4338ca;
   }
 `
 
 const spin = keyframes`
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 `
 
 const ButtonSpinner = styled.span`
@@ -65,25 +86,41 @@ const ButtonSpinner = styled.span`
 // --- Interfaces ---
 interface ResumeViewerProps {
   aggregatedData: Record<string, unknown>
+  isExpanded: boolean
+  onToggleExpand: () => void
 }
 
 // --- Component ---
-export default function ResumeViewer({ aggregatedData }: ResumeViewerProps) {
+export default function ResumeViewer({
+  aggregatedData,
+  isExpanded,
+  onToggleExpand,
+}: ResumeViewerProps) {
   const [status, setStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
 
-  // Memory Cleanup: Deletes the old PDF from RAM when unmounting
+  // Viewer State (Page removed)
+  const [fitMode, setFitMode] = useState<'width' | 'height'>('width')
+  const [zoom, setZoom] = useState<number | null>(null)
+
+  // Zoom Handlers
+  const handleZoomIn = () => setZoom((prev) => (prev ? prev + 25 : 125))
+  const handleZoomOut = () =>
+    setZoom((prev) => (prev ? Math.max(25, prev - 25) : 75))
+  const handleFitModeChange = (mode: 'width' | 'height') => {
+    setFitMode(mode)
+    setZoom(null)
+  }
+
   useEffect(() => {
     return () => {
       if (pdfUrl) URL.revokeObjectURL(pdfUrl)
     }
   }, [pdfUrl])
 
-  // Generation Logic
   const handleGeneratePdf = async () => {
-    // Prevent empty API calls
     if (Object.keys(aggregatedData).length === 0) {
       alert('Please save at least one section before generating the PDF.')
       return
@@ -93,9 +130,7 @@ export default function ResumeViewer({ aggregatedData }: ResumeViewerProps) {
 
     try {
       const newPdfUrl = await generatePdfData(aggregatedData)
-
       if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-
       setPdfUrl(newPdfUrl)
       setStatus('success')
     } catch (error) {
@@ -104,8 +139,56 @@ export default function ResumeViewer({ aggregatedData }: ResumeViewerProps) {
     }
   }
 
+  const handleDownloadPdf = () => {
+    if (!pdfUrl) return alert('Generate PDF first!')
+    const link = document.createElement('a')
+    link.href = pdfUrl
+    link.download = 'Resume.pdf'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <ViewerContainer>
+      <ExpandButton
+        onClick={onToggleExpand}
+        title={isExpanded ? 'Restore Split View' : 'Full Screen'}
+      >
+        {isExpanded ? (
+          <img
+            src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2218%22%20height%3D%2218%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%228%22%20height%3D%2218%22%20rx%3D%222%22%20%2F%3E%3Crect%20x%3D%2213%22%20y%3D%223%22%20width%3D%228%22%20height%3D%2218%22%20rx%3D%222%22%20%2F%3E%3C%2Fsvg%3E"
+            alt="Restore Split View"
+            width="18"
+            height="18"
+            style={{ display: 'block' }}
+          />
+        ) : (
+          <img
+            src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2218%22%20height%3D%2218%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M15%203h6v6M9%2021H3v-6M21%203l-7%207M3%2021l7-7%22%2F%3E%3C%2Fsvg%3E"
+            alt="Full Screen"
+            width="18"
+            height="18"
+            style={{ display: 'block' }}
+          />
+        )}
+      </ExpandButton>
+
+      <PdfToolbar
+        fitMode={fitMode}
+        onFitModeChange={handleFitModeChange}
+        // zoom={zoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onCopyLatex={() =>
+          alert('Backend API needs update to return LaTeX string first!')
+        }
+        onDownloadPdf={handleDownloadPdf}
+        onDownloadLatex={() =>
+          alert('Backend API needs update to return LaTeX string first!')
+        }
+      />
+
       <GenerateButton
         onClick={handleGeneratePdf}
         disabled={status === 'loading'}
@@ -116,11 +199,12 @@ export default function ResumeViewer({ aggregatedData }: ResumeViewerProps) {
 
       {status === 'error' && <ErrorMessage>Error generating PDF.</ErrorMessage>}
 
-      {/* 
-        Pass the status down as a boolean to the dumb component 
-        so it knows when to show the Skeleton pulse animation
-      */}
-      <PdfCanvas url={pdfUrl} isLoading={status === 'loading'} />
+      <PdfCanvas
+        url={pdfUrl}
+        isLoading={status === 'loading'}
+        fitMode={fitMode}
+        zoom={zoom}
+      />
     </ViewerContainer>
   )
 }

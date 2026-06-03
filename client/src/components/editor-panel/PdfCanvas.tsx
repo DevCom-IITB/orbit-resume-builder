@@ -8,7 +8,7 @@ const pulse = keyframes`
 
 const CanvasWrapper = styled.div`
   width: 100%;
-  flex-grow: 1; /* Stretches to fill the remaining height below the button */
+  flex-grow: 1;
   background-color: #b0b2b4;
   border-radius: 8px;
   display: flex;
@@ -33,9 +33,16 @@ const EmptyText = styled.p`
 interface PdfCanvasProps {
   url: string | null
   isLoading: boolean
+  fitMode: 'width' | 'height'
+  zoom: number | null
 }
 
-export default function PdfCanvas({ url, isLoading }: PdfCanvasProps) {
+export default function PdfCanvas({
+  url,
+  isLoading,
+  fitMode,
+  zoom,
+}: PdfCanvasProps) {
   if (isLoading) {
     return (
       <CanvasWrapper>
@@ -45,10 +52,20 @@ export default function PdfCanvas({ url, isLoading }: PdfCanvasProps) {
   }
 
   if (url) {
+    // We hardcode page=1 to ensure it always starts at the top
+    let fragment = `#toolbar=0&page=1`
+
+    if (zoom !== null) {
+      fragment += `&zoom=${zoom}`
+    } else {
+      fragment += `&view=${fitMode === 'width' ? 'FitH' : 'Fit'}`
+    }
+
     return (
       <CanvasWrapper>
         <iframe
-          src={`${url}#toolbar=0`}
+          key={`${fitMode}-${zoom}`}
+          src={`${url}${fragment}`}
           width="100%"
           height="100%"
           style={{ border: 'none' }}

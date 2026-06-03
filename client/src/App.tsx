@@ -3,10 +3,13 @@ import { useAuth } from './auth/AuthProvider'
 import EditorPanel from './components/editor-panel/editor-layout'
 import ResumeViewer from './components/editor-panel/ResumeViewer'
 import './App.css'
+import './components/editor-panel/editor-layout.css'
 
 function App() {
   // 1. Grab the token from  AuthContext
   const { token } = useAuth()
+
+  const [isViewerExpanded, setIsViewerExpanded] = useState(false)
 
   // Your state for the split-screen layout
   const [masterResumeData, setMasterResumeData] = useState<
@@ -29,15 +32,23 @@ function App() {
 
   // 3. Once the token exists, render your actual app!
   return (
-    <div className="editor-page">
-      <div className="editor-pane">
-        <EditorPanel
-          onDataChange={(compiledData) => setMasterResumeData(compiledData)}
-        />
-      </div>
+    <div className="editor-page" style={{ display: 'flex' }}>
+      {/* Conditionally hide the editor if the viewer is expanded */}
+      {!isViewerExpanded && (
+        <div className="editor-pane">
+          <EditorPanel
+            onDataChange={(compiledData) => setMasterResumeData(compiledData)}
+          />
+        </div>
+      )}
 
-      <div className="viewer-pane">
-        <ResumeViewer aggregatedData={masterResumeData} />
+      {/* Viewer pane flexes to take up remaining space */}
+      <div className="viewer-pane" style={{ flex: 1 }}>
+        <ResumeViewer
+          aggregatedData={masterResumeData}
+          isExpanded={isViewerExpanded}
+          onToggleExpand={() => setIsViewerExpanded(!isViewerExpanded)}
+        />
       </div>
     </div>
   )
