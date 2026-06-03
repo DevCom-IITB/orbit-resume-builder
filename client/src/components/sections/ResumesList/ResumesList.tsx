@@ -118,7 +118,8 @@ const MenuDotsIcon = () => (
   </svg>
 )
 
-function ResumesList({ items }: { items: ResumeItem[] }) {
+
+function ResumesList({ items, onStartMaking }: { items: ResumeItem[], onStartMaking: () => void }) {
   const sortedItems = [...items].sort(
     (a, b) => Number(Boolean(b.starred)) - Number(Boolean(a.starred))
   )
@@ -127,7 +128,7 @@ function ResumesList({ items }: { items: ResumeItem[] }) {
     <section className="resumes" aria-label="My resumes">
       <header className="resumes__header">
         <h2 className="resumes__title">My Resumes</h2>
-        <button className="resumes__button" type="button">
+        <button className="resumes__button" type="button" onClick={onStartMaking}>
           <svg
             className="resumes__button-icon"
             viewBox="0 0 24 24"

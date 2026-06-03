@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { IntroSteps, ResumesList, Sidebar, TopBar } from '../../components'
 import { resumes } from '../../data/resumes'
+import ResumePreferencesModal from '../../components/ResumePreferencesModal/ResumePreferencesModal.js'
 import '../App.css'
 
 function Home() {
+  const [showModal, setShowModal] = useState(false)
+
   return (
     <div className="app">
       <TopBar />
@@ -12,10 +16,22 @@ function Home() {
           {resumes.length === 0 ? (
             <IntroSteps />
           ) : (
-            <ResumesList items={resumes} />
+            <ResumesList
+              items={resumes}
+              onStartMaking={() => setShowModal(true)}
+            />
           )}
         </div>
       </div>
+
+      <ResumePreferencesModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onCreate={(prefs) => {
+          console.log(prefs)
+          setShowModal(false)
+        }}
+      />
     </div>
   )
 }
