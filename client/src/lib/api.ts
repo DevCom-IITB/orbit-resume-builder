@@ -88,22 +88,59 @@ export async function generatePdfData(
       resumeData,
       {
         headers: {
-          // Tell the backend we expect the file, not standard JSON
-          Accept: 'application/pdf',
+          Accept: 'application/json',
         },
-
-        // CRITICAL: Tell Axios to leave the bytes as a raw binary Blob
-        responseType: 'blob',
       }
     )
 
-    // Axios automatically extracts the Blob because of the responseType above
-    const pdfBlob = response.data
+    const pdfBase64 = response.data?.pdf
+    if (typeof pdfBase64 !== 'string') {
+      throw new Error('PDF payload missing or invalid')
+    }
+
+    // Decode base64 into a binary PDF Blob
+    const binaryString = atob(pdfBase64)
+    const byteArray = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i += 1) {
+      byteArray[i] = binaryString.charCodeAt(i)
+    }
+    const pdfBlob = new Blob([byteArray], { type: 'application/pdf' })
 
     // Convert the binary Blob into a secure, temporary local URL for the iframe
     return URL.createObjectURL(pdfBlob)
   } catch (error) {
     console.error('[API Error - PDF Generation]:', error)
+    throw error
+  }
+}
+
+/**
+ * Sends the aggregated resume data to the backend and extracts the LaTeX string.
+ * @param resumeData - The master JSON object containing all sections
+ * @returns The LaTeX source returned by the backend
+ */
+export async function generateLatexData(
+  resumeData: Record<string, unknown>
+): Promise<string> {
+  try {
+    const response = await APIInstance.post(
+      '/api/resume-renderer/render/',
+      resumeData,
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    )
+
+    const latex = response.data?.latex
+    if (typeof latex !== 'string') {
+      throw new Error('LaTeX payload missing or invalid')
+    }
+
+    return latex
+  } catch (error) {
+    console.error('[API Error - LaTeX Generation]:', error)
     throw error
   }
 }

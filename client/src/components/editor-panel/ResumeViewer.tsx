@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import styled, { keyframes } from 'styled-components'
 import PdfCanvas from './PdfCanvas'
 import PdfToolbar from './PdfToolbar'
-import { generatePdfData } from '../../lib/api'
+import { generateLatexData, generatePdfData } from '../../lib/api'
 
 // --- Styled Components ---
 const ViewerContainer = styled.div`
@@ -10,12 +10,21 @@ const ViewerContainer = styled.div`
   flex-direction: column;
   gap: 16px;
   height: 100%;
+  /* REMOVED: position: relative; */
+`
+
+// ADD THIS NEW WRAPPER
+const CanvasContainer = styled.div`
   position: relative;
+  flex-grow: 1;
+  width: 100%;
+  display: flex;
+  min-height: 0; /* Prevents flexbox overflowing issues */
 `
 
 const ExpandButton = styled.button`
   position: absolute;
-  top: 150px;
+  top: 20px;
   left: 12px;
   z-index: 10;
   width: 34px;
@@ -100,6 +109,7 @@ export default function ResumeViewer({
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [latexCache, setLatexCache] = useState<string | null>(null)
 
   // Viewer State (Page removed)
   const [fitMode, setFitMode] = useState<'width' | 'height'>('width')
@@ -139,54 +149,96 @@ export default function ResumeViewer({
     }
   }
 
-  const handleDownloadPdf = () => {
-    if (!pdfUrl) return alert('Generate PDF first!')
+  const handleDownloadPdf = async () => {
+    if (Object.keys(aggregatedData).length === 0) {
+      alert('Please save at least one section before downloading the PDF.')
+      return
+    }
+
+    try {
+      setStatus('loading')
+      const nextPdfUrl = pdfUrl ?? (await generatePdfData(aggregatedData))
+      if (!pdfUrl) setPdfUrl(nextPdfUrl)
+
+      const link = document.createElement('a')
+      link.href = nextPdfUrl
+      link.download = 'Resume.pdf'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      setStatus('success')
+    } catch (error) {
+      console.error(error)
+      setStatus('error')
+    }
+  }
+
+  const resolveLatex = async () => {
+    if (Object.keys(aggregatedData).length === 0) {
+      alert('Please save at least one section before exporting LaTeX.')
+      return null
+    }
+
+    if (latexCache) return latexCache
+
+    try {
+      setStatus('loading')
+      const latex = await generateLatexData(aggregatedData)
+      setLatexCache(latex)
+      setStatus('success')
+      return latex
+    } catch (error) {
+      console.error(error)
+      setStatus('error')
+      return null
+    }
+  }
+
+  const handleCopyLatex = async () => {
+    const latex = await resolveLatex()
+    if (!latex) return
+
+    if (!navigator.clipboard) {
+      alert('Clipboard access is not available in this browser.')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(latex)
+      alert('LaTeX copied to clipboard!')
+    } catch (error) {
+      console.error(error)
+      alert('Failed to copy LaTeX to clipboard.')
+    }
+  }
+
+  const handleDownloadLatex = async () => {
+    const latex = await resolveLatex()
+    if (!latex) return
+
+    const latexBlob = new Blob([latex], {
+      type: 'text/x-tex;charset=utf-8',
+    })
+    const latexUrl = URL.createObjectURL(latexBlob)
     const link = document.createElement('a')
-    link.href = pdfUrl
-    link.download = 'Resume.pdf'
+    link.href = latexUrl
+    link.download = 'Resume.tex'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(latexUrl)
   }
 
   return (
     <ViewerContainer>
-      <ExpandButton
-        onClick={onToggleExpand}
-        title={isExpanded ? 'Restore Split View' : 'Full Screen'}
-      >
-        {isExpanded ? (
-          <img
-            src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2218%22%20height%3D%2218%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%228%22%20height%3D%2218%22%20rx%3D%222%22%20%2F%3E%3Crect%20x%3D%2213%22%20y%3D%223%22%20width%3D%228%22%20height%3D%2218%22%20rx%3D%222%22%20%2F%3E%3C%2Fsvg%3E"
-            alt="Restore Split View"
-            width="18"
-            height="18"
-            style={{ display: 'block' }}
-          />
-        ) : (
-          <img
-            src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2218%22%20height%3D%2218%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M15%203h6v6M9%2021H3v-6M21%203l-7%207M3%2021l7-7%22%2F%3E%3C%2Fsvg%3E"
-            alt="Full Screen"
-            width="18"
-            height="18"
-            style={{ display: 'block' }}
-          />
-        )}
-      </ExpandButton>
-
       <PdfToolbar
         fitMode={fitMode}
         onFitModeChange={handleFitModeChange}
-        // zoom={zoom}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
-        onCopyLatex={() =>
-          alert('Backend API needs update to return LaTeX string first!')
-        }
+        onCopyLatex={handleCopyLatex}
         onDownloadPdf={handleDownloadPdf}
-        onDownloadLatex={() =>
-          alert('Backend API needs update to return LaTeX string first!')
-        }
+        onDownloadLatex={handleDownloadLatex}
       />
 
       <GenerateButton
@@ -199,12 +251,38 @@ export default function ResumeViewer({
 
       {status === 'error' && <ErrorMessage>Error generating PDF.</ErrorMessage>}
 
-      <PdfCanvas
-        url={pdfUrl}
-        isLoading={status === 'loading'}
-        fitMode={fitMode}
-        zoom={zoom}
-      />
+      {/* NEW: Wrap the button and the canvas so they are glued together */}
+      <CanvasContainer>
+        <ExpandButton
+          onClick={onToggleExpand}
+          title={isExpanded ? 'Restore Split View' : 'Full Screen'}
+        >
+          {isExpanded ? (
+            <img
+              src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2218%22%20height%3D%2218%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%228%22%20height%3D%2218%22%20rx%3D%222%22%20%2F%3E%3Crect%20x%3D%2213%22%20y%3D%223%22%20width%3D%228%22%20height%3D%2218%22%20rx%3D%222%22%20%2F%3E%3C%2Fsvg%3E"
+              alt="Restore Split View"
+              width="18"
+              height="18"
+              style={{ display: 'block' }}
+            />
+          ) : (
+            <img
+              src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2218%22%20height%3D%2218%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M15%203h6v6M9%2021H3v-6M21%203l-7%207M3%2021l7-7%22%2F%3E%3C%2Fsvg%3E"
+              alt="Full Screen"
+              width="18"
+              height="18"
+              style={{ display: 'block' }}
+            />
+          )}
+        </ExpandButton>
+
+        <PdfCanvas
+          url={pdfUrl}
+          isLoading={status === 'loading'}
+          fitMode={fitMode}
+          zoom={zoom}
+        />
+      </CanvasContainer>
     </ViewerContainer>
   )
 }
