@@ -1,5 +1,5 @@
 HEADER_TEST_INPUTS = [
-    "Kushagra Misra BTech CSE IIT Bombay email kushagra@gmail.com phone 9876543210 linkedin kushagra-misra github kushagramisra06",
+    "Kushagra Misra BTech CSE IIT Bombay email kushagra@gmail.com phone 98769XXXXX linkedin kushagra-misra github kushagramisra06",
 ]
 
 
