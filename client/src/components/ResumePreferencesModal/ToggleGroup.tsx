@@ -29,7 +29,7 @@ export default function ToggleGroup({
 }: {
   options: ToggleOption[];
   value: string | number;
-  onChange: (v: any) => void;
+  onChange: (v: ToggleOption['value']) => void;
 }) {
   return (
     <ToggleGroupRow>
