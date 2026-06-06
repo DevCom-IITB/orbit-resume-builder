@@ -27,8 +27,7 @@ function Home() {
       <ResumePreferencesModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        onCreate={(prefs) => {
-          console.log(prefs)
+        onCreate={() => {
           setShowModal(false)
         }}
       />
