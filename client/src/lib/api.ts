@@ -81,32 +81,6 @@ export async function generateSectionData(
 export async function generatePdfData(
     resumeData: Record<string, unknown>
 ): Promise<string> {
-<<<<<<< HEAD
-  try {
-    // We pass a third argument to override specific configurations just for THIS request
-    const response = await APIInstance.post(
-      '/api/resume-renderer/render/',
-      resumeData,
-      {
-        headers: {
-          Accept: 'application/json',
-        },
-      }
-    )
-
-    const pdfBase64 = response.data?.pdf
-    if (typeof pdfBase64 !== 'string') {
-      throw new Error('PDF payload missing or invalid')
-    }
-
-    // Decode base64 into a binary PDF Blob
-    const binaryString = atob(pdfBase64)
-    const byteArray = new Uint8Array(binaryString.length)
-    for (let i = 0; i < binaryString.length; i += 1) {
-      byteArray[i] = binaryString.charCodeAt(i)
-    }
-    const pdfBlob = new Blob([byteArray], { type: 'application/pdf' })
-=======
     try {
         // We pass a third argument to override specific configurations just for THIS request
         const response = await APIInstance.post(
@@ -114,18 +88,23 @@ export async function generatePdfData(
             resumeData,
             {
                 headers: {
-                    // Tell the backend we expect the file, not standard JSON
-                    Accept: 'application/pdf',
+                    Accept: 'application/json',
                 },
-
-                // CRITICAL: Tell Axios to leave the bytes as a raw binary Blob
-                responseType: 'blob',
             }
         )
 
-        // Axios automatically extracts the Blob because of the responseType above
-        const pdfBlob = response.data
->>>>>>> d7023ba8c218e1cd73ebb7dc60445162981668d8
+        const pdfBase64 = response.data?.pdf
+        if (typeof pdfBase64 !== 'string') {
+            throw new Error('PDF payload missing or invalid')
+        }
+
+        // Decode base64 into a binary PDF Blob
+        const binaryString = atob(pdfBase64)
+        const byteArray = new Uint8Array(binaryString.length)
+        for (let i = 0; i < binaryString.length; i += 1) {
+            byteArray[i] = binaryString.charCodeAt(i)
+        }
+        const pdfBlob = new Blob([byteArray], { type: 'application/pdf' })
 
         // Convert the binary Blob into a secure, temporary local URL for the iframe
         return URL.createObjectURL(pdfBlob)
@@ -141,75 +120,75 @@ export async function generatePdfData(
  * @returns The LaTeX source returned by the backend
  */
 export async function generateLatexData(
-  resumeData: Record<string, unknown>
+    resumeData: Record<string, unknown>
 ): Promise<string> {
-  try {
-    const response = await APIInstance.post(
-      '/api/resume-renderer/render/',
-      resumeData,
-      {
-        headers: {
-          Accept: 'application/json',
-        },
-      }
-    )
+    try {
+        const response = await APIInstance.post(
+            '/api/resume-renderer/render/',
+            resumeData,
+            {
+                headers: {
+                    Accept: 'application/json',
+                },
+            }
+        )
 
-    const latex = response.data?.latex
-    if (typeof latex !== 'string') {
-      throw new Error('LaTeX payload missing or invalid')
+        const latex = response.data?.latex
+        if (typeof latex !== 'string') {
+            throw new Error('LaTeX payload missing or invalid')
+        }
+
+        return latex
+    } catch (error) {
+        console.error('[API Error - LaTeX Generation]:', error)
+        throw error
     }
-
-    return latex
-  } catch (error) {
-    console.error('[API Error - LaTeX Generation]:', error)
-    throw error
-  }
 }
 
 //new refactored pdf generation handling
 export interface RenderedResumeResponse {
-  pdfUrl: string;
-  latexCode: string;
+    pdfUrl: string
+    latexCode: string
 }
 
 export async function generateResumeAssets(
-  resumeData: Record<string, unknown>
+    resumeData: Record<string, unknown>
 ): Promise<RenderedResumeResponse> {
-  try {
-    const response = await APIInstance.post(
-      '/api/resume-renderer/render/',
-      resumeData,
-      {
-        headers: {
-          Accept: 'application/json',
-        },
-      }
-    )
+    try {
+        const response = await APIInstance.post(
+            '/api/resume-renderer/render/',
+            resumeData,
+            {
+                headers: {
+                    Accept: 'application/json',
+                },
+            }
+        )
 
-    const pdfBase64 = response.data?.pdf
-    const latexCode = response.data?.latex
+        const pdfBase64 = response.data?.pdf
+        const latexCode = response.data?.latex
 
-    if (typeof pdfBase64 !== 'string') {
-      throw new Error('PDF payload missing or invalid')
-    }
-    if (typeof latexCode !== 'string') {
-      throw new Error('LaTeX payload missing or invalid')
-    }
+        if (typeof pdfBase64 !== 'string') {
+            throw new Error('PDF payload missing or invalid')
+        }
+        if (typeof latexCode !== 'string') {
+            throw new Error('LaTeX payload missing or invalid')
+        }
 
-    const binaryString = atob(pdfBase64)
-    const byteArray = new Uint8Array(binaryString.length)
-    for (let i = 0; i < binaryString.length; i += 1) {
-      byteArray[i] = binaryString.charCodeAt(i)
-    }
-    const pdfBlob = new Blob([byteArray], { type: 'application/pdf' })
-    const pdfUrl = URL.createObjectURL(pdfBlob)
+        const binaryString = atob(pdfBase64)
+        const byteArray = new Uint8Array(binaryString.length)
+        for (let i = 0; i < binaryString.length; i += 1) {
+            byteArray[i] = binaryString.charCodeAt(i)
+        }
+        const pdfBlob = new Blob([byteArray], { type: 'application/pdf' })
+        const pdfUrl = URL.createObjectURL(pdfBlob)
 
-    return {
-      pdfUrl,
-      latexCode,
+        return {
+            pdfUrl,
+            latexCode,
+        }
+    } catch (error) {
+        console.error('[API Error - Resume Asset Generation]:', error)
+        throw error
     }
-  } catch (error) {
-    console.error('[API Error - Resume Asset Generation]:', error)
-    throw error
-  }
 }

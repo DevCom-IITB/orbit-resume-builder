@@ -691,11 +691,11 @@ body {
 /* Layout: split editor and viewer side-by-side */
 /* 1. Lock the main container to the screen height */
 .editor-page {
-  display: flex;
-  gap: 16px;
-  width: 100%;
-  height: 100vh; /* 100vh means 100% of the Viewport (screen) Height */
-  overflow: hidden; /* Prevents the main page itself from scrolling */
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    height: 100vh; /* 100vh means 100% of the Viewport (screen) Height */
+    overflow: hidden; /* Prevents the main page itself from scrolling */
 }
 
 /* 2. Left side: Takes half, but scrolls internally if content is too long */
