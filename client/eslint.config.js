@@ -8,25 +8,25 @@ import prettier from 'eslint-plugin-prettier'
 import eslintConfigPrettier from 'eslint-config-prettier'
 
 export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      js.configs.recommended,
-      tseslint.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-      eslintConfigPrettier,
-    ],
-    plugins: {
-      prettier,
+    globalIgnores(['dist']),
+    {
+        files: ['**/*.{ts,tsx}'],
+        extends: [
+            js.configs.recommended,
+            tseslint.configs.recommended,
+            reactHooks.configs.flat.recommended,
+            reactRefresh.configs.vite,
+            eslintConfigPrettier,
+        ],
+        plugins: {
+            prettier,
+        },
+        languageOptions: {
+            globals: globals.browser,
+        },
+        rules: {
+            // This is to allow setState withing useEffect
+            'react-hooks/set-state-in-effect': 'off',
+        },
     },
-    languageOptions: {
-      globals: globals.browser,
-    },
-    rules: {
-      // This is to allow setState withing useEffect
-      'react-hooks/set-state-in-effect': 'off',
-    },
-  },
 ])

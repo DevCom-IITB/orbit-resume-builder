@@ -5,34 +5,34 @@ import ResumePreferencesModal from '../../components/ResumePreferencesModal/Resu
 import '../App.css'
 
 function Home() {
-  const [showModal, setShowModal] = useState(false)
+    const [showModal, setShowModal] = useState(false)
 
-  return (
-    <div className="app">
-      <TopBar />
-      <div className="app__body">
-        <Sidebar />
-        <div className="app__main">
-          {resumes.length === 0 ? (
-            <IntroSteps />
-          ) : (
-            <ResumesList
-              items={resumes}
-              onStartMaking={() => setShowModal(true)}
+    return (
+        <div className="app">
+            <TopBar />
+            <div className="app__body">
+                <Sidebar />
+                <div className="app__main">
+                    {resumes.length === 0 ? (
+                        <IntroSteps />
+                    ) : (
+                        <ResumesList
+                            items={resumes}
+                            onStartMaking={() => setShowModal(true)}
+                        />
+                    )}
+                </div>
+            </div>
+
+            <ResumePreferencesModal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                onCreate={() => {
+                    setShowModal(false)
+                }}
             />
-          )}
         </div>
-      </div>
-
-      <ResumePreferencesModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        onCreate={() => {
-          setShowModal(false)
-        }}
-      />
-    </div>
-  )
+    )
 }
 
 export default Home

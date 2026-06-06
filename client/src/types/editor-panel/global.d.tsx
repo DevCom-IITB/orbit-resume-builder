@@ -1,7 +1,7 @@
 export {}
 
 declare global {
-  interface Window {
-    LAST_DND_TIME?: number
-  }
+    interface Window {
+        LAST_DND_TIME?: number
+    }
 }
