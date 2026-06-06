@@ -36,6 +36,8 @@ export default function ToggleGroup({
       {options.map((opt) => (
         <ToggleButton
           key={opt.value}
+          type="button"
+          aria-pressed={value === opt.value}
           $active={value === opt.value}
           onClick={() => onChange(opt.value)}
         >
