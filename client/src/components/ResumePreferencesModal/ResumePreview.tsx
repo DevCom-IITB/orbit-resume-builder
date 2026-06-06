@@ -1,7 +1,5 @@
-// @ts-ignore
-import shortHeaderImg from "./previewimages/Frame 48095666.png";
-// @ts-ignore
-import longHeaderImg from "./previewimages/Group 83.png";
+import shortHeaderImg from './previewimages/Frame 48095666.png'
+import longHeaderImg from './previewimages/Group 83.png'
 import styled from "styled-components";
 const PreviewBox = styled.div`
   flex: 0 0 auto;
