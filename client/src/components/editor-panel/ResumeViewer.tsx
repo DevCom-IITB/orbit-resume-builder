@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import styled, { keyframes } from 'styled-components'
+import styled from 'styled-components'
 import PdfCanvas from './PdfCanvas'
 import PdfToolbar from './PdfToolbar'
-import { generateLatexData, generatePdfData } from '../../lib/api'
+import { generateResumeAssets } from '../../lib/api'
 
 // --- Styled Components ---
 const ViewerContainer = styled.div`
@@ -10,10 +10,8 @@ const ViewerContainer = styled.div`
   flex-direction: column;
   gap: 16px;
   height: 100%;
-  /* REMOVED: position: relative; */
 `
 
-// ADD THIS NEW WRAPPER
 const CanvasContainer = styled.div`
   position: relative;
   flex-grow: 1;
@@ -56,42 +54,6 @@ const ErrorMessage = styled.div`
   text-align: center;
 `
 
-const GenerateButton = styled.button`
-  padding: 12px 24px;
-  background-color: #4f46e5;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  width: 100%;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: background-color 0.2s ease-in-out;
-  &:disabled {
-    background-color: #9ca3af;
-    cursor: not-allowed;
-  }
-  &:hover:not(:disabled) {
-    background-color: #4338ca;
-  }
-`
-
-const spin = keyframes`
-  to { transform: rotate(360deg); }
-`
-
-const ButtonSpinner = styled.span`
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #ffffff;
-  animation: ${spin} 0.75s linear infinite;
-`
-
 // --- Interfaces ---
 interface ResumeViewerProps {
   aggregatedData: Record<string, unknown>
@@ -105,128 +67,103 @@ export default function ResumeViewer({
   isExpanded,
   onToggleExpand,
 }: ResumeViewerProps) {
-  const [status, setStatus] = useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle')
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-  const [latexCache, setLatexCache] = useState<string | null>(null)
+  const [latexCode, setLatexCode] = useState<string | null>(null)
 
-  // Viewer State (Page removed)
+  // Viewer State
   const [fitMode, setFitMode] = useState<'width' | 'height'>('width')
   const [zoom, setZoom] = useState<number | null>(null)
 
   // Zoom Handlers
   const handleZoomIn = () => setZoom((prev) => (prev ? prev + 25 : 125))
-  const handleZoomOut = () =>
-    setZoom((prev) => (prev ? Math.max(25, prev - 25) : 75))
+  const handleZoomOut = () => setZoom((prev) => (prev ? Math.max(25, prev - 25) : 75))
   const handleFitModeChange = (mode: 'width' | 'height') => {
     setFitMode(mode)
     setZoom(null)
   }
 
+  // Memory Cleanup
   useEffect(() => {
     return () => {
       if (pdfUrl) URL.revokeObjectURL(pdfUrl)
     }
   }, [pdfUrl])
 
-  const handleGeneratePdf = async () => {
-    if (Object.keys(aggregatedData).length === 0) {
-      alert('Please save at least one section before generating the PDF.')
-      return
-    }
+  // Live Preview Auto-Generator
+  useEffect(() => {
+    const autoGeneratePdf = async () => {
+      // 1. Safely convert the incoming data to a string
+      const dataString = JSON.stringify(aggregatedData);
+      
+      // 2. Ignore empty objects
+      if (!aggregatedData || dataString === '{}') return;
 
-    setStatus('loading')
+      // 3. Deep check: If the editor passes a skeleton template with empty arrays/objects 
+      // (e.g., {"education": [], "experience": {}}), ignore it until real data is typed.
+      const hasRealData = Object.values(aggregatedData).some(val => {
+        if (Array.isArray(val)) return val.length > 0;
+        if (typeof val === 'object' && val !== null) return Object.keys(val).length > 0;
+        return Boolean(val);
+      });
 
-    try {
-      const newPdfUrl = await generatePdfData(aggregatedData)
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-      setPdfUrl(newPdfUrl)
-      setStatus('success')
-    } catch (error) {
-      console.error(error)
-      setStatus('error')
-    }
-  }
+      if (!hasRealData) return; // Stop the animation from running on empty templates
 
-  const handleDownloadPdf = async () => {
-    if (Object.keys(aggregatedData).length === 0) {
-      alert('Please save at least one section before downloading the PDF.')
-      return
-    }
+      setStatus('loading');
 
-    try {
-      setStatus('loading')
-      const nextPdfUrl = pdfUrl ?? (await generatePdfData(aggregatedData))
-      if (!pdfUrl) setPdfUrl(nextPdfUrl)
+      try {
+        const { pdfUrl: newPdfUrl, latexCode: newLatexCode } = await generateResumeAssets(aggregatedData);
+        
+        if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+        setPdfUrl(newPdfUrl);
+        setLatexCode(newLatexCode);
+        
+        setStatus('success');
+      } catch (error) {
+        console.error(error);
+        setStatus('error');
+      }
+    };
 
-      const link = document.createElement('a')
-      link.href = nextPdfUrl
-      link.download = 'Resume.pdf'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      setStatus('success')
-    } catch (error) {
-      console.error(error)
-      setStatus('error')
-    }
-  }
+    autoGeneratePdf();
+    
+  // 4. CRITICAL FIX: Use JSON.stringify in the dependency array to prevent infinite rendering loops!
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(aggregatedData)]);
 
-  const resolveLatex = async () => {
-    if (Object.keys(aggregatedData).length === 0) {
-      alert('Please save at least one section before exporting LaTeX.')
-      return null
-    }
-
-    if (latexCache) return latexCache
-
-    try {
-      setStatus('loading')
-      const latex = await generateLatexData(aggregatedData)
-      setLatexCache(latex)
-      setStatus('success')
-      return latex
-    } catch (error) {
-      console.error(error)
-      setStatus('error')
-      return null
-    }
+  // --- Action Handlers ---
+  const handleDownloadPdf = () => {
+    if (!pdfUrl) return alert("Generate PDF first!")
+    const link = document.createElement('a')
+    link.href = pdfUrl
+    link.download = 'Resume.pdf'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   const handleCopyLatex = async () => {
-    const latex = await resolveLatex()
-    if (!latex) return
-
-    if (!navigator.clipboard) {
-      alert('Clipboard access is not available in this browser.')
-      return
-    }
-
+    if (!latexCode) return alert("Generate PDF first!")
     try {
-      await navigator.clipboard.writeText(latex)
+      await navigator.clipboard.writeText(latexCode)
       alert('LaTeX copied to clipboard!')
-    } catch (error) {
-      console.error(error)
+    } catch (err) {
+      console.error('Failed to copy text: ', err)
       alert('Failed to copy LaTeX to clipboard.')
     }
   }
 
-  const handleDownloadLatex = async () => {
-    const latex = await resolveLatex()
-    if (!latex) return
-
-    const latexBlob = new Blob([latex], {
-      type: 'text/x-tex;charset=utf-8',
-    })
-    const latexUrl = URL.createObjectURL(latexBlob)
+  const handleDownloadLatex = () => {
+    if (!latexCode) return alert("Generate PDF first!")
+    const blob = new Blob([latexCode], { type: 'text/plain' })
+    const tempUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.href = latexUrl
+    link.href = tempUrl
     link.download = 'Resume.tex'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    URL.revokeObjectURL(latexUrl)
+    URL.revokeObjectURL(tempUrl)
   }
 
   return (
@@ -241,17 +178,8 @@ export default function ResumeViewer({
         onDownloadLatex={handleDownloadLatex}
       />
 
-      <GenerateButton
-        onClick={handleGeneratePdf}
-        disabled={status === 'loading'}
-      >
-        {status === 'loading' ? 'Compiling LaTeX...' : 'Generate Final PDF'}
-        {status === 'loading' && <ButtonSpinner aria-hidden="true" />}
-      </GenerateButton>
-
       {status === 'error' && <ErrorMessage>Error generating PDF.</ErrorMessage>}
 
-      {/* NEW: Wrap the button and the canvas so they are glued together */}
       <CanvasContainer>
         <ExpandButton
           onClick={onToggleExpand}

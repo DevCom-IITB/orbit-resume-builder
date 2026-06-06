@@ -144,3 +144,51 @@ export async function generateLatexData(
     throw error
   }
 }
+
+//new refactored pdf generation handling
+export interface RenderedResumeResponse {
+  pdfUrl: string;
+  latexCode: string;
+}
+
+export async function generateResumeAssets(
+  resumeData: Record<string, unknown>
+): Promise<RenderedResumeResponse> {
+  try {
+    const response = await APIInstance.post(
+      '/api/resume-renderer/render/',
+      resumeData,
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    )
+
+    const pdfBase64 = response.data?.pdf
+    const latexCode = response.data?.latex
+
+    if (typeof pdfBase64 !== 'string') {
+      throw new Error('PDF payload missing or invalid')
+    }
+    if (typeof latexCode !== 'string') {
+      throw new Error('LaTeX payload missing or invalid')
+    }
+
+    const binaryString = atob(pdfBase64)
+    const byteArray = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i += 1) {
+      byteArray[i] = binaryString.charCodeAt(i)
+    }
+    const pdfBlob = new Blob([byteArray], { type: 'application/pdf' })
+    const pdfUrl = URL.createObjectURL(pdfBlob)
+
+    return {
+      pdfUrl,
+      latexCode,
+    }
+  } catch (error) {
+    console.error('[API Error - Resume Asset Generation]:', error)
+    throw error
+  }
+}
