@@ -1,4 +1,6 @@
-from django.http import HttpResponse
+import base64
+
+from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -109,7 +111,12 @@ class LatexRenderView(APIView):
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        return HttpResponse(pdf_bytes, content_type="application/pdf")
+        return JsonResponse(
+            {
+                "latex": latex,
+                "pdf": base64.b64encode(pdf_bytes).decode("utf-8"),
+            }
+        )
 
 
 @api_view(["POST"])
