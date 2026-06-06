@@ -169,7 +169,7 @@ export default function ResumePreferencesModal({ isOpen, onClose, onCreate }: Pr
 
   return (
     <Overlay onClick={handleOverlayClick}>
-      <Modal>
+      <Modal role="dialog" aria-modal="true" aria-label="Resume preferences">
         <FormSection>
           <FieldGroup>
             <Label>File Name</Label>
