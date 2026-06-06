@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { IntroSteps, ResumesList, Sidebar, TopBar } from '../../components'
 import { resumes } from '../../data/resumes'
-import ResumePreferencesModal from '../../components/ResumePreferencesModal/ResumePreferencesModal.js'
+import ResumePreferencesModal from '../../components/ResumePreferencesModal/ResumePreferencesModal'
 import '../App.css'
 
 function Home() {
