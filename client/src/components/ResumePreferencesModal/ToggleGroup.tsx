@@ -17,19 +17,19 @@ const ToggleButton = styled.button<{ $active: boolean }>`
     font-family: inherit;
     transition: all 0.15s;
 `
-interface ToggleOption {
+interface ToggleOption<T extends string | number = string | number> {
     label: string
-    value: string | number
+    value: T
 }
 
-export default function ToggleGroup({
+export default function ToggleGroup<T extends string | number>({
     options,
     value,
     onChange,
 }: {
-    options: ToggleOption[]
-    value: string | number
-    onChange: (v: ToggleOption['value']) => void
+    options: ToggleOption<T>[]
+    value: T
+    onChange: (v: T) => void
 }) {
     return (
         <ToggleGroupRow>
