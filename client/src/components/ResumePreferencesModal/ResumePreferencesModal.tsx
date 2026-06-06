@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from 'react'
 import styled, { keyframes } from "styled-components";
 import ToggleGroup from "./ToggleGroup";
 import ResumePreview from "./ResumePreview";
