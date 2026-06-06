@@ -2,7 +2,7 @@
   {
     "section_type": "header",
     "test_case": 1,
-    "input": "Kushagra Misra BTech CSE IIT Bombay email kushagra@gmail.com phone 9876543210 linkedin kushagra-misra github kushagramisra06",
+    "input": "Kushagra Misra BTech CSE IIT Bombay email kushagra@gmail.com phone 98769XXXXX linkedin kushagra-misra github kushagramisra06",
     "output": {
       "name": "Kushagra Misra",
       "edu": "B.Tech. in Computer Science and Engineering, IIT Bombay",

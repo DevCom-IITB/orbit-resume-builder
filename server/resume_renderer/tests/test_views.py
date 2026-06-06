@@ -1,3 +1,4 @@
+import base64
 import json
 
 import pytest
@@ -57,9 +58,12 @@ def test_render_defaults_config(api_client, user, monkeypatch):
         data=json.dumps(payload),
         content_type="application/json",
     )
+    data = response.json()
+    pdf_bytes = base64.b64decode(data["pdf"])
 
     assert response.status_code == 200
-    assert response["Content-Type"] == "application/pdf"
+    assert response["Content-Type"] == "application/json"
+    assert pdf_bytes.startswith(b"%PDF-1.4")
 
 
 def test_render_rejects_bad_bullets(api_client, user):
@@ -210,7 +214,7 @@ def test_render_accepts_new_sections_and_passes_latex(api_client, user, monkeypa
     )
 
     assert response.status_code == 200
-    assert response["Content-Type"] == "application/pdf"
+    assert response["Content-Type"] == "application/json"
     assert "KEY PROJECTS" in seen["latex"]
     assert "COURSES UNDERTAKEN" in seen["latex"]
     assert "TECHNICAL SKILLS" in seen["latex"]

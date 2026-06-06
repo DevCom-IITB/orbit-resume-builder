@@ -18,16 +18,16 @@ const CanvasWrapper = styled.div`
 `
 
 const Skeleton = styled.div`
-  width: 80%;
-  height: 90%;
-  background-color: white;
-  animation: ${pulse} 1.5s infinite;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    width: 80%;
+    height: 90%;
+    background-color: white;
+    animation: ${pulse} 1.5s infinite;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 `
 
 const EmptyText = styled.p`
-  color: #a0aec0;
-  font-family: monospace;
+    color: #a0aec0;
+    font-family: monospace;
 `
 
 interface PdfCanvasProps {
@@ -75,9 +75,9 @@ export default function PdfCanvas({
     )
   }
 
-  return (
-    <CanvasWrapper>
-      <EmptyText>PDF Preview</EmptyText>
-    </CanvasWrapper>
-  )
+    return (
+        <CanvasWrapper>
+            <EmptyText>PDF Preview</EmptyText>
+        </CanvasWrapper>
+    )
 }
