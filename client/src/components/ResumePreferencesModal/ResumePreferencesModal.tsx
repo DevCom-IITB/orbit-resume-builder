@@ -172,11 +172,11 @@ export default function ResumePreferencesModal({ isOpen, onClose, onCreate }: Pr
       <Modal role="dialog" aria-modal="true" aria-label="Resume preferences">
         <FormSection>
           <FieldGroup>
-            <Label>File Name</Label>
+            <Label htmlFor="resume-file-name">File Name</Label>
             <TextInput
+              id="resume-file-name"
               type="text"
               placeholder="Type here"
-              value={fileName}
               onChange={(e) => setFileName(e.target.value)}
               autoFocus
             />
