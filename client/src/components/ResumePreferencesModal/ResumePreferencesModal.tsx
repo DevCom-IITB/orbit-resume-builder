@@ -2,10 +2,6 @@ import React, { useState } from 'react'
 import styled, { keyframes } from "styled-components";
 import ToggleGroup from "./ToggleGroup";
 import ResumePreview from "./ResumePreview";
-// @ts-ignore
-import shortHeaderImg from "./previewimages/Frame 48095666.png";
-// @ts-ignore
-import longHeaderImg from "./previewimages/Group 83.png";
 
 // ── Animations ──────────────────────────────────────────────────────────────
 
