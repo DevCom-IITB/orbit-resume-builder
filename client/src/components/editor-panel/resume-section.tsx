@@ -8,9 +8,7 @@ import {
   arrayMove,
   useSortable,
 } from '@dnd-kit/sortable'
-import dragIcon from '../../assets/editor-panel/drag.png'
-import collapseIcon from '../../assets/editor-panel/collapse.png'
-import expandIcon from '../../assets/editor-panel/expand.png'
+import { Pencil, Plus, Minus, GripHorizontal } from 'lucide-react'
 import type { Item } from '../../types/editor-panel/item'
 
 interface ResumeSectionProps {
@@ -119,21 +117,36 @@ const ResumeSection = ({
       }}
     >
       <div className="resume-section-topbar">
-        <h1>{section.title}</h1>
 
-        <div className="resume-section-topbar-controls">
+        {isSectionReorderEnabled && (
           <div
-            className="section-item-toolbar"
+            className="section-drag-container"
             style={{
-              display: isSectionReorderEnabled
-                ? 'none'
-                : section.isCollapsed
-                  ? 'none'
-                  : 'flex',
+              visibility: isSectionReorderEnabled ? 'visible' : 'hidden',
+              pointerEvents: isSectionReorderEnabled ? 'auto' : 'none',
             }}
           >
             <button
-              className="item-reorder-toggle-button"
+              className="section-drag-button"
+              {...attributes}
+              {...listeners}
+            >
+              <GripHorizontal className='lucide-icon drag-icon' />
+            </button>
+          </div>
+        )}
+
+        <h1 className={`resume-section-title ${section.isCollapsed ? 'collapsed' : 'expanded'}`}>{section.title}</h1>
+        <div className="resume-section-topbar-controls"
+          style={{
+            minWidth: "11rem",
+          }}
+        >
+          <div className="section-item-toolbar"
+            style={{
+              display: isSectionReorderEnabled ? 'none' : section.isCollapsed ? 'none' : 'flex'
+            }}>
+            <button className={`item-reorder-toggle-button ${isReorderEnabled ? 'save' : 'edit'}`}
               onClick={() => {
                 if (!isReorderEnabled) {
                   handleItemCollapse(-1)
@@ -142,7 +155,12 @@ const ResumeSection = ({
                 setReorderEnabled((prev) => !prev)
               }}
             >
-              {isReorderEnabled ? 'Disable Reordering' : 'Enable Reordering'}
+              <>
+                {!isReorderEnabled && (
+                  <Pencil className='lucide-button-icon'/>
+                )}
+                <span >{isReorderEnabled ? 'Save' : 'Edit'} </span>
+              </>
             </button>
           </div>
 
@@ -164,35 +182,16 @@ const ResumeSection = ({
                 handleSectionCollapse(section.id)
               }}
             >
-              <img
-                className="icon-button"
-                src={section.isCollapsed ? expandIcon : collapseIcon}
-                alt={section.isCollapsed ? '+' : '-'}
-              />
+              {section.isCollapsed ? (
+                <Plus className='lucide-icon' />
+                ) : (
+                <Minus className='lucide-icon collapse-icon'/>
+              )}
             </button>
           </div>
         </div>
-
-        {isSectionReorderEnabled && (
-          <div
-            className="section-drag-container"
-            style={{
-              visibility: isSectionReorderEnabled ? 'visible' : 'hidden',
-              pointerEvents: isSectionReorderEnabled ? 'auto' : 'none',
-            }}
-          >
-            <button
-              className="section-drag-button"
-              {...attributes}
-              {...listeners}
-            >
-              <img className="icon-button" src={dragIcon} />
-            </button>
-          </div>
-        )}
       </div>
-      <div
-        className={`section-item-container ${
+      <div className={`section-item-container ${
           section.isCollapsed ? 'collapsed' : 'expanded'
         }`}
       >

@@ -7,8 +7,8 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import './editor-layout.css'
-import leftIcon from '../../assets/editor-panel/left-arrow.png'
-import reorderIcon from '../../assets/editor-panel/reorder.png'
+
+import { Pencil } from 'lucide-react'
 import type { Section } from '../../types/editor-panel/section'
 import type { Item } from '../../types/editor-panel/item'
 
@@ -374,27 +374,21 @@ const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
     setSections(reorderedSections)
   }
 
+  // The following lines are just to avoid errors in the lint
+  // Remove these lines and make the functioning for the panel collapse/expand
+  useEffect(() => {
+    if(isPanelCollapsed){
+      setPanelCollapse(false);
+    }
+  }, [isPanelCollapsed])
+
   return (
     <div className="editor-panel">
       <div className="resume-header">
-        <button
-          className="panel-collapse-button"
-          onClick={() => {
-            setPanelCollapse((prev) => !prev)
+        <textarea className="file-name-input"
+          style={{
+            display: isPanelCollapsed ? "none" : "flex"
           }}
-        >
-          <img
-            className={`
-                        panel-collapse-icon
-                        ${isPanelCollapsed ? 'collapsed' : ''}
-                        `}
-            src={leftIcon}
-            alt={isPanelCollapsed ? 'Expand' : 'Collapse'}
-          />
-        </button>
-
-        <textarea
-          className="file-name-input"
           value={fileName}
           maxLength={32}
           rows={1}
@@ -405,9 +399,11 @@ const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
           }}
         />
 
-        <button
-          className="section-reorder-button"
-          disabled={isPanelCollapsed}
+        {/* Save/Edit button for sections */}
+        <button className={`section-reorder-button ${isSectionReorderEnabled ? 'save' : 'edit'}`}
+          style={{
+            display: isPanelCollapsed ? "none" : "flex"
+          }}
           onClick={() => {
             if (!isSectionReorderEnabled) {
               handleSectionCollapse(-1)
@@ -417,15 +413,16 @@ const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
           }}
         >
           <>
-            <img className="button-icon" src={reorderIcon} />
-            <span>{isSectionReorderEnabled ? 'Disable' : 'Reorder'} </span>
+            {!isSectionReorderEnabled && (
+              <Pencil className='lucide-button-icon'/>
+            )}
+
+            <span>{isSectionReorderEnabled ? 'Save' : 'Edit'} </span>
           </>
         </button>
       </div>
 
-      <div
-        className={`resume-section ${isPanelCollapsed ? 'panel-hidden' : 'panel-visible'}`}
-      >
+      <div className={`resume-section ${isPanelCollapsed ? 'panel-hidden' : 'panel-visible'}`}>
         <DndContext onDragEnd={handleSectionDragEnd}>
           <SortableContext
             items={sections.map((section) => `section-${section.id}`)}
@@ -448,6 +445,12 @@ const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
             ))}
           </SortableContext>
         </DndContext>
+      </div>
+
+      <div className='add-field-button-container' style={{
+        display: isSectionReorderEnabled ? "flex" : "none"
+      }}>
+            <button className='add-field-button'>+ Add Field</button>
       </div>
     </div>
   )

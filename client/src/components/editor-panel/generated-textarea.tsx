@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Pencil } from 'lucide-react'
 
 interface GeneratedTextProps {
   generatedText?: string
@@ -12,6 +13,8 @@ const GeneratedTextArea = ({
   const [genTextVal, setGenTextVal] = useState(generatedText)
 
   const [isEditAllowed, setEditAllowed] = useState(false)
+
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   useEffect(() => {
     setGenTextVal(generatedText)
@@ -30,30 +33,75 @@ const GeneratedTextArea = ({
     }
   }, [genTextVal, updateGeneratedText])
 
+  useEffect(() => {
+    const textarea = textareaRef.current
+
+    if (!textarea) return
+
+    textarea.style.height = 'auto'
+
+    textarea.style.height =
+      `${Math.min(
+        textarea.scrollHeight,
+        parseFloat(
+          getComputedStyle(
+            document.documentElement
+          ).fontSize
+        ) * 16
+      )}px`
+
+    textarea.style.overflowY =
+      textarea.scrollHeight >
+      textarea.clientHeight
+        ? 'auto'
+        : 'hidden'
+  }, [genTextVal])
+
   return (
     <div className="gentext-container">
       <div className="gentext-header">
         <p className="generated-text-title"> Generated Text </p>
-
-        <div className="gentext-edit-button">
+        
+        {!isEditAllowed && (
           <button
-            className="generated-text-edit-button"
+            className={`generated-text-edit-button ${isEditAllowed ? 'edit-allowed' : 'edit-disabled'}`}
             onClick={() => {
               setEditAllowed((prev) => !prev)
             }}
           >
-            Edit with JaSON
+            <>
+              {!isEditAllowed && (
+                <Pencil className='lucide-button-icon edit-text-icon'/>
+              )}
+              <span>{isEditAllowed ? 'Save' : 'Edit With JaSON'} </span>
+            </>
           </button>
-        </div>
+        )}
       </div>
-      <div
-        className="gentext-textarea"
-        style={{
-          width: '100%',
-          minWidth: 0,
-        }}
-      >
+
+
+      <div className='gentext-output-card'>
+
+        {isEditAllowed && (
+          <div className="json-editor-header">
+            <span>JSON Editor</span>
+
+            <button
+              className="json-save-button"
+              onClick={() => {
+                const cleanedText = genTextVal.replace(/\n\s*\n+/g, '\n')
+                setGenTextVal(cleanedText);
+
+                setEditAllowed(false)
+              }}
+            >
+              Save
+            </button>
+          </div>
+        )}
+
         <textarea
+          ref={textareaRef}
           className="generated-textarea"
           value={genTextVal}
           placeholder="Generated text will appebar here..."
