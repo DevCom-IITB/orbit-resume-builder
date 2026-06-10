@@ -40,28 +40,20 @@ const GeneratedTextArea = ({
 
     textarea.style.height = 'auto'
 
-    textarea.style.height =
-      `${Math.min(
-        textarea.scrollHeight,
-        parseFloat(
-          getComputedStyle(
-            document.documentElement
-          ).fontSize
-        ) * 16
-      )}px`
+    textarea.style.height = `${Math.min(
+      textarea.scrollHeight,
+      parseFloat(getComputedStyle(document.documentElement).fontSize) * 16
+    )}px`
 
     textarea.style.overflowY =
-      textarea.scrollHeight >
-      textarea.clientHeight
-        ? 'auto'
-        : 'hidden'
+      textarea.scrollHeight > textarea.clientHeight ? 'auto' : 'hidden'
   }, [genTextVal])
 
   return (
     <div className="gentext-container">
       <div className="gentext-header">
         <p className="generated-text-title"> Generated Text </p>
-        
+
         {!isEditAllowed && (
           <button
             className={`generated-text-edit-button ${isEditAllowed ? 'edit-allowed' : 'edit-disabled'}`}
@@ -71,7 +63,7 @@ const GeneratedTextArea = ({
           >
             <>
               {!isEditAllowed && (
-                <Pencil className='lucide-button-icon edit-text-icon'/>
+                <Pencil className="lucide-button-icon edit-text-icon" />
               )}
               <span>{isEditAllowed ? 'Save' : 'Edit With JaSON'} </span>
             </>
@@ -79,9 +71,7 @@ const GeneratedTextArea = ({
         )}
       </div>
 
-
-      <div className='gentext-output-card'>
-
+      <div className="gentext-output-card">
         {isEditAllowed && (
           <div className="json-editor-header">
             <span>JSON Editor</span>
@@ -90,7 +80,7 @@ const GeneratedTextArea = ({
               className="json-save-button"
               onClick={() => {
                 const cleanedText = genTextVal.replace(/\n\s*\n+/g, '\n')
-                setGenTextVal(cleanedText);
+                setGenTextVal(cleanedText)
 
                 setEditAllowed(false)
               }}

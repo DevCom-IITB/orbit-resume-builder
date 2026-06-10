@@ -19,15 +19,12 @@ const ItemTextArea = ({
   generateStatus,
   generateButtonLabel,
 }: ItemTextAreaProps) => {
-
   const [textVal, setTextVal] = useState(desc)
 
-  const normalizeText = (text: string) =>
-    text.replace(/\s+/g, ' ').trim()
+  const normalizeText = (text: string) => text.replace(/\s+/g, ' ').trim()
 
   const hasMeaningfulChanges =
-    normalizeText(textVal) !==
-    lastGeneratedNormalized
+    normalizeText(textVal) !== lastGeneratedNormalized
 
   const timeoutRef = useRef<number | null>(null)
 
@@ -35,11 +32,7 @@ const ItemTextArea = ({
 
   const snapPoints = [15, 50, 85]
 
-  const densityValues: PointDensity[] = [
-    'concise',
-    'standard',
-    'detailed',
-  ]
+  const densityValues: PointDensity[] = ['concise', 'standard', 'detailed']
 
   const densityMap = {
     concise: {
@@ -68,40 +61,24 @@ const ItemTextArea = ({
 
   const sliderRef = useRef<HTMLDivElement | null>(null)
 
-  const snapThumb = (
-    rawPosition: number
-  ) => {
-    const nearest =
-      snapPoints.reduce((prev, curr) =>
-        Math.abs(curr - rawPosition) <
-        Math.abs(prev - rawPosition)
-          ? curr
-          : prev
-      )
+  const snapThumb = (rawPosition: number) => {
+    const nearest = snapPoints.reduce((prev, curr) =>
+      Math.abs(curr - rawPosition) < Math.abs(prev - rawPosition) ? curr : prev
+    )
 
     setThumbPosition(nearest)
 
-    setDensity(
-      densityValues[
-        snapPoints.indexOf(nearest)
-      ]
-    )
+    setDensity(densityValues[snapPoints.indexOf(nearest)])
   }
 
-  const startDrag = (
-    event: React.PointerEvent<HTMLDivElement>
-  ) => {
-    const slider =
-      sliderRef.current
+  const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const slider = sliderRef.current
 
     if (!slider) return
 
-    const bounds =
-      slider.getBoundingClientRect()
+    const bounds = slider.getBoundingClientRect()
 
-    const move = (
-      pointerEvent: PointerEvent
-    ) => {
+    const move = (pointerEvent: PointerEvent) => {
       const outsideVerticalBounds =
         pointerEvent.clientY < bounds.top ||
         pointerEvent.clientY > bounds.bottom
@@ -109,73 +86,38 @@ const ItemTextArea = ({
       if (outsideVerticalBounds) {
         snapThumb(thumbPosition)
 
-        window.removeEventListener(
-          'pointermove',
-          move
-        )
+        window.removeEventListener('pointermove', move)
 
-        window.removeEventListener(
-          'pointerup',
-          up
-        )
+        window.removeEventListener('pointerup', up)
 
         return
       }
 
-
       const relativePosition =
-        ((pointerEvent.clientX -
-          bounds.left) /
-          bounds.width) *
-        100
+        ((pointerEvent.clientX - bounds.left) / bounds.width) * 100
 
-      const clamped =
-        Math.max(
-          0,
-          Math.min(
-            100,
-            relativePosition
-          )
-        )
+      const clamped = Math.max(0, Math.min(100, relativePosition))
 
       setThumbPosition(clamped)
     }
 
-    const up = (
-      pointerEvent: PointerEvent
-    ) => {
+    const up = (pointerEvent: PointerEvent) => {
       const relativePosition =
-        ((pointerEvent.clientX -
-          bounds.left) /
-          bounds.width) *
-        100
+        ((pointerEvent.clientX - bounds.left) / bounds.width) * 100
 
       snapThumb(relativePosition)
 
-      window.removeEventListener(
-        'pointermove',
-        move
-      )
+      window.removeEventListener('pointermove', move)
 
-      window.removeEventListener(
-        'pointerup',
-        up
-      )
+      window.removeEventListener('pointerup', up)
     }
 
     move(event.nativeEvent)
 
-    window.addEventListener(
-      'pointermove',
-      move
-    )
+    window.addEventListener('pointermove', move)
 
-    window.addEventListener(
-      'pointerup',
-      up
-    )
+    window.addEventListener('pointerup', up)
   }
-
 
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
@@ -200,33 +142,26 @@ const ItemTextArea = ({
 
     textarea.style.height = 'auto'
 
-    textarea.style.height =
-      `${Math.min(
-        textarea.scrollHeight,
-        parseFloat(
-          getComputedStyle(
-            document.documentElement
-          ).fontSize
-        ) * 12
-      )}px`
+    textarea.style.height = `${Math.min(
+      textarea.scrollHeight,
+      parseFloat(getComputedStyle(document.documentElement).fontSize) * 12
+    )}px`
 
     textarea.style.overflowY =
-      textarea.scrollHeight >
-      textarea.clientHeight
-        ? 'auto'
-        : 'hidden'
+      textarea.scrollHeight > textarea.clientHeight ? 'auto' : 'hidden'
   }, [textVal])
 
   return (
     <div className="item-textarea-container">
-      <div className="text-area-div"
+      <div
+        className="text-area-div"
         style={{
           width: '100%',
           minWidth: 0,
         }}
       >
         <textarea
-          ref={textareaRef}      
+          ref={textareaRef}
           className="item-description-textarea"
           value={textVal}
           placeholder="Describe your experience..."
@@ -239,9 +174,7 @@ const ItemTextArea = ({
       <div className="qol-buttons">
         <button
           className={`fit-to-line-button ${
-            isFitToLineEnabled
-              ? 'enabled'
-              : 'disabled'
+            isFitToLineEnabled ? 'enabled' : 'disabled'
           }`}
           onClick={() => {
             if (isFitToLineEnabled) {
@@ -256,15 +189,16 @@ const ItemTextArea = ({
         </button>
 
         <div className="slider-control-group">
-
-          <div ref={sliderRef}
+          <div
+            ref={sliderRef}
             className="slider-shell"
             onPointerDown={startDrag}
           >
             <div className="slider-track" />
 
             {snapPoints.map((point) => (
-              <div key={point}
+              <div
+                key={point}
                 className="slider-anchor"
                 style={{
                   left: `${point}%`,
@@ -272,7 +206,8 @@ const ItemTextArea = ({
               />
             ))}
 
-            <div className="slider-thumb"
+            <div
+              className="slider-thumb"
               style={{
                 left: `${thumbPosition}%`,
               }}
@@ -280,21 +215,23 @@ const ItemTextArea = ({
           </div>
 
           <div className="slider-description">
-            <span className='slider-title'>{densityMap[density].title}</span>
-            <span className='slider-subtitle'>{densityMap[density].subtitle}</span>
+            <span className="slider-title">{densityMap[density].title}</span>
+            <span className="slider-subtitle">
+              {densityMap[density].subtitle}
+            </span>
           </div>
-
         </div>
 
         <div className="generate-button-div">
-          <button className={`generate-text-button ${!hasMeaningfulChanges && generateButtonLabel === 'Generate'
+          <button
+            className={`generate-text-button ${
+              !hasMeaningfulChanges && generateButtonLabel === 'Generate'
                 ? 'generated-state'
                 : ''
             }`}
-            disabled={generateStatus === 'loading' || (
-                !hasMeaningfulChanges &&
-                generateButtonLabel === 'Generate'
-              )
+            disabled={
+              generateStatus === 'loading' ||
+              (!hasMeaningfulChanges && generateButtonLabel === 'Generate')
             }
             onClick={() => {
               const cleanedText = textVal.replace(/\n\s*\n+/g, '\n\n')
@@ -308,47 +245,41 @@ const ItemTextArea = ({
           </button>
         </div>
       </div>
-      {showFitToLineModal && createPortal(
-        <div className="fit-to-line-modal-overlay">
-          <div className="fit-to-line-modal">
-
-            <div className="fit-to-line-modal-content">
-              <div className="fit-to-line-modal-message">
-                <h3>
-                  Editing the text would lead
-                  to uneven white spaces
-                </h3>
+      {showFitToLineModal &&
+        createPortal(
+          <div className="fit-to-line-modal-overlay">
+            <div className="fit-to-line-modal">
+              <div className="fit-to-line-modal-content">
+                <div className="fit-to-line-modal-message">
+                  <h3>Editing the text would lead to uneven white spaces</h3>
+                </div>
+                <div className="fit-to-line-modal-icon" />
               </div>
-              <div className="fit-to-line-modal-icon" />
+
+              <div className="fit-to-line-modal-actions">
+                <button
+                  className="fit-to-line-cancel"
+                  onClick={() => {
+                    setShowFitToLineModal(false)
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="fit-to-line-confirm"
+                  onClick={() => {
+                    setFitToLineEnabled(false)
+                    setShowFitToLineModal(false)
+                  }}
+                >
+                  Continue anyway
+                </button>
+              </div>
             </div>
-
-            <div className="fit-to-line-modal-actions">
-
-              <button
-                className="fit-to-line-cancel"
-                onClick={() => {
-                  setShowFitToLineModal(false)
-                }}
-              >
-                Cancel
-              </button>
-
-              <button
-                className="fit-to-line-confirm"
-                onClick={() => {
-                  setFitToLineEnabled(false)
-                  setShowFitToLineModal(false)
-                }}
-              >
-                Continue anyway
-              </button>
-
-            </div>
-
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

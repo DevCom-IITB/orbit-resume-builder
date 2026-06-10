@@ -1,4 +1,1 @@
-export type PointDensity =
-  | 'concise'
-  | 'standard'
-  | 'detailed'
+export type PointDensity = 'concise' | 'standard' | 'detailed'

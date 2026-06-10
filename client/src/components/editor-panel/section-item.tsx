@@ -39,8 +39,7 @@ const SectionItem = ({
     'loading' | 'success' | 'error'
   >('success')
 
-  const [lastGeneratedDesc, setLastGeneratedDesc] =
-    useState('')
+  const [lastGeneratedDesc, setLastGeneratedDesc] = useState('')
 
   const isCollapsed = item.isCollapsed
 
@@ -58,7 +57,7 @@ const SectionItem = ({
   //============================================================================
   const handleGenerateText = async (textVal: string) => {
     setGenerateStatus('loading')
-    
+
     // Uncomment below lines to check if generated text appears
     // onTextGenerated(item.id, "Hello")
     // setLastGeneratedDesc(textVal)
@@ -84,8 +83,7 @@ const SectionItem = ({
     onUpdateGeneratedText(item.id, updatedText)
   }
 
-  const normalizeText = (text: string) =>
-    text.replace(/\s+/g, ' ').trim()
+  const normalizeText = (text: string) => text.replace(/\s+/g, ' ').trim()
 
   const lastGeneratedNormalized = normalizeText(lastGeneratedDesc)
 
@@ -97,7 +95,8 @@ const SectionItem = ({
         : 'Generate'
 
   return (
-    <div className={`section-item-card ${isCollapsed ? 'collapsed' : 'expanded'}`}
+    <div
+      className={`section-item-card ${isCollapsed ? 'collapsed' : 'expanded'}`}
       ref={setNodeRef}
       style={{
         transform: transform
@@ -107,16 +106,15 @@ const SectionItem = ({
       }}
     >
       <div className="section-item-header">
-
         <div
           className="reorder-drag-button"
           style={{
             display: isReorderEnabled ? 'flex' : 'none',
-            alignItems: 'center'
+            alignItems: 'center',
           }}
         >
           <button className="item-drag-button" {...attributes} {...listeners}>
-            <GripHorizontal className='lucide-icon drag-icon' />
+            <GripHorizontal className="lucide-icon drag-icon" />
           </button>
         </div>
 
@@ -124,19 +122,21 @@ const SectionItem = ({
           {label} {displayIndex + 1}
         </div>
 
-        <div className="section-item-controls"
+        <div
+          className="section-item-controls"
           data-mode={isReorderEnabled ? 'reorder' : 'normal'}
         >
-          <button className="delete-item-button"
+          <button
+            className="delete-item-button"
             style={{
               display: isReorderEnabled ? 'flex' : 'none',
-              alignItems: 'center'
+              alignItems: 'center',
             }}
             onClick={() => {
               onItemDelete(item.id)
             }}
           >
-            <Trash2 className='lucide-icon delete-icon' />
+            <Trash2 className="lucide-icon delete-icon" />
           </button>
 
           <button
@@ -155,9 +155,9 @@ const SectionItem = ({
             }}
           >
             {isCollapsed ? (
-              <Plus className='lucide-icon' />
+              <Plus className="lucide-icon" />
             ) : (
-              <Minus className='lucide-icon collapse-icon' />
+              <Minus className="lucide-icon collapse-icon" />
             )}
           </button>
         </div>
@@ -168,7 +168,7 @@ const SectionItem = ({
           item.isCollapsed ? 'collapsed' : 'expanded'
         }`}
       >
-        <div className='section-item-inner-card'>
+        <div className="section-item-inner-card">
           <div>
             <ItemTextArea
               desc={item.desc}

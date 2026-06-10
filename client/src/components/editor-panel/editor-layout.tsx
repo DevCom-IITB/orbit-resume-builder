@@ -377,17 +377,18 @@ const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
   // The following lines are just to avoid errors in the lint
   // Remove these lines and make the functioning for the panel collapse/expand
   useEffect(() => {
-    if(isPanelCollapsed){
-      setPanelCollapse(false);
+    if (isPanelCollapsed) {
+      setPanelCollapse(false)
     }
   }, [isPanelCollapsed])
 
   return (
     <div className="editor-panel">
       <div className="resume-header">
-        <textarea className="file-name-input"
+        <textarea
+          className="file-name-input"
           style={{
-            display: isPanelCollapsed ? "none" : "flex"
+            display: isPanelCollapsed ? 'none' : 'flex',
           }}
           value={fileName}
           maxLength={32}
@@ -400,9 +401,10 @@ const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
         />
 
         {/* Save/Edit button for sections */}
-        <button className={`section-reorder-button ${isSectionReorderEnabled ? 'save' : 'edit'}`}
+        <button
+          className={`section-reorder-button ${isSectionReorderEnabled ? 'save' : 'edit'}`}
           style={{
-            display: isPanelCollapsed ? "none" : "flex"
+            display: isPanelCollapsed ? 'none' : 'flex',
           }}
           onClick={() => {
             if (!isSectionReorderEnabled) {
@@ -414,7 +416,7 @@ const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
         >
           <>
             {!isSectionReorderEnabled && (
-              <Pencil className='lucide-button-icon'/>
+              <Pencil className="lucide-button-icon" />
             )}
 
             <span>{isSectionReorderEnabled ? 'Save' : 'Edit'} </span>
@@ -422,7 +424,9 @@ const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
         </button>
       </div>
 
-      <div className={`resume-section ${isPanelCollapsed ? 'panel-hidden' : 'panel-visible'}`}>
+      <div
+        className={`resume-section ${isPanelCollapsed ? 'panel-hidden' : 'panel-visible'}`}
+      >
         <DndContext onDragEnd={handleSectionDragEnd}>
           <SortableContext
             items={sections.map((section) => `section-${section.id}`)}
@@ -447,10 +451,13 @@ const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
         </DndContext>
       </div>
 
-      <div className='add-field-button-container' style={{
-        display: isSectionReorderEnabled ? "flex" : "none"
-      }}>
-            <button className='add-field-button'>+ Add Field</button>
+      <div
+        className="add-field-button-container"
+        style={{
+          display: isSectionReorderEnabled ? 'flex' : 'none',
+        }}
+      >
+        <button className="add-field-button">+ Add Field</button>
       </div>
     </div>
   )

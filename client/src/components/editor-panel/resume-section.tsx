@@ -117,7 +117,6 @@ const ResumeSection = ({
       }}
     >
       <div className="resume-section-topbar">
-
         {isSectionReorderEnabled && (
           <div
             className="section-drag-container"
@@ -131,22 +130,34 @@ const ResumeSection = ({
               {...attributes}
               {...listeners}
             >
-              <GripHorizontal className='lucide-icon drag-icon' />
+              <GripHorizontal className="lucide-icon drag-icon" />
             </button>
           </div>
         )}
 
-        <h1 className={`resume-section-title ${section.isCollapsed ? 'collapsed' : 'expanded'}`}>{section.title}</h1>
-        <div className="resume-section-topbar-controls"
+        <h1
+          className={`resume-section-title ${section.isCollapsed ? 'collapsed' : 'expanded'}`}
+        >
+          {section.title}
+        </h1>
+        <div
+          className="resume-section-topbar-controls"
           style={{
-            minWidth: "11rem",
+            minWidth: '11rem',
           }}
         >
-          <div className="section-item-toolbar"
+          <div
+            className="section-item-toolbar"
             style={{
-              display: isSectionReorderEnabled ? 'none' : section.isCollapsed ? 'none' : 'flex'
-            }}>
-            <button className={`item-reorder-toggle-button ${isReorderEnabled ? 'save' : 'edit'}`}
+              display: isSectionReorderEnabled
+                ? 'none'
+                : section.isCollapsed
+                  ? 'none'
+                  : 'flex',
+            }}
+          >
+            <button
+              className={`item-reorder-toggle-button ${isReorderEnabled ? 'save' : 'edit'}`}
               onClick={() => {
                 if (!isReorderEnabled) {
                   handleItemCollapse(-1)
@@ -156,10 +167,8 @@ const ResumeSection = ({
               }}
             >
               <>
-                {!isReorderEnabled && (
-                  <Pencil className='lucide-button-icon'/>
-                )}
-                <span >{isReorderEnabled ? 'Save' : 'Edit'} </span>
+                {!isReorderEnabled && <Pencil className="lucide-button-icon" />}
+                <span>{isReorderEnabled ? 'Save' : 'Edit'} </span>
               </>
             </button>
           </div>
@@ -183,15 +192,16 @@ const ResumeSection = ({
               }}
             >
               {section.isCollapsed ? (
-                <Plus className='lucide-icon' />
-                ) : (
-                <Minus className='lucide-icon collapse-icon'/>
+                <Plus className="lucide-icon" />
+              ) : (
+                <Minus className="lucide-icon collapse-icon" />
               )}
             </button>
           </div>
         </div>
       </div>
-      <div className={`section-item-container ${
+      <div
+        className={`section-item-container ${
           section.isCollapsed ? 'collapsed' : 'expanded'
         }`}
       >
