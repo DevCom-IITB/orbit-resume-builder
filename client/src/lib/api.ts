@@ -33,20 +33,20 @@ export async function generateSectionData(
     rawInputText: string,
     density: PointDensity = 'standard',
     fitToLine: boolean = true
- // Added density parameter with a default fallback
+    // Added density parameter with a default fallback
 ) {
     try {
         const response = await APIInstance.post(
-            `/api/resume-renderer/${sectionName}/`, 
+            `/api/resume-renderer/${sectionName}/`,
             {
                 user_input: rawInputText, // Matches Django's expected key
-                density: density,         // Sends the slider value to Django
-                fit_to_line: fitToLine,   // Sends the fit-to-line value to Django
+                density: density, // Sends the slider value to Django
+                fit_to_line: fitToLine, // Sends the fit-to-line value to Django
             }
         )
 
         // Unwraps the Django response to return ONLY the AI-generated array/object
-        return response.data.data 
+        return response.data.data
     } catch (error) {
         console.error(`[API Error - ${sectionName}]:`, error)
         throw error
