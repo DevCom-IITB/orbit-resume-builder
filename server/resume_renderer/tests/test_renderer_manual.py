@@ -131,7 +131,9 @@ def test_renderer_with_sample_inputs(monkeypatch):
         lambda _latex: b"%PDF-1.4\n%EOF",
     )
 
-    pdf_bytes = compile_latex(latex_content)
+    from resume_renderer.services import renderer
+
+    pdf_bytes = renderer.compile_latex(latex_content)
 
     output_path = Path("resume_renderer/tests/test_resume.pdf")
     output_path.write_bytes(pdf_bytes)
