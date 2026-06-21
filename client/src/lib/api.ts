@@ -17,7 +17,7 @@ export type SectionType =
 export const APIInstance = axios.create({
     baseURL: import.meta.env?.VITE_API_HOST,
     timeout: 300000, // 5 minute timeout for LLM generation
-    withCredentials: true,
+    withCredentials: false,
     headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
@@ -60,6 +60,37 @@ export async function generateSectionData(
 export interface RenderedResumeResponse {
     pdfUrl: string
     latexCode: string
+}
+
+// ============================================================================
+// RESUME CRUD API
+// ============================================================================
+
+export interface ResumeRecord {
+    id: string
+    title: string
+    resume_type: 'ONE' | 'TWO'
+    header_type: 'SHORT' | 'LONG'
+    created_at: string
+    updated_at: string
+}
+
+export interface CreateResumePayload {
+    title: string
+    resume_type: 'ONE' | 'TWO'
+    header_type: 'SHORT' | 'LONG'
+}
+
+export async function listResumes(): Promise<ResumeRecord[]> {
+    const response = await APIInstance.get('/api/resumes/')
+    return response.data.results ?? []
+}
+
+export async function createResume(
+    payload: CreateResumePayload
+): Promise<ResumeRecord> {
+    const response = await APIInstance.post('/api/resumes/', payload)
+    return response.data
 }
 
 export async function generateResumeAssets(

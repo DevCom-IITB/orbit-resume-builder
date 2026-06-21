@@ -96,7 +96,7 @@ def test_refine_key_projects_uses_static_llm_response(api_client, user, monkeypa
     seen = {}
     jsonschema = pytest.importorskip("jsonschema")
 
-    class FakeGeminiLLMClient:
+    class FakeLLMClient:
         def generate_json(self, prompt):
             seen["prompt"] = prompt
             return [
@@ -112,7 +112,7 @@ def test_refine_key_projects_uses_static_llm_response(api_client, user, monkeypa
                 }
             ]
 
-    monkeypatch.setattr("resume_renderer.views.GeminiLLMClient", FakeGeminiLLMClient)
+    monkeypatch.setattr("resume_renderer.views.LLMClient", FakeLLMClient)
 
     payload = {
         "user_input": (

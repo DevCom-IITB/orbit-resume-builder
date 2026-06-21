@@ -2,12 +2,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.core.paginator import Paginator
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 from .serializers import ResumeSerializer
 from .models import Resume, Version
 from utils.token_dec import token_required
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class ResumeListCreate(APIView):
     @token_required
     def get(self, request):
@@ -40,6 +43,7 @@ class ResumeListCreate(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class ResumeDetail(APIView):
     @token_required
     def get(self, request, resume_id):

@@ -131,18 +131,20 @@ const CreateButton = styled.button<{ disabled: boolean }>`
 interface Props {
     isOpen: boolean
     onClose: () => void
+    isSubmitting?: boolean
     onCreate: (prefs: {
         fileName: string
         resumeType: string
         header: string
         pages: number
-    }) => void
+    }) => void | Promise<void>
 }
 
 export default function ResumePreferencesModal({
     isOpen,
     onClose,
     onCreate,
+    isSubmitting = false,
 }: Props) {
     const [fileName, setFileName] = useState('')
     const [resumeType, setResumeType] = useState('iitb')
@@ -161,9 +163,14 @@ export default function ResumePreferencesModal({
         reset()
     }
 
-    const handleCreate = () => {
-        if (!fileName.trim()) return
-        onCreate({ fileName: fileName.trim(), resumeType, header, pages })
+    const handleCreate = async () => {
+        if (!fileName.trim() || isSubmitting) return
+        await onCreate({
+            fileName: fileName.trim(),
+            resumeType,
+            header,
+            pages,
+        })
         handleClose()
     }
 
@@ -187,6 +194,7 @@ export default function ResumePreferencesModal({
                             id="resume-file-name"
                             type="text"
                             placeholder="Type here"
+                            value={fileName}
                             onChange={(e) => setFileName(e.target.value)}
                             autoFocus
                         />
@@ -241,9 +249,9 @@ export default function ResumePreferencesModal({
                     <CancelButton onClick={handleClose}>Cancel</CancelButton>
                     <CreateButton
                         onClick={handleCreate}
-                        disabled={!fileName.trim()}
+                        disabled={!fileName.trim() || isSubmitting}
                     >
-                        Create
+                        {isSubmitting ? 'Creating…' : 'Create'}
                     </CreateButton>
                 </Footer>
             </Modal>

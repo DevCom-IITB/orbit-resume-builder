@@ -121,9 +121,11 @@ const MenuDotsIcon = () => (
 function ResumesList({
     items,
     onStartMaking,
+    onOpenResume,
 }: {
     items: ResumeItem[]
     onStartMaking: () => void
+    onOpenResume: (id: string) => void
 }) {
     const sortedItems = [...items].sort(
         (a, b) => Number(Boolean(b.starred)) - Number(Boolean(a.starred))
@@ -198,7 +200,19 @@ function ResumesList({
 
                 {sortedItems.map((item) => (
                     <div className="resumes__row-wrap" key={item.id}>
-                        <div className="resumes__row">
+                        <div
+                            className="resumes__row"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => onOpenResume(item.id)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    onOpenResume(item.id)
+                                }
+                            }}
+                            style={{ cursor: 'pointer' }}
+                        >
                             <div className="resumes__cell resumes__cell--file">
                                 {item.starred ? <StarIcon /> : <FileIcon />}
                                 {item.name}

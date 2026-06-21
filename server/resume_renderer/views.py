@@ -27,7 +27,7 @@ from resume_renderer.JSONSchema.jsonschema import (
     get_supported_section_types,
 )
 from resume_renderer.serializers import ResumeSectionRefineSerializer
-from resume_renderer.services.llm_client import GeminiLLMClient, LLMClientError
+from resume_renderer.services.llm_client import LLMClient, LLMClientError
 from resume_renderer.services.prompts import build_resume_prompt
 
 
@@ -172,7 +172,7 @@ def refine_resume_section(request, section_type):
     try:
         prompt = build_resume_prompt(section_type, user_input)
 
-        llm_client = GeminiLLMClient()
+        llm_client = LLMClient()
         llm_output = llm_client.generate_json(prompt)
 
         schema = get_schema(section_type)
