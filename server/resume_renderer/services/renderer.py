@@ -150,32 +150,99 @@ __CONTENT__
 """
 
 
+def assemble_resume_latex(resume) -> str:
+    """
+    Assembles the full LaTeX document for a Resume instance.
+    Uses the resume's visual_theme for the preamble and converter set.
+    Updates resume.cached_latex and resume.latex_cache_valid.
+    """
+    if resume.latex_cache_valid and resume.cached_latex:
+        return resume.cached_latex
+
+    from resume_renderer.schemas.converter_registry import get_converter
+
+    converter_set_key = resume.visual_theme.converter_set_key
+    config_override = resume.config_override or {}
+    sections_latex = []
+
+    for section in resume.sections.filter(is_visible=True).order_by("order").select_related("section_type"):
+        stdef = section.section_type
+        try:
+            converter_fn = get_converter(converter_set_key, stdef.key)
+        except KeyError:
+            continue
+
+        done_entries = section.entries.filter(generation_status="done").order_by("order")
+
+        if stdef.allow_multiple_entries:
+            # Each entry's content may be a single dict OR a list (LLM returns arrays).
+            # Flatten so converters always receive a flat list of items.
+            section_data = []
+            for e in done_entries:
+                if e.content is None:
+                    continue
+                if isinstance(e.content, list):
+                    section_data.extend(e.content)
+                else:
+                    section_data.append(e.content)
+        else:
+            first = done_entries.first()
+            section_data = first.content if first else None
+
+        if not section_data:
+            continue
+
+        try:
+            section_latex = converter_fn(section_data, config_override)
+        except TypeError:
+            section_latex = converter_fn(section_data)
+
+        sections_latex.append(section_latex)
+
+    full_latex = resume.visual_theme.latex_preamble.replace(
+        "__CONTENT__", "\n".join(sections_latex)
+    )
+
+    resume.cached_latex = full_latex
+    resume.latex_cache_valid = True
+    resume.save(update_fields=["cached_latex", "latex_cache_valid"])
+    return full_latex
+
+
+LATEX_CONTAINER_NAME = os.getenv("LATEX_CONTAINER_NAME", "latex-renderer")
+
+
+def _get_latex_container():
+    """Find the named running LaTeX container. Raises clearly if it isn't up."""
+    try:
+        container = client.containers.get(LATEX_CONTAINER_NAME)
+        if container.status == "running":
+            return container
+        raise RuntimeError(
+            f"Container '{LATEX_CONTAINER_NAME}' exists but is not running "
+            f"(status: {container.status}). Start it with:\n"
+            f"  docker start {LATEX_CONTAINER_NAME}"
+        )
+    except docker.errors.NotFound:
+        raise RuntimeError(
+            f"Container '{LATEX_CONTAINER_NAME}' not found. Start it with:\n"
+            f"  docker run -d --name {LATEX_CONTAINER_NAME} "
+            f"--memory=1.5g -v {LATEX_CACHE_VOLUME}:/root/.cache/texmf "
+            f"{LATEX_IMAGE_NAME} sleep infinity"
+        )
+
+
 def compile_latex(latex: str) -> bytes:
-    """Compile LaTeX into PDF bytes using a Dockerized TeX Live image."""
+    """Compile LaTeX into PDF bytes using a persistent Dockerized TeX Live container."""
     if client is None:
         raise RuntimeError(
-            "Docker client is not available. Skipping LaTeX compilation."
+            "Docker client is not available. Start Docker Desktop and try again."
         )
 
-    ensure_image_exists(force_rebuild=False)
-    container = None
+    container = _get_latex_container()
 
     try:
-        container = client.containers.run(
-            image=LATEX_IMAGE_NAME,
-            command="sleep infinity",
-            working_dir="/usr/src/tex",
-            detach=True,
-            mem_limit="1.5g",
-            nano_cpus=2_000_000_000,
-            security_opt=["no-new-privileges"],
-            volumes={LATEX_CACHE_VOLUME: {"bind": "/root/.cache/texmf", "mode": "rw"}},
-        )
-
-        full_document = TEMPLATE.replace("__CONTENT__", latex)
-        # print(full_document) # Debug
-        # return
-        encoded = full_document.encode("utf-8")
+        encoded = latex.encode("utf-8")
 
         tar_buffer = BytesIO()
         with tarfile.open(fileobj=tar_buffer, mode="w") as tar:
@@ -218,9 +285,10 @@ def compile_latex(latex: str) -> bytes:
                 raise RuntimeError("PDF file not found in the container.")
             return pdf_file.read()
     except RuntimeError:
+        # If compilation failed, the container is still healthy — keep it.
         raise
     except Exception as e:
+        # On unexpected errors, reset the global so the next call gets a fresh container.
+        global _latex_container
+        _latex_container = None
         raise RuntimeError(f"Unexpected docker error: {str(e)}")
-    finally:
-        if container is not None:
-            container.remove(force=True)

@@ -3,18 +3,23 @@ import { Navigate, useParams } from 'react-router-dom'
 import { useAuth } from './auth/AuthProvider'
 import EditorPanel from './components/editor-panel/editor-layout'
 import ResumeViewer from './components/editor-panel/ResumeViewer'
-import { getResume, patchResume, type ResumeRecord } from './lib/api'
+import { getResume, patchResume, renderResume } from './lib/api'
+import type { Resume } from './types/resume'
 
 function App() {
     const { token } = useAuth()
     const { resumeId } = useParams()
-    const [isViewerExpanded, setIsViewerExpanded] = useState(false)
-    const [masterResumeData, setMasterResumeData] = useState<
-        Record<string, unknown>
-    >({})
-    const [resume, setResume] = useState<ResumeRecord | null>(null)
+
+    const [resume, setResume] = useState<Resume | null>(null)
     const [loading, setLoading] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
+
+    const [isViewerExpanded, setIsViewerExpanded] = useState(false)
+    const [renderStatus, setRenderStatus] = useState<
+        'idle' | 'loading' | 'success' | 'error'
+    >('idle')
+    const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+    const [latexCode, setLatexCode] = useState<string | null>(null)
 
     useEffect(() => {
         if (!token || !resumeId) {
@@ -25,27 +30,50 @@ function App() {
         let cancelled = false
         setLoading(true)
         setLoadError(null)
-            ; (async () => {
-                try {
-                    const data = await getResume(resumeId)
-                    if (!cancelled) setResume(data)
-                } catch (err) {
-                    console.error('[Editor] Failed to load resume:', err)
-                    if (!cancelled) setLoadError('Could not load resume.')
-                } finally {
-                    if (!cancelled) setLoading(false)
-                }
-            })()
+        ;(async () => {
+            try {
+                const data = await getResume(resumeId)
+                if (!cancelled) setResume(data)
+            } catch (err) {
+                console.error('[Editor] Failed to load resume:', err)
+                if (!cancelled) setLoadError('Could not load resume.')
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        })()
 
         return () => {
             cancelled = true
         }
     }, [token, resumeId])
 
+    // Clean up blob URL on unmount
+    useEffect(() => {
+        return () => {
+            if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+        }
+    }, [pdfUrl])
+
     const handleTitleSave = async (title: string) => {
         if (!resumeId) return
-        const updated = await patchResume(resumeId, { title })
-        setResume(updated)
+        await patchResume(resumeId, { title })
+        // Only update title in local state to avoid re-initializing editor sections
+        setResume((prev) => (prev ? { ...prev, title } : prev))
+    }
+
+    const handleRenderRequest = async () => {
+        if (!resumeId) return
+        setRenderStatus('loading')
+        try {
+            const result = await renderResume(resumeId)
+            if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+            setPdfUrl(result.pdfUrl)
+            setLatexCode(result.latexCode)
+            setRenderStatus('success')
+        } catch (err) {
+            console.error('[App] Render failed:', err)
+            setRenderStatus('error')
+        }
     }
 
     if (!token) {
@@ -56,9 +84,7 @@ function App() {
                     style={{ textAlign: 'center', marginTop: '20vh' }}
                 >
                     <h2>Authenticating...</h2>
-                    <p className="muted">
-                        Waiting for secure token from REACH.
-                    </p>
+                    <p className="muted">Waiting for secure token from REACH.</p>
                 </div>
             </div>
         )
@@ -104,23 +130,21 @@ function App() {
                 overflow: 'hidden',
             }}
         >
-            {/* Conditionally hide the editor if the viewer is expanded */}
             {!isViewerExpanded && (
                 <div className="editor-pane">
                     <EditorPanel
-                        title={resume.title}
+                        resume={resume}
                         onTitleSave={handleTitleSave}
-                        onDataChange={(compiledData) =>
-                            setMasterResumeData(compiledData)
-                        }
+                        onRenderRequest={handleRenderRequest}
                     />
                 </div>
             )}
 
-            {/* Viewer pane flexes to take up remaining space */}
             <div className="viewer-pane" style={{ flex: 1 }}>
                 <ResumeViewer
-                    aggregatedData={masterResumeData}
+                    pdfUrl={pdfUrl}
+                    latexCode={latexCode}
+                    renderStatus={renderStatus}
                     isExpanded={isViewerExpanded}
                     onToggleExpand={() =>
                         setIsViewerExpanded(!isViewerExpanded)

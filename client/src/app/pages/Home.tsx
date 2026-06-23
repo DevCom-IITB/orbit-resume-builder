@@ -8,8 +8,8 @@ import {
     duplicateResume,
     listResumes,
     patchResume,
-    type ResumeRecord,
 } from '../../lib/api'
+import type { ResumeListItem } from '../../types/resume'
 import '../App.css'
 
 function formatDate(iso: string) {
@@ -17,37 +17,35 @@ function formatDate(iso: string) {
     return d.toLocaleDateString('en-GB')
 }
 
-function sortResumes(items: ResumeRecord[]) {
+function sortResumes(items: ResumeListItem[]) {
     return [...items].sort((a, b) => {
-        const pinDiff = Number(b.is_pinned) - Number(a.is_pinned)
+        const pinDiff = Number(b.isPinned) - Number(a.isPinned)
         if (pinDiff !== 0) return pinDiff
-        return (
-            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-        )
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     })
 }
 
 function Home() {
     const navigate = useNavigate()
     const [showModal, setShowModal] = useState(false)
-    const [resumes, setResumes] = useState<ResumeRecord[]>([])
+    const [resumes, setResumes] = useState<ResumeListItem[]>([])
     const [loading, setLoading] = useState(true)
     const [creating, setCreating] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         let cancelled = false
-            ; (async () => {
-                try {
-                    const data = await listResumes()
-                    if (!cancelled) setResumes(sortResumes(data))
-                } catch (err) {
-                    console.error('[Home] Failed to load resumes:', err)
-                    if (!cancelled) setError('Could not load your resumes.')
-                } finally {
-                    if (!cancelled) setLoading(false)
-                }
-            })()
+        ;(async () => {
+            try {
+                const data = await listResumes()
+                if (!cancelled) setResumes(sortResumes(data.results))
+            } catch (err) {
+                console.error('[Home] Failed to load resumes:', err)
+                if (!cancelled) setError('Could not load your resumes.')
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        })()
         return () => {
             cancelled = true
         }
@@ -55,17 +53,20 @@ function Home() {
 
     const handleCreate = async (prefs: {
         fileName: string
-        resumeType: string
-        header: string
+        templateKey: string
+        visualThemeKey: string
         pages: number
+        configOverride: Record<string, unknown>
     }) => {
         setCreating(true)
         setError(null)
         try {
             const resume = await createResume({
                 title: prefs.fileName,
-                resume_type: prefs.pages === 1 ? 'ONE' : 'TWO',
-                header_type: prefs.header === 'short' ? 'SHORT' : 'LONG',
+                templateKey: prefs.templateKey,
+                visualThemeKey: prefs.visualThemeKey,
+                pages: prefs.pages,
+                configOverride: prefs.configOverride,
             })
             navigate(`/editor/${resume.id}`)
         } catch (err) {
@@ -81,18 +82,28 @@ function Home() {
         const resume = resumes.find((r) => r.id === id)
         if (!resume) return
 
-        setError(null)
-        try {
-            const updated = await patchResume(id, {
-                is_pinned: !resume.is_pinned,
-            })
-            setResumes((current) =>
-                sortResumes(
-                    current.map((r) => (r.id === id ? updated : r))
+        const newPinned = !resume.isPinned
+        // Optimistic update
+        setResumes((current) =>
+            sortResumes(
+                current.map((r) =>
+                    r.id === id ? { ...r, isPinned: newPinned } : r
                 )
             )
+        )
+        setError(null)
+        try {
+            await patchResume(id, { isPinned: newPinned })
         } catch (err) {
             console.error('[Home] Failed to pin resume:', err)
+            // Revert
+            setResumes((current) =>
+                sortResumes(
+                    current.map((r) =>
+                        r.id === id ? { ...r, isPinned: !newPinned } : r
+                    )
+                )
+            )
             setError('Could not update resume.')
         }
     }
@@ -130,10 +141,10 @@ function Home() {
     const listItems = resumes.map((r) => ({
         id: r.id,
         name: r.title,
-        pages: r.resume_type === 'ONE' ? 1 : 2,
-        type: r.header_type === 'SHORT' ? 'Short header' : 'Long header',
-        updatedAt: formatDate(r.updated_at),
-        starred: r.is_pinned,
+        pages: 1,
+        type: r.template.displayName,
+        updatedAt: formatDate(r.updatedAt),
+        starred: r.isPinned,
     }))
 
     return (

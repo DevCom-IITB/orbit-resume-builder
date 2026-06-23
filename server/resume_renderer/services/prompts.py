@@ -347,34 +347,36 @@ Rules:
 }
 
 
-def build_resume_prompt(section_type: str, user_input: str) -> str:
+def build_resume_prompt(
+    section_type: str,
+    user_input: str,
+    current_content=None,
+    stdef=None,
+) -> str:
     """
     Build a complete stateless prompt for one resume section.
 
-    Args:
-        section_type:
-            One of the section keys supported by jsonschema.py and SECTION_INSTRUCTIONS.
-
-        user_input:
-            Rough text entered by the user.
-
-    Returns:
-        A complete prompt string containing:
-        - base system instructions
-        - section-specific instructions
-        - expected JSON schema
-        - user input
+    If stdef (a SectionTypeDefinition instance) is provided, reads instructions
+    and schema from the DB record. Falls back to hardcoded dicts for backwards
+    compatibility with legacy callers.
     """
-
-    schema: Dict[str, Any] = get_schema(section_type)
-    section_instruction = SECTION_INSTRUCTIONS.get(section_type)
-
-    if section_instruction is None:
-        raise ValueError(
-            f"No prompt instructions found for section type: {section_type}"
-        )
+    if stdef is not None and stdef.llm_prompt_instructions and stdef.json_schema:
+        section_instruction = stdef.llm_prompt_instructions
+        schema: Dict[str, Any] = stdef.json_schema
+    else:
+        schema = get_schema(section_type)
+        section_instruction = SECTION_INSTRUCTIONS.get(section_type)
+        if section_instruction is None:
+            raise ValueError(f"No prompt instructions found for section type: {section_type}")
 
     schema_text = json.dumps(schema, indent=2)
+
+    current_context = ""
+    if current_content is not None:
+        current_context = f"""
+Current content (prior generation — use as context when regenerating):
+{json.dumps(current_content, indent=2)}
+"""
 
     return f"""
 {BASE_SYSTEM_PROMPT}
@@ -386,7 +388,7 @@ Section type:
 
 Expected JSON schema:
 {schema_text}
-
+{current_context}
 User input:
 {user_input}
 

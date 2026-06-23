@@ -134,9 +134,10 @@ interface Props {
     isSubmitting?: boolean
     onCreate: (prefs: {
         fileName: string
-        resumeType: string
-        header: string
+        templateKey: string
+        visualThemeKey: string
         pages: number
+        configOverride: Record<string, unknown>
     }) => void | Promise<void>
 }
 
@@ -165,11 +166,18 @@ export default function ResumePreferencesModal({
 
     const handleCreate = async () => {
         if (!fileName.trim() || isSubmitting) return
+        const templateKey =
+            resumeType === 'iitb' ? 'iitb-general' : 'external-standard'
+        const visualThemeKey =
+            resumeType === 'iitb' ? 'iitb-classic' : 'external-standard'
+        const configOverride: Record<string, unknown> =
+            resumeType === 'iitb' ? { header_style: header } : {}
         await onCreate({
             fileName: fileName.trim(),
-            resumeType,
-            header,
+            templateKey,
+            visualThemeKey,
             pages,
+            configOverride,
         })
         handleClose()
     }
