@@ -32,9 +32,9 @@ def convert_courses(courses: list) -> str:
     parts: list[str] = [
         r"""
 %============================================================================
-\section*{\color{myblue}{\large COURSES UNDERTAKEN}\xfilll[0pt]{0.5pt}}
+\section{\textbf{Relevant Courses Undertaken}}
 
-\begin{tabularx}{\linewidth}{@{}p{3.8cm}X@{}}
+\begin{tabularx}{\linewidth}{@{}p{3.3cm}X@{}}
 """
     ]
 

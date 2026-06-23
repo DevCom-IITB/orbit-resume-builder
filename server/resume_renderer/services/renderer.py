@@ -60,64 +60,89 @@ if client is not None:
 
 
 TEMPLATE = r"""
-%============================================================================
-\documentclass[a4paper,10.9pt]{article}
-\usepackage[a4paper, bottom = 0.4mm, left = 14.11mm, right = 14.11mm, top = 0.6in]{geometry}
-\usepackage{lmodern}
+\documentclass[10pt]{article}
+
+\usepackage[T1]{fontenc}
 \usepackage{graphicx}
-\usepackage{amsmath}
-\usepackage{array}
 \usepackage{enumitem}
-%\usepackage{enumitem,xcolor}
-\usepackage{microtype}
-\usepackage{tabularx}
-\usepackage{wrapfig}
+\usepackage[a4paper,bottom=6.4mm,left=14.11mm,right=14.11mm,top=12mm]{geometry}
 \usepackage{titlesec}
-\usepackage{comment}
-\usepackage{verbatim}
-\usepackage[dvipsnames]{xcolor}
-\usepackage{hyperref}
-\usepackage{colortbl}
-\definecolor{myblue}{RGB}{75,65,200}
-\newcommand{\xfilll}[2][1ex]{
-\dimen0=#2\advance\dimen0 by #1
-\leaders\hrule height \dimen0 depth -#1\hfill}
-\titleformat{\section}{\Large\bfseries\color{myblue}\raggedright}{}{0em}{}
-\titlespacing*{\section}{0pt}{2pt}{1pt}
-\renewcommand\labelitemi{\raisebox{0.4ex}{\tiny$\bullet$}}
-\renewcommand{\labelitemii}{$\cdot$}
-\pagenumbering{gobble}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage[table, svgnames]{xcolor}
+\usepackage{hyphenat}
+\usepackage{romannum}
+\usepackage{anyfontsize}
+\usepackage[pdftex]{hyperref}
+\usepackage{fontawesome}
+\usepackage[misc]{ifsym}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{tfrupee}
 
-\newenvironment{localsize}[1]
-{\fontsize{#1}{#1}\selectfont}
-{}
+\setlength{\parindent}{0pt}
+\hyphenpenalty 10000
 
-% ---------- colours ----------
-\definecolor{iitbblue}{RGB}{0, 51, 102}
-
-% ---------- hyperlinks ----------
-\hypersetup{
-  colorlinks=true,
-  urlcolor=iitbblue,
-  linkcolor=iitbblue
+%%%%%%% Command for Thick hline %%%%%%%%%%
+\makeatletter
+\newcommand{\thickhline}{%
+    \noalign {\ifnum 0=`}\fi \hrule height 0.7pt
+    \futurelet \reserved@a \@xhline
 }
+\newcolumntype{"}{@{\hskip\tabcolsep\vrule width 0.7pt\hskip\tabcolsep}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\makeatother
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% ---------- no page number ----------
-\pagestyle{empty}
-
-% ---------- helper: project / experience entry ----------
-% Usage: \entry{Title | Role}{Organisation}{Location}{Date}
-\newcommand{\entry}[4]{%
-  \noindent
-  \begin{tabularx}{\linewidth}{@{}X r@{}}
-    \textbf{#1}  & \textit{#4} \\[-2pt]
-    \textit{#2}  & \textit{#3} \\
-  \end{tabularx}%
-  \vspace{2pt}%
+%%%%%%% Command Section Headers %%%%%%%%%%
+\newcommand{\xfill}[2][1ex]{
+	\dimen0=#2\advance\dimen0 by #1
+	\leaders\hrule height \dimen0 depth -#1\hfill
 }
+\newcommand{\textlarge}[1]{{\fontsize{11}{13.5}\selectfont #1}}
+\renewcommand{\section}[1]{
+	\vspace{5pt}
+	{\color{Blue}{\Large\scshape\raggedright #1\xfill[0pt]{0.5pt}}}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% ============================================================
+%%%%%%% Command Subsection Headers %%%%%%%
+\renewcommand{\subsection}[4]{
+	\def\temp{#3}
+	\vspace{5pt}
+	\parbox{\linewidth}{
+		\large
+		{\color{Black} \textbf{#1} 
+		\ifx\temp\empty
+		\else
+			{\textbf{|} #3}
+		\fi
+		\textbf{|} \textit{#4}}
+         \hfill{\fontsize{9}{11}\selectfont[#2]}
+	}
+
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%% Date Formatting %%%%%%%%%%%%%%%%
+\newcommand{\filldate}[1]{\strut\hfill {\small \textit{(#1)}}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%% Set itemize formatting %%%%%%%%%%%
+\renewcommand\labelitemi{\small$\bullet$}
+\setlist[itemize]{itemsep=-0.5mm, topsep=2pt, leftmargin=15pt, after=\vspace{1pt}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%% Edit if you want long header %%%%%%%
+% Long Header
+\newif\iflong
+\longtrue
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \begin{document}
+\parindent=0em
 
 __CONTENT__
 
@@ -157,6 +182,17 @@ def compile_latex(latex: str) -> bytes:
             info = tarfile.TarInfo(name="main.tex")
             info.size = len(encoded)
             tar.addfile(tarinfo=info, fileobj=BytesIO(encoded))
+
+            # Include logo files inside the container working directory if they exist
+            base_dir = os.path.dirname(os.path.dirname(__file__))
+            for filename in ["iitb-logo.png", "iitb-logo.jpeg"]:
+                logo_path = os.path.join(base_dir, filename)
+                if os.path.exists(logo_path):
+                    with open(logo_path, "rb") as f:
+                        logo_data = f.read()
+                    logo_info = tarfile.TarInfo(name=filename)
+                    logo_info.size = len(logo_data)
+                    tar.addfile(tarinfo=logo_info, fileobj=BytesIO(logo_data))
 
         tar_buffer.seek(0)
         container.put_archive("/usr/src/tex", tar_buffer.read())

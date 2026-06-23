@@ -76,7 +76,7 @@ def test_convert_experience_includes_items():
         }
     ]
     latex = convert_experience(experiences)
-    assert "PROFESSINAL EXPERIENCE" in latex
+    assert "Professional Experience" in latex
     assert "\\begin{itemize}" in latex
     assert "Did work" in latex
     assert "Wrote tests" in latex
@@ -94,7 +94,7 @@ def test_convert_key_project_includes_items():
         }
     ]
     latex = convert_key_project(projects)
-    assert "KEY PROJECTS" in latex
+    assert "Key Projects" in latex
     assert "Built thing" in latex
 
 
@@ -109,14 +109,14 @@ def test_convert_pors_includes_items():
         }
     ]
     latex = convert_pors(pors)
-    assert "POSITIONS OF RESPONSIBILITY" in latex
+    assert "Positions of Responsibility" in latex
     assert "Shipped resume module" in latex
 
 
 def test_convert_scholastic_achievements_includes_items():
     achievements = ["Achieved 99 percentile", "Secured top rank"]
     latex = convert_scholastic_achievements(achievements)
-    assert "SCHOLASTIC ACHIEVEMENTS" in latex
+    assert "Scholastic Achievements" in latex
     assert "Achieved 99 percentile" in latex
     assert "\\begin{itemize}" in latex
 
@@ -130,7 +130,7 @@ def test_convert_courses_includes_note_row():
         }
     ]
     latex = convert_courses(courses)
-    assert "COURSES UNDERTAKEN" in latex
+    assert "Relevant Courses Undertaken" in latex
     assert "Data Structures, Algorithms" in latex
     assert "Ongoing in Autumn '26" in latex
 
@@ -141,6 +141,6 @@ def test_convert_technical_skills_includes_categories():
         {"category": "Development", "skills": ["Django", "ReactJS"]},
     ]
     latex = convert_technical_skills(skills)
-    assert "TECHNICAL SKILLS" in latex
+    assert "Technical Skills" in latex
     assert "Programming" in latex
     assert "Python, C++" in latex

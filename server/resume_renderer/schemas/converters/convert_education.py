@@ -46,42 +46,49 @@ def convert_education(education: list) -> str:
 %============================================================================
 %   Education SECTION
 %----------------------------------------------------------------------------
-\section*{\color{myblue}{\large EDUCATION}\xfilll[0pt]{0.5pt}}
+\section{\textbf{Education}}
 
 \noindent
-\begin{tabularx}{\linewidth}{@{}lXrr@{}}
-\textbf{Degree} &
-\textbf{Institution} &
-\textbf{CPI / \%} &
-\textbf{Year} \\[2pt]
-\hline
-\\[-5pt]
+{\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{@{}L{3.0cm} L{3.6cm} L{6.5cm} C{2cm} C{1.9cm}@{}}
+    \toprule
+    \textbf{Examination} & \textbf{University} & \textbf{Institute} & \textbf{Year} & \textbf{CPI / \%} \\
+    \midrule
 """
     ]
 
+    rows = []
     for edu in education:
         try:
             degree = MARKDOWN_PARSER.parse(sanitize_text(edu["degree"]))
-
             institution = MARKDOWN_PARSER.parse(sanitize_text(edu["institution"]))
-
             cpi = MARKDOWN_PARSER.parse(sanitize_text(edu["cpi"]))
-
             year = MARKDOWN_PARSER.parse(sanitize_text(edu["year"]))
 
-            parts.append(
-                rf"{degree} & "
-                rf"{institution} & "
-                rf"{cpi} & "
-                rf"{year} \\"
+            # Try to split into university/board and institute
+            inst_parts = [part.strip() for part in institution.split("|", 1)]
+            if len(inst_parts) == 2:
+                univ, inst = inst_parts[0], inst_parts[1]
+            else:
+                inst_parts = [part.strip() for part in institution.split(",", 1)]
+                if len(inst_parts) == 2:
+                    univ, inst = inst_parts[0], inst_parts[1]
+                else:
+                    univ, inst = institution, institution
+
+            rows.append(
+                rf"{degree} & {univ} & {inst} & {year} & {cpi} \\"
             )
 
         except KeyError as e:
             raise ValueError(f"Missing key in education entry: {e}")
 
+    parts.append(f"\n    \\cmidrule(lr){{1-5}}\n    ".join(rows))
     parts.extend(
         [
+            r"    \bottomrule",
             r"\end{tabularx}",
+            r"}",
             r"%----------------------------------------------------------------------------",
             r"%============================================================================",
         ]

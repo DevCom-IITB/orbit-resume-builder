@@ -15,7 +15,7 @@ def test_markdown_parser():
 
 
 def test_renderer_template_has_section_spacing_directive():
-    assert "\\titlespacing*{\\section}{0pt}{2pt}{1pt}" in renderer.TEMPLATE
+    assert "\\renewcommand{\\section}" in renderer.TEMPLATE
 
 
 def test_ensure_image_exists_force_rebuild_removes_image(monkeypatch):

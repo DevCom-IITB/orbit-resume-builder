@@ -23,21 +23,18 @@ def convert_scholastic_achievements(achievements: list) -> str:
     if not achievements:
         return ""
 
+    import re
+    def format_year_hfill(text: str) -> str:
+        return re.sub(r"\s+\[([^\]]+)\]\s*$", r" \\hfill[\1]", text)
+
     parts: list[str] = [
         r"""
 %============================================================================
 %   Scholastic Achievements SECTION
 %----------------------------------------------------------------------------
-\section*{\color{myblue}{\large SCHOLASTIC ACHIEVEMENTS}\xfilll[0pt]{0.5pt}}
+\section{\textbf{Scholastic Achievements}}
 
-\begin{itemize}[
-label=\textcolor{myblue}{\textbullet},
-leftmargin=*,
-itemsep=-0.75mm,
-topsep=0pt,
-parsep=0pt,
-partopsep=0pt
-]
+\begin{itemize}
 """
     ]
 
@@ -46,8 +43,9 @@ partopsep=0pt
             raise ValueError("Each achievement must be a string.")
 
         text = MARKDOWN_PARSER.parse(sanitize_text(ach))
+        text = format_year_hfill(text)
 
-        parts.append(rf"\item {text}")
+        parts.append(rf"    \item {text}")
 
     parts.extend(
         [

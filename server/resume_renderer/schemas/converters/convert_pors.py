@@ -52,12 +52,16 @@ def convert_pors(pors: list) -> str:
     if not pors:
         return ""
 
+    import re
+    def format_year_hfill(text: str) -> str:
+        return re.sub(r"\s+\[([^\]]+)\]\s*$", r" \\hfill[\1]", text)
+
     parts.append(
         r"""
 %============================================================================
 %   PoR SECTION
 %----------------------------------------------------------------------------
-\section*{\color{myblue}{\large POSITIONS OF RESPONSIBILITY}\xfilll[0pt]{0.5pt}}
+\section{\textbf{Positions of Responsibility}}
 """
     )
 
@@ -75,22 +79,20 @@ def convert_pors(pors: list) -> str:
             parts.append(
                 rf"""
 %----------------------------------------------------------------------------
-\begin{{localsize}}{{11}}
-\textbf{{{role}}} $\vert$ \it\small{{{organization}}} \hfill{{\it\small({duration})}}\vspace{{-7pt}}
+\subsection{{{role}}}{{{duration}}}{{}}{{{organization}}}\vspace{{-5pt}}
 \rule{{\linewidth}}{{0.4pt}}
-\vspace{{-11pt}}
-\end{{localsize}}
-\\{{\it {summary}}}
-\vspace{{-7pt}}
 """
             )
 
-            parts.append(
-                r"\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -1.2 mm, leftmargin=*]"
-            )
+            if summary and summary.strip() != "":
+                parts.append(rf"\textit{{{summary}}}\vspace{{2pt}}")
+
+            parts.append(r"\begin{itemize}")
 
             for bullet in bullets:
-                parts.append(rf"\item {MARKDOWN_PARSER.parse(sanitize_text(bullet))}")
+                bullet_text = MARKDOWN_PARSER.parse(sanitize_text(bullet))
+                bullet_text = format_year_hfill(bullet_text)
+                parts.append(rf"    \item {bullet_text}")
 
             parts.append(r"\end{itemize}")
 

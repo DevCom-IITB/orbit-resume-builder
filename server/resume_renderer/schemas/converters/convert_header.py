@@ -19,15 +19,20 @@ from ...services.markdown_parser import MARKDOWN_PARSER
 
 
 TEMPLATE = r"""
-\begin{center}
-  {\LARGE\bfseries\color{iitbblue} __NAME__}\\[4pt]
-  __EDU__ \quad|\quad
-  Indian Institute of Technology Bombay\\[3pt]
-    Email: \href{mailto:__EMAIL__}{__EMAIL__} \quad
-    Phone: __PHONE__ \quad
-    LinkedIn: \href{https://linkedin.com/in/__LINKEDIN__}{linkedin.com/in/__LINKEDIN__} \quad
-    GitHub: \href{https://github.com/__GITHUB__}{github.com/__GITHUB__}
-\end{center}
+\noindent
+\begin{minipage}{0.15\textwidth}
+    \includegraphics[width=\linewidth]{iitb-logo.jpeg} 
+\end{minipage}%
+\hspace{1cm}
+\begin{minipage}{0.8\textwidth}
+    \renewcommand{\arraystretch}{1.25} % Adjust line spacing here
+    \begin{tabular}{@{}p{7.5cm} p{5.5cm}@{}}
+        \large{\textbf{__NAME__}} & \textbf{Phone: __PHONE__} \\
+        \textbf{__EDU__} & \textbf{Email: \href{mailto:__EMAIL__}{__EMAIL__}} \\
+        \textbf{IIT Bombay} & \textbf{GitHub: \href{https://github.com/__GITHUB__}{__GITHUB__}} \\
+        & \textbf{LinkedIn: \href{https://linkedin.com/in/__LINKEDIN__}{__LINKEDIN__}}
+    \end{tabular}
+\end{minipage}
 """
 
 

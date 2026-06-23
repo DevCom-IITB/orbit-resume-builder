@@ -52,12 +52,16 @@ def convert_experience(experiences: list) -> str:
     if not experiences:
         return ""
 
+    import re
+    def format_year_hfill(text: str) -> str:
+        return re.sub(r"\s+\[([^\]]+)\]\s*$", r" \\hfill[\1]", text)
+
     parts.append(
         r"""
 %============================================================================
 %   Experience SECTION
 %----------------------------------------------------------------------------
-\section*{\color{myblue}{\large PROFESSINAL EXPERIENCE}\xfilll[0pt]{0.5pt}}
+\section{\textbf{Professional Experience}}
 """
     )
 
@@ -71,27 +75,21 @@ def convert_experience(experiences: list) -> str:
 
             if not isinstance(bullets, list):
                 raise ValueError("'bullets' must be a list.")
+            
             parts.append(
                 rf"""
 %----------------------------------------------------------------------------
-\begin{{localsize}}{{11}}
-{{\bf \noindent {title}}} $\vert$\ \it\small{{{organization}}}\vspace{{-7pt}}
-\hfill{{\small\it({timeline})}}
+\subsection{{{title}}}{{{timeline}}}{{{location}}}{{{organization}}}\vspace{{-5pt}}
 \rule{{\linewidth}}{{0.4pt}}
-\end{{localsize}}
-\vspace{{-11pt}}
-\\{{\it {location}}}\\
-\vspace{{-18pt}}
 """
             )
 
-            parts.append(
-                r"\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.75 mm, leftmargin=*]"
-            )
+            parts.append(r"\begin{itemize}")
 
             for bullet in bullets:
                 bullet_text = MARKDOWN_PARSER.parse(sanitize_text(bullet))
-                parts.append(rf"\item {bullet_text}")
+                bullet_text = format_year_hfill(bullet_text)
+                parts.append(rf"    \item {bullet_text}")
 
             parts.append(r"\end{itemize}")
 

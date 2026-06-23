@@ -32,10 +32,10 @@ def convert_technical_skills(skills: list) -> str:
 %============================================================================
 %   Technical Skills SECTION
 %----------------------------------------------------------------------------
-\section*{\color{myblue}{\large TECHNICAL SKILLS}\xfilll[0pt]{0.5pt}}
+\section{\textbf{Technical Skills}}
 
-\renewcommand{\arraystretch}{1.1}
-\begin{tabularx}{\linewidth}{@{}p{3.8cm}X@{}}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabularx}{\linewidth}{@{}p{4.5cm}X@{}}
 """
     ]
 

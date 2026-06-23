@@ -52,12 +52,16 @@ def convert_key_project(projects: list) -> str:
     if not projects:
         return ""
 
+    import re
+    def format_year_hfill(text: str) -> str:
+        return re.sub(r"\s+\[([^\]]+)\]\s*$", r" \\hfill[\1]", text)
+
     parts.append(
         r"""
 %============================================================================
 %   Key Projects SECTION
 %----------------------------------------------------------------------------
-\section*{\color{myblue}{\large KEY PROJECTS}\xfilll[0pt]{0.5pt}}
+\section{\textbf{Key Projects}}
 """
     )
 
@@ -71,27 +75,24 @@ def convert_key_project(projects: list) -> str:
 
             if not isinstance(bullets, list):
                 raise ValueError("'bullets' must be a list.")
+            
             parts.append(
                 rf"""
 %----------------------------------------------------------------------------
-\begin{{localsize}}{{11}}
-{{\bf \noindent {title}}} $\vert$\ \it\small{{{organization}}}\vspace{{-7pt}}
-\hfill{{\small\it({timeline})}}
+\subsection{{{title}}}{{{timeline}}}{{}}{{{organization}}}\vspace{{-5pt}}
 \rule{{\linewidth}}{{0.4pt}}
-\end{{localsize}}
-\vspace{{-11pt}}
-\\{{\it {summary}}}\\
-\vspace{{-18pt}}
 """
             )
 
-            parts.append(
-                r"\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.75 mm, leftmargin=*]"
-            )
+            if summary and summary.strip() != "":
+                parts.append(rf"\textit{{{summary}}}\vspace{{2pt}}")
+
+            parts.append(r"\begin{itemize}")
 
             for bullet in bullets:
                 bullet_text = MARKDOWN_PARSER.parse(sanitize_text(bullet))
-                parts.append(rf"\item {bullet_text}")
+                bullet_text = format_year_hfill(bullet_text)
+                parts.append(rf"    \item {bullet_text}")
 
             parts.append(r"\end{itemize}")
 
