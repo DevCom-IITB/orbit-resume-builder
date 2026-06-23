@@ -37,6 +37,7 @@ class ResumeSerializer(serializers.ModelSerializer):
             "resume_type",
             "header_type",
             "meta",
+            "is_pinned",
             "sections",
             "versions",
             "created_at",

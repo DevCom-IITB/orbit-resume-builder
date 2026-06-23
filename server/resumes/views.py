@@ -6,7 +6,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
 from .serializers import ResumeSerializer
-from .models import Resume, Version
+from .models import Resume, Section, Version
 from utils.token_dec import token_required
 
 
@@ -14,7 +14,9 @@ from utils.token_dec import token_required
 class ResumeListCreate(APIView):
     @token_required
     def get(self, request):
-        qs = Resume.objects.filter(owner=request.user).order_by("-updated_at")
+        qs = Resume.objects.filter(owner=request.user).order_by(
+            "-is_pinned", "-updated_at"
+        )
         page = request.GET.get("page", 1)
         per = int(request.GET.get("per", 10))
         paginator = Paginator(qs, per)
@@ -85,3 +87,34 @@ class ResumeDetail(APIView):
             return Response({"error": "not found"}, status=status.HTTP_404_NOT_FOUND)
         resume.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ResumeDuplicate(APIView):
+    @token_required
+    def post(self, request, resume_id):
+        try:
+            source = Resume.objects.get(id=resume_id, owner=request.user)
+        except Resume.DoesNotExist:
+            return Response({"error": "not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        new_resume = Resume.objects.create(
+            owner=request.user,
+            title=f"{source.title} (Copy)",
+            resume_type=source.resume_type,
+            header_type=source.header_type,
+            meta=source.meta,
+            is_pinned=False,
+        )
+        for section in source.sections.all():
+            Section.objects.create(
+                resume=new_resume,
+                section_type=section.section_type,
+                order=section.order,
+                content=section.content,
+            )
+
+        return Response(
+            ResumeSerializer(new_resume, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )

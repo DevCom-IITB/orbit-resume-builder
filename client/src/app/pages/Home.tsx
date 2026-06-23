@@ -4,7 +4,10 @@ import { IntroSteps, ResumesList } from '../../components'
 import ResumePreferencesModal from '../../components/ResumePreferencesModal/ResumePreferencesModal'
 import {
     createResume,
+    deleteResume,
+    duplicateResume,
     listResumes,
+    patchResume,
     type ResumeRecord,
 } from '../../lib/api'
 import '../App.css'
@@ -12,6 +15,16 @@ import '../App.css'
 function formatDate(iso: string) {
     const d = new Date(iso)
     return d.toLocaleDateString('en-GB')
+}
+
+function sortResumes(items: ResumeRecord[]) {
+    return [...items].sort((a, b) => {
+        const pinDiff = Number(b.is_pinned) - Number(a.is_pinned)
+        if (pinDiff !== 0) return pinDiff
+        return (
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        )
+    })
 }
 
 function Home() {
@@ -27,7 +40,7 @@ function Home() {
             ; (async () => {
                 try {
                     const data = await listResumes()
-                    if (!cancelled) setResumes(data)
+                    if (!cancelled) setResumes(sortResumes(data))
                 } catch (err) {
                     console.error('[Home] Failed to load resumes:', err)
                     if (!cancelled) setError('Could not load your resumes.')
@@ -64,12 +77,63 @@ function Home() {
         }
     }
 
+    const handlePin = async (id: string) => {
+        const resume = resumes.find((r) => r.id === id)
+        if (!resume) return
+
+        setError(null)
+        try {
+            const updated = await patchResume(id, {
+                is_pinned: !resume.is_pinned,
+            })
+            setResumes((current) =>
+                sortResumes(
+                    current.map((r) => (r.id === id ? updated : r))
+                )
+            )
+        } catch (err) {
+            console.error('[Home] Failed to pin resume:', err)
+            setError('Could not update resume.')
+        }
+    }
+
+    const handleDuplicate = async (id: string) => {
+        setError(null)
+        try {
+            const copy = await duplicateResume(id)
+            navigate(`/editor/${copy.id}`)
+        } catch (err) {
+            console.error('[Home] Failed to duplicate resume:', err)
+            setError('Could not duplicate resume.')
+        }
+    }
+
+    const handleDelete = async (id: string) => {
+        const resume = resumes.find((r) => r.id === id)
+        if (!resume) return
+
+        const confirmed = window.confirm(
+            `Delete "${resume.title}"? This cannot be undone.`
+        )
+        if (!confirmed) return
+
+        setError(null)
+        try {
+            await deleteResume(id)
+            setResumes((current) => current.filter((r) => r.id !== id))
+        } catch (err) {
+            console.error('[Home] Failed to delete resume:', err)
+            setError('Could not delete resume.')
+        }
+    }
+
     const listItems = resumes.map((r) => ({
         id: r.id,
         name: r.title,
         pages: r.resume_type === 'ONE' ? 1 : 2,
         type: r.header_type === 'SHORT' ? 'Short header' : 'Long header',
         updatedAt: formatDate(r.updated_at),
+        starred: r.is_pinned,
     }))
 
     return (
@@ -87,6 +151,9 @@ function Home() {
                             items={listItems}
                             onStartMaking={() => setShowModal(true)}
                             onOpenResume={(id) => navigate(`/editor/${id}`)}
+                            onPin={handlePin}
+                            onDuplicate={handleDuplicate}
+                            onDelete={handleDelete}
                         />
                     )}
                 </div>

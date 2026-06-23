@@ -71,6 +71,7 @@ export interface ResumeRecord {
     title: string
     resume_type: 'ONE' | 'TWO'
     header_type: 'SHORT' | 'LONG'
+    is_pinned: boolean
     created_at: string
     updated_at: string
 }
@@ -81,6 +82,10 @@ export interface CreateResumePayload {
     header_type: 'SHORT' | 'LONG'
 }
 
+export type PatchResumePayload = Partial<
+    Pick<ResumeRecord, 'title' | 'resume_type' | 'header_type' | 'is_pinned'>
+>
+
 export async function listResumes(): Promise<ResumeRecord[]> {
     const response = await APIInstance.get('/api/resumes/')
     return response.data.results ?? []
@@ -90,6 +95,23 @@ export async function createResume(
     payload: CreateResumePayload
 ): Promise<ResumeRecord> {
     const response = await APIInstance.post('/api/resumes/', payload)
+    return response.data
+}
+
+export async function patchResume(
+    id: string,
+    payload: PatchResumePayload
+): Promise<ResumeRecord> {
+    const response = await APIInstance.patch(`/api/resumes/${id}/`, payload)
+    return response.data
+}
+
+export async function deleteResume(id: string): Promise<void> {
+    await APIInstance.delete(`/api/resumes/${id}/`)
+}
+
+export async function duplicateResume(id: string): Promise<ResumeRecord> {
+    const response = await APIInstance.post(`/api/resumes/${id}/duplicate/`)
     return response.data
 }
 

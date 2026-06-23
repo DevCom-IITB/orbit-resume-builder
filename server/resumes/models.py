@@ -16,6 +16,7 @@ class Resume(models.Model):
         max_length=10, choices=HEADER_TYPE_CHOICES, default="SHORT"
     )
     meta = models.JSONField(default=dict)
+    is_pinned = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
