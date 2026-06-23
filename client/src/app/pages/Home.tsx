@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IntroSteps, ResumesList, Sidebar, TopBar } from '../../components'
+import { IntroSteps, ResumesList } from '../../components'
 import ResumePreferencesModal from '../../components/ResumePreferencesModal/ResumePreferencesModal'
 import {
     createResume,
@@ -24,17 +24,17 @@ function Home() {
 
     useEffect(() => {
         let cancelled = false
-        ;(async () => {
-            try {
-                const data = await listResumes()
-                if (!cancelled) setResumes(data)
-            } catch (err) {
-                console.error('[Home] Failed to load resumes:', err)
-                if (!cancelled) setError('Could not load your resumes.')
-            } finally {
-                if (!cancelled) setLoading(false)
-            }
-        })()
+            ; (async () => {
+                try {
+                    const data = await listResumes()
+                    if (!cancelled) setResumes(data)
+                } catch (err) {
+                    console.error('[Home] Failed to load resumes:', err)
+                    if (!cancelled) setError('Could not load your resumes.')
+                } finally {
+                    if (!cancelled) setLoading(false)
+                }
+            })()
         return () => {
             cancelled = true
         }
@@ -74,9 +74,7 @@ function Home() {
 
     return (
         <div className="app">
-            <TopBar />
-            <div className="app__body">
-                <Sidebar />
+            <div className="app__body" style={{ padding: '32px' }}>
                 <div className="app__main">
                     {loading ? (
                         <p style={{ padding: 24 }}>Loading resumes…</p>

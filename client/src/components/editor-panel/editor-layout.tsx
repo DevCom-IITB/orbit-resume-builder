@@ -52,7 +52,13 @@ const compileMasterPayload = (sections: Section[]) => {
             payload[payloadKey] = []
         }
 
-        payload[payloadKey].push(...sectionData)
+        sectionData.forEach((data) => {
+            if (Array.isArray(data)) {
+                payload[payloadKey].push(...data)
+            } else {
+                payload[payloadKey].push(data)
+            }
+        })
     })
 
     return payload

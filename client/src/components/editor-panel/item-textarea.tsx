@@ -86,20 +86,6 @@ const ItemTextArea = ({
         const bounds = slider.getBoundingClientRect()
 
         const move = (pointerEvent: PointerEvent) => {
-            const outsideVerticalBounds =
-                pointerEvent.clientY < bounds.top ||
-                pointerEvent.clientY > bounds.bottom
-
-            if (outsideVerticalBounds) {
-                snapThumb(thumbPosition)
-
-                window.removeEventListener('pointermove', move)
-
-                window.removeEventListener('pointerup', up)
-
-                return
-            }
-
             const relativePosition =
                 ((pointerEvent.clientX - bounds.left) / bounds.width) * 100
 
