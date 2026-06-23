@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ResumeSection from './resume-section'
 import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import {
@@ -14,6 +14,8 @@ import type { Item } from '../../types/editor-panel/item'
 
 //======prop for comping data feature===========
 interface EditorPanelProps {
+    title: string
+    onTitleSave: (title: string) => Promise<void>
     onDataChange: (compiledData: Record<string, unknown[]>) => void
 }
 //===========================================
@@ -66,7 +68,7 @@ const compileMasterPayload = (sections: Section[]) => {
 
 //==============================================================================
 
-const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
+const EditorPanel = ({ title, onTitleSave, onDataChange }: EditorPanelProps) => {
     const [sections, setSections] = useState<Section[]>([
         {
             id: 0,
@@ -146,9 +148,28 @@ const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
         },
     ])
 
-    // Removed the redundant isPanelCollapsed state entirely!
-    const [fileName, setFileName] = useState('File name')
+    const [fileName, setFileName] = useState(title)
     const [isSectionReorderEnabled, setSectionReorderEnabled] = useState(false)
+
+    useEffect(() => {
+        setFileName(title)
+    }, [title])
+
+    const handleFileNameBlur = async () => {
+        const trimmed = fileName.trim()
+        if (!trimmed) {
+            setFileName(title)
+            return
+        }
+        if (trimmed === title) return
+        setFileName(trimmed)
+        try {
+            await onTitleSave(trimmed)
+        } catch (err) {
+            console.error('[EditorPanel] Failed to save title:', err)
+            setFileName(title)
+        }
+    }
 
     const handleItemCollapse = (sectionId: number, itemId: number) => {
         setSections((prevSections) =>
@@ -333,6 +354,7 @@ const EditorPanel = ({ onDataChange }: EditorPanelProps) => {
                         const value = event.target.value.replace(/\n/g, '')
                         setFileName(value)
                     }}
+                    onBlur={handleFileNameBlur}
                 />
 
                 <button

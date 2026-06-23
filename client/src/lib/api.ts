@@ -91,6 +91,11 @@ export async function listResumes(): Promise<ResumeRecord[]> {
     return response.data.results ?? []
 }
 
+export async function getResume(id: string): Promise<ResumeRecord> {
+    const response = await APIInstance.get(`/api/resumes/${id}/`)
+    return response.data
+}
+
 export async function createResume(
     payload: CreateResumePayload
 ): Promise<ResumeRecord> {
