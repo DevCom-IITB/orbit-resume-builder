@@ -16,6 +16,7 @@ interface SectionItemProps {
     onToggleCollapse: (entryId: string) => void
     onEntryUpdated: (entry: import('../../types/resume').SectionEntry) => void
     onEntryDelete: (entryId: string) => void
+    onRenderRequest: () => void
 }
 
 const SectionItem = ({
@@ -28,6 +29,7 @@ const SectionItem = ({
     onToggleCollapse,
     onEntryUpdated,
     onEntryDelete,
+    onRenderRequest,
 }: SectionItemProps) => {
     const [isGenerating, setIsGenerating] = useState(false)
     const [generateError, setGenerateError] = useState(false)
@@ -64,6 +66,8 @@ const SectionItem = ({
             const updated = await apiGenerateEntry(resumeId, sectionId, entry.id)
             setLastGeneratedInput(textVal)
             onEntryUpdated(updated)
+            // Generating new content auto-refreshes the PDF preview.
+            onRenderRequest()
         } catch (err) {
             console.error('[SectionItem] Generation failed:', err)
             setGenerateError(true)
@@ -79,6 +83,8 @@ const SectionItem = ({
                 content: parsed,
             })
             onEntryUpdated(updated)
+            // Manual JSON edits also refresh the PDF preview.
+            onRenderRequest()
         } catch (err) {
             console.error('[SectionItem] Content save failed:', err)
         }
@@ -173,7 +179,7 @@ const SectionItem = ({
                     <ItemTextArea
                         desc={entry.rawInput}
                         updateDesc={handleUpdateRawInput}
-                        onGenerateClicked={(textVal, _density, _fitToLine) => {
+                        onGenerateClicked={(textVal) => {
                             void handleGenerateClick(textVal)
                         }}
                         generateStatus={generateStatus}

@@ -21,6 +21,7 @@ interface ResumeSectionProps {
     onSectionCollapse: (sectionId: string) => void
     onEntriesChanged: (sectionId: string, entries: LocalEntry[]) => void
     onEntryUpdated: (sectionId: string, entry: SectionEntry) => void
+    onRenderRequest: () => void
 }
 
 const ResumeSection = ({
@@ -31,6 +32,7 @@ const ResumeSection = ({
     onSectionCollapse,
     onEntriesChanged,
     onEntryUpdated,
+    onRenderRequest,
 }: ResumeSectionProps) => {
     const [isReorderEnabled, setReorderEnabled] = useState(false)
 
@@ -164,7 +166,7 @@ const ResumeSection = ({
                                     <Pencil className="lucide-button-icon" />
                                 )}
                                 <span>
-                                    {isReorderEnabled ? 'Save' : 'Edit'}{' '}
+                                    {isReorderEnabled ? 'Save' : 'Reorder'}{' '}
                                 </span>
                             </>
                         </button>
@@ -225,6 +227,7 @@ const ResumeSection = ({
                                             onEntryUpdated(section.id, updated)
                                         }
                                         onEntryDelete={handleEntryDelete}
+                                        onRenderRequest={onRenderRequest}
                                     />
                                 ))}
                             </div>

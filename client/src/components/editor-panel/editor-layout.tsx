@@ -149,14 +149,6 @@ const EditorPanel = ({
                 />
 
                 <button
-                    className="render-pdf-button"
-                    onClick={onRenderRequest}
-                    title="Render PDF from current content"
-                >
-                    Render PDF
-                </button>
-
-                <button
                     className={`section-reorder-button ${isSectionReorderEnabled ? 'save' : 'edit'}`}
                     onClick={() => {
                         if (!isSectionReorderEnabled) collapseAll()
@@ -168,7 +160,9 @@ const EditorPanel = ({
                             <Pencil className="lucide-button-icon" />
                         )}
                         <span>
-                            {isSectionReorderEnabled ? 'Save' : 'Edit'}{' '}
+                            {isSectionReorderEnabled
+                                ? 'Save'
+                                : 'Reorder Sections'}{' '}
                         </span>
                     </>
                 </button>
@@ -190,6 +184,7 @@ const EditorPanel = ({
                                 onSectionCollapse={handleSectionCollapse}
                                 onEntriesChanged={handleEntriesChanged}
                                 onEntryUpdated={handleEntryUpdated}
+                                onRenderRequest={onRenderRequest}
                             />
                         ))}
                     </SortableContext>

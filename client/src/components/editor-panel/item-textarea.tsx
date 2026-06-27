@@ -35,82 +35,12 @@ const ItemTextArea = ({
 
     const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
-    const snapPoints = [15, 50, 85]
-
-    const densityValues: PointDensity[] = ['concise', 'standard', 'detailed']
-
-    const densityMap = {
-        concise: {
-            title: 'Concise point',
-            subtitle: '1-2 lines',
-        },
-
-        standard: {
-            title: 'Standard point',
-            subtitle: '2-3 lines',
-        },
-
-        detailed: {
-            title: 'Detailed point',
-            subtitle: '3-4 lines',
-        },
-    }
-
-    const [density, setDensity] = useState<PointDensity>('concise')
+    // The density selector slider was removed from the UI; density is fixed.
+    const density: PointDensity = 'concise'
 
     const [isFitToLineEnabled, setFitToLineEnabled] = useState(true)
 
     const [showFitToLineModal, setShowFitToLineModal] = useState(false)
-
-    const [thumbPosition, setThumbPosition] = useState(15)
-
-    const sliderRef = useRef<HTMLDivElement | null>(null)
-
-    const snapThumb = (rawPosition: number) => {
-        const nearest = snapPoints.reduce((prev, curr) =>
-            Math.abs(curr - rawPosition) < Math.abs(prev - rawPosition)
-                ? curr
-                : prev
-        )
-
-        setThumbPosition(nearest)
-
-        setDensity(densityValues[snapPoints.indexOf(nearest)])
-    }
-
-    const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
-        const slider = sliderRef.current
-
-        if (!slider) return
-
-        const bounds = slider.getBoundingClientRect()
-
-        const move = (pointerEvent: PointerEvent) => {
-            const relativePosition =
-                ((pointerEvent.clientX - bounds.left) / bounds.width) * 100
-
-            const clamped = Math.max(0, Math.min(100, relativePosition))
-
-            setThumbPosition(clamped)
-        }
-
-        const up = (pointerEvent: PointerEvent) => {
-            const relativePosition =
-                ((pointerEvent.clientX - bounds.left) / bounds.width) * 100
-
-            snapThumb(relativePosition)
-
-            window.removeEventListener('pointermove', move)
-
-            window.removeEventListener('pointerup', up)
-        }
-
-        move(event.nativeEvent)
-
-        window.addEventListener('pointermove', move)
-
-        window.addEventListener('pointerup', up)
-    }
 
     useEffect(() => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current)
@@ -180,42 +110,6 @@ const ItemTextArea = ({
                 >
                     Fit To Line
                 </button>
-
-                <div className="slider-control-group">
-                    <div
-                        ref={sliderRef}
-                        className="slider-shell"
-                        onPointerDown={startDrag}
-                    >
-                        <div className="slider-track" />
-
-                        {snapPoints.map((point) => (
-                            <div
-                                key={point}
-                                className="slider-anchor"
-                                style={{
-                                    left: `${point}%`,
-                                }}
-                            />
-                        ))}
-
-                        <div
-                            className="slider-thumb"
-                            style={{
-                                left: `${thumbPosition}%`,
-                            }}
-                        />
-                    </div>
-
-                    <div className="slider-description">
-                        <span className="slider-title">
-                            {densityMap[density].title}
-                        </span>
-                        <span className="slider-subtitle">
-                            {densityMap[density].subtitle}
-                        </span>
-                    </div>
-                </div>
 
                 <div className="generate-button-div">
                     <button

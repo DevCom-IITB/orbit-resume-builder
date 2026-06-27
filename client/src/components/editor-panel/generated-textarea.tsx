@@ -160,9 +160,7 @@ const GeneratedTextArea = ({
                                 <Pencil className="lucide-button-icon edit-text-icon" />
                             )}
                             <span>
-                                {isEditAllowed
-                                    ? 'Save'
-                                    : 'Edit With JaSON'}{' '}
+                                {isEditAllowed ? 'Save' : 'Edit With JSON'}{' '}
                             </span>
                         </>
                     </button>

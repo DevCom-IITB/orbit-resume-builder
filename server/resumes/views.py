@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from resume_renderer.services.line_fitter import fit_bullets_in_content
 from resume_renderer.services.llm_client import LLMClient, LLMClientError
 from resume_renderer.services.prompts import build_resume_prompt
 from resume_renderer.services.renderer import assemble_resume_latex, compile_latex
@@ -408,6 +409,9 @@ class GenerateEntryView(APIView):
 
             # Validate against schema
             jsonschema_lib.validate(instance=raw_output, schema=stdef.json_schema)
+
+            # Measure bullet widths and repair out-of-band ones (1 LLM retry).
+            raw_output = fit_bullets_in_content(raw_output, stdef.key, llm)
 
             entry.content = raw_output
             entry.generation_status = "done"
