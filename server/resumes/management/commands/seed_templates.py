@@ -8,7 +8,45 @@ from resumes.models import (
 )
 from resume_renderer.JSONSchema.jsonschema import get_schema
 from resume_renderer.services.prompts import SECTION_INSTRUCTIONS
-from resume_renderer.services.renderer import TEMPLATE
+
+IITB_PREAMBLE = r"""
+\documentclass[a4paper,10.9pt]{article}
+\usepackage[a4paper, bottom = 0.4mm, left = 14.11mm, right = 14.11mm, top = 0.6in]{geometry}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage[table, svgnames]{xcolor}
+\usepackage{wrapfig}
+\usepackage{comment}
+\usepackage{verbatim}
+\usepackage{microtype}
+\usepackage{colortbl}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage[pdftex,colorlinks=false,pdfborder={0 0 0}]{hyperref}
+\usepackage{hyphenat}
+\usepackage{anyfontsize}
+\usepackage{fontawesome}
+\definecolor{myblue}{RGB}{75,65,200}
+\hyphenpenalty 10000
+\pagenumbering{gobble}
+\setlength{\parindent}{0pt}
+\newcommand\xfilll[2][1ex]{
+  \dimen0=#2\advance\dimen0 by #1
+  \leaders\hrule height \dimen0 depth -#1\hfill
+}
+\newenvironment{localsize}[1]{
+  \begingroup
+  \fontsize{#1}{\baselineskip}\selectfont
+}{
+  \endgroup
+}
+\begin{document}
+\parindent=0em
+__CONTENT__
+\end{document}
+"""
 
 
 SECTION_TYPES = [
@@ -130,7 +168,7 @@ class Command(BaseCommand):
                 "display_name": "Classic (IIT Bombay)",
                 "compatible_families": ["iitb"],
                 "converter_set_key": "iitb-classic",
-                "latex_preamble": TEMPLATE,
+                "latex_preamble": IITB_PREAMBLE,
             },
         )
         if created:
@@ -142,7 +180,7 @@ class Command(BaseCommand):
                 "display_name": "Standard (External)",
                 "compatible_families": ["external"],
                 "converter_set_key": "external-standard",
-                "latex_preamble": TEMPLATE,
+                "latex_preamble": IITB_PREAMBLE,
             },
         )
         if created:

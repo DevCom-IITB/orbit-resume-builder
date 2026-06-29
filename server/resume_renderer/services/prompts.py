@@ -57,68 +57,71 @@ SECTION_INSTRUCTIONS: Dict[str, str] = {
 Section-specific instructions for HEADER:
 
 Expected purpose:
-- Extract the student's name, education line, and contact details.
+- Extract the student's personal and academic details for an IITB-format resume header.
 
 Expected output:
 - Return a JSON object.
 - The object must contain:
   - "name"
-  - "edu"
-  - "contact"
+  - "roll_no"
+  - "department"
+  - "degree"
+  - "institution"
+  - "gender"
+  - "email"
+  - "phone"
 
 Schema meaning:
 - "name": full name of the student.
-- "edu": short education line such as "B.Tech. in Aerospace Engineering".
-- "contact": email, phone, LinkedIn username, and GitHub username.
+- "roll_no": institute roll number or student ID.
+- "department": department or programme name, e.g. "Department of Aerospace Engineering".
+- "degree": degree programme, e.g. "B.Tech.", "Dual Degree (B.Tech. + M.Tech.)".
+- "institution": institute name, default "Indian Institute of Technology Bombay".
+- "gender": student's gender, e.g. "Male", "Female".
+- "email": official email address.
+- "phone": phone number with country code if provided.
 
 Rules:
 1. Use only information explicitly provided by the user.
-2. Do not invent email, phone number, LinkedIn, or GitHub.
-3. The "edu" field should be a short education line, for example:
-   "B.Tech. in Electrical Engineering"
-   "B.Tech. in Aerospace Engineering"
-   "B.S. in Mathematics"
-   "Dual Degree in Mechanical Engineering"
-4. For LinkedIn, return only the username or profile slug if possible.
-   Example: "kushagra-misra", not "https://linkedin.com/in/kushagra-misra".
-5. For GitHub, return only the GitHub username if possible.
-   Example: "kushagramisra06", not "https://github.com/kushagramisra06".
-6. If any contact field is missing, keep it as an empty string.
-7. Do not add IIT Bombay inside the "edu" field unless the user explicitly wrote it.
-8. Do not create bullet points for this section.
+2. Do not invent roll number, email, phone, department, or degree.
+3. If "institution" is not provided, default to "Indian Institute of Technology Bombay".
+4. If any field is missing, return an empty string for that field.
+5. Do not create bullet points for this section.
 """,
     "education": """
 Section-specific instructions for EDUCATION:
 
 Expected purpose:
-- Extract academic education entries only.
+- Extract academic education entries in IITB tabular format.
 
 Expected output:
 - Return a JSON array.
 - Each item must contain:
-  - "degree"
-  - "institution"
-  - "cpi"
+  - "examination"
+  - "university"
+  - "institute"
   - "year"
+  - "cpi"
+- Each item may optionally contain:
+  - "note"
 
 Schema meaning:
-- "degree": degree or qualification name.
-- "institution": school, college, or university name.
-- "cpi": CPI, CGPA, percentage, or score.
-- "year": academic year, graduation year, or duration.
+- "examination": exam or degree name, e.g. "B.Tech.", "HSC (Class XII)", "SSC (Class X)".
+- "university": university or board name, e.g. "IIT Bombay", "CBSE", "Maharashtra Board".
+- "institute": school or college name where studied.
+- "year": graduation year or exam year, e.g. "2027 (Expected)", "2022".
+- "cpi": CPI, CGPA, percentage, or score as a string, e.g. "9.22/10", "92.3%".
+- "note": optional note such as "* till 4th semester".
 
 Rules:
 1. Return a JSON array of education entries.
-2. Preserve degree, institution, CPI, CGPA, percentage, and year exactly as provided.
-3. Do not invent CPI, CGPA, percentage, year, branch, or institution.
-4. Expand abbreviations only when obvious.
-   Example: "IITB" can become "Indian Institute of Technology Bombay".
-5. Keep scores as strings.
-   Example: "9.22/10", "92.3%", "96.6%".
-6. If the user gives multiple education entries, return all of them.
-7. If a field is missing, use an empty string.
-8. Do not create bullet points for education.
-9. Do not convert percentages into CPI or CPI into percentages.
+2. For IIT Bombay entries: "university" should be "IIT Bombay", "institute" should be "IIT Bombay".
+3. For school entries: "university" is the board (CBSE/Maharashtra), "institute" is the school name.
+4. Preserve scores exactly as provided — do not convert percentages to CPI or vice versa.
+5. If the user gives multiple education entries, return all of them in reverse chronological order.
+6. If a field is missing, use an empty string.
+7. Do not create bullet points for education.
+8. Omit "note" if there is nothing to note.
 """,
     "professional_experience": """
 Section-specific instructions for PROFESSIONAL EXPERIENCE:
@@ -134,6 +137,7 @@ Expected output:
   - "organization"
   - "location"
   - "timeline"
+  - "summary"
   - "bullets"
 
 Schema meaning:
@@ -141,12 +145,14 @@ Schema meaning:
 - "organization": company, lab, institute, professor, startup, club, or team name.
 - "location": city, institute, remote, or empty string.
 - "timeline": duration such as "May 2025 - Jul 2025", "Summer 2025", or "Ongoing".
+- "summary": one short italicised context line about the role, company, or project scope.
 - "bullets": polished resume bullet points.
 
 Rules:
 1. Return a JSON array of experience entries.
 2. Use the exact key "organization", not "organisation".
-3. Use this section for internships, jobs, research internships, industrial work, and professional roles.
+3. Write a concise one-line "summary" describing the role or company context. Keep it factual.
+4. Use this section for internships, jobs, research internships, industrial work, and professional roles.
 4. Write bullets in IIT Bombay resume style: concise, technical, impact-focused.
 5. Each bullet should usually be 15-35 words.
 6. Each bullet should be long enough to avoid excessive whitespace at the end of a resume line.
@@ -325,24 +331,30 @@ Rules:
 Section-specific instructions for SCHOLASTIC ACHIEVEMENTS:
 
 Expected purpose:
-- Convert academic achievements, ranks, scholarships, exam scores, awards, and recognitions into polished resume achievement strings.
+- Convert academic achievements, ranks, scholarships, exam scores, awards, and recognitions into polished resume achievement entries.
 
 Expected output:
-- Return a JSON array of strings.
-- Each string should be one achievement.
+- Return a JSON array of objects.
+- Each object must contain:
+  - "text"
+- Each object may optionally contain:
+  - "year"
+
+Schema meaning:
+- "text": the achievement statement, concise and resume-ready.
+- "year": the year of the achievement if mentioned, e.g. "2024". Omit if not provided.
 
 Rules:
-1. Return only a JSON array of strings.
-2. Do not return objects.
-3. Do not create nested fields.
-4. Preserve ranks, scores, percentiles, years, scholarship names, and awarding bodies exactly as provided.
-5. Do not invent ranks, awards, scores, percentiles, years, or institutions.
-6. Keep each achievement concise, factual, and resume-ready.
-7. Use strong but not exaggerated wording.
-8. If the user gives multiple achievements, return each as a separate string.
-9. Do not add bullet symbols; the LaTeX converter will add bullets.
-10. Do not convert scores or percentages into another format.
-11. Do not mention the word "achievement" repeatedly inside each string.
+1. Return only a JSON array of objects with "text" and optional "year".
+2. Do not return plain strings.
+3. Preserve ranks, scores, percentiles, scholarship names, and awarding bodies exactly as provided.
+4. Do not invent ranks, awards, scores, percentiles, years, or institutions.
+5. Keep each "text" concise, factual, and resume-ready.
+6. Use strong but not exaggerated wording.
+7. If the user gives multiple achievements, return each as a separate object.
+8. Do not add bullet symbols; the LaTeX converter will add bullets.
+9. Do not convert scores or percentages into another format.
+10. If a year is clearly associated with the achievement, extract it into the "year" field.
 """,
 }
 

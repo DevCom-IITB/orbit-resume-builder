@@ -16,12 +16,10 @@ const slideUp = keyframes`
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    animation: ${fadeIn} 0.2s ease;
 `
 
 const Modal = styled.div`

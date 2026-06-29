@@ -1,7 +1,8 @@
 """
-Converts scholastic achievements JSON into LaTeX itemize section.
+Converts scholastic achievements JSON into IITB-format LaTeX.
 
-Expected input: list of strings, each an achievement.
+New schema: list of {text, year?}
+Old schema (backward compat): list of strings
 """
 
 from ...services.json_sanitizer import sanitize_text
@@ -9,50 +10,31 @@ from ...services.markdown_parser import MARKDOWN_PARSER
 
 
 def convert_scholastic_achievements(achievements: list) -> str:
-    """Convert scholastic achievements list into LaTeX.
-
-    Args:
-        achievements: list of strings
-
-    Returns:
-        LaTeX string for SCHOLASTIC ACHIEVEMENTS section.
-    """
     if not isinstance(achievements, list):
         raise ValueError("Input must be a list of achievements.")
-
     if not achievements:
         return ""
 
-    import re
-    def format_year_hfill(text: str) -> str:
-        return re.sub(r"\s+\[([^\]]+)\]\s*$", r" \\hfill[\1]", text)
-
-    parts: list[str] = [
-        r"""
-%============================================================================
-%   Scholastic Achievements SECTION
-%----------------------------------------------------------------------------
-\section{\textbf{Scholastic Achievements}}
-
-\begin{itemize}
-"""
+    parts = [
+        r"""\section*{\color{myblue}{\large SCHOLASTIC ACHIEVEMENTS}\xfilll[0pt]{0.5pt}}
+\vspace{-8pt}
+\begin{itemize}[label=\textcolor{myblue}{\textbullet},itemsep = -0.75 mm, leftmargin=*]"""
     ]
 
     for ach in achievements:
-        if not isinstance(ach, str):
-            raise ValueError("Each achievement must be a string.")
+        if isinstance(ach, str):
+            text = MARKDOWN_PARSER.parse(sanitize_text(ach))
+            parts.append(rf"    \item {text}")
+        elif isinstance(ach, dict):
+            text = MARKDOWN_PARSER.parse(sanitize_text(ach.get("text", "")))
+            year = ach.get("year", "")
+            if year:
+                year_clean = sanitize_text(year)
+                parts.append(rf"    \item {text} \hfill{{\small({year_clean})}}")
+            else:
+                parts.append(rf"    \item {text}")
+        else:
+            raise ValueError(f"Each achievement must be a string or dict, got: {type(ach)}")
 
-        text = MARKDOWN_PARSER.parse(sanitize_text(ach))
-        text = format_year_hfill(text)
-
-        parts.append(rf"    \item {text}")
-
-    parts.extend(
-        [
-            r"\end{itemize}",
-            r"%----------------------------------------------------------------------------",
-            r"%============================================================================",
-        ]
-    )
-
+    parts.append(r"\end{itemize}")
     return "\n".join(parts)
