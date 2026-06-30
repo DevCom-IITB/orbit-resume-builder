@@ -46,10 +46,17 @@ class LLMClient:
                 "X-TFY-LOGGING-CONFIG": '{"enabled": true}',
             }
             self._missing_key_var = "LLM_API_KEY"
+        elif provider == "google":
+            self.api_key = os.getenv("GOOGLE_API_KEY")
+            # Google AI Studio exposes an OpenAI-compatible endpoint — no extra SDK needed.
+            self.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+            self.model = os.getenv("GOOGLE_MODEL", "gemini-2.0-flash")
+            self.extra_headers = {}
+            self._missing_key_var = "GOOGLE_API_KEY"
         else:
             raise LLMClientError(
                 f"Unknown LLM_PROVIDER '{provider}'. "
-                "Set it to 'truefoundry' or 'bharatcode' in server/.env."
+                "Set it to 'truefoundry', 'bharatcode', or 'google' in server/.env."
             )
 
         if not self.api_key:
