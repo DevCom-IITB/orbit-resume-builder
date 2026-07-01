@@ -19,8 +19,8 @@
     margin: 0;
     font-family: 'Lato', sans-serif;
     font-weight: 500;
-    font-size: 36px;
-    line-height: 43px;
+    font-size: 24px;
+    line-height: 29px;
     color: #000000;
 }
 
@@ -28,21 +28,26 @@
     display: inline-flex;
     align-items: center;
     gap: 9px;
-    padding: 10px 20px;
+    padding: 8px 16px;
     background: #2645f2;
-    border-radius: 12px;
+    border-radius: 8px;
     border: none;
     color: #ffffff;
     font-family: 'Lato', sans-serif;
     font-weight: 700;
-    font-size: 24px;
-    line-height: 29px;
+    font-size: 14px;
+    line-height: 17px;
     cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.resumes__button:hover {
+    background: #1e37c7;
 }
 
 .resumes__button-icon {
-    width: 24px;
-    height: 24px;
+    width: 16px;
+    height: 16px;
 }
 
 .resumes__table {
@@ -66,22 +71,34 @@
     display: flex;
     align-items: center;
     gap: 20px;
-    padding: 10px 25px;
-    border: 1px solid #000000;
-    border-radius: 12px;
+    padding: 10px 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.resumes__row:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
 }
 
 .resumes__row--head {
     border: none;
-    padding: 10px 25px;
+    padding: 10px 20px;
+    background: transparent;
+}
+
+.resumes__row--head:hover {
+    background: transparent;
 }
 
 .resumes__cell {
     font-family: 'Lato', sans-serif;
-    font-weight: 400;
-    font-size: 14px;
-    line-height: 17px;
-    color: #000000;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 15px;
+    color: #64748b;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -89,8 +106,9 @@
 
 .resumes__row:not(.resumes__row--head) .resumes__cell {
     font-weight: 500;
-    font-size: 18px;
-    line-height: 22px;
+    font-size: 14px;
+    line-height: 18px;
+    color: #000000;
 }
 
 .resumes__cell--file {
@@ -122,20 +140,94 @@
 }
 
 .resumes__icon {
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
     display: inline-flex;
 }
 
 .resumes__action-icon {
     display: inline-flex;
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.resumes__action-icon:hover {
+    opacity: 0.7;
 }
 
 .resumes__action-icon--menu {
-    width: 24px;
-    height: 24px;
+    width: 18px;
+    height: 18px;
+}
+
+.resumes__menu-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.resumes__menu-trigger {
+    display: inline-flex;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.resumes__menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+    min-width: 180px;
+    background: #ffffff;
+    border: 1px solid #050316;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.resumes__menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: transparent;
+    font-family: 'Lato', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 18px;
+    color: #050316;
+    cursor: pointer;
+    text-align: left;
+}
+
+.resumes__menu-item:not(:last-child) {
+    border-bottom: 1px solid #050316;
+}
+
+.resumes__menu-item:hover {
+    background: #f8fafc;
+}
+
+.resumes__menu-item--delete {
+    color: #dc2626;
+}
+
+.resumes__menu-icon {
+    flex-shrink: 0;
+    color: #050316;
+}
+
+.resumes__menu-icon--pin {
+    color: #f59e0b;
+}
+
+.resumes__menu-icon--delete {
+    color: #dc2626;
 }
 
 @media (max-width: 1100px) {

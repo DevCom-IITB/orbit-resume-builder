@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import PdfCanvas from './PdfCanvas'
 import PdfToolbar from './PdfToolbar'
-import { generateResumeAssets } from '../../lib/api'
 
-// --- Styled Components ---
 const ViewerContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -17,7 +15,7 @@ const CanvasContainer = styled.div`
     flex-grow: 1;
     width: 100%;
     display: flex;
-    min-height: 0; /* Prevents flexbox overflowing issues */
+    min-height: 0;
 `
 
 const ExpandButton = styled.button`
@@ -35,16 +33,9 @@ const ExpandButton = styled.button`
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-    transition:
-        transform 0.2s ease,
-        background-color 0.2s ease;
-    &:hover {
-        background-color: #1d4ed8;
-        transform: scale(1.05);
-    }
-    &:active {
-        transform: scale(0.95);
-    }
+    transition: transform 0.2s ease, background-color 0.2s ease;
+    &:hover { background-color: #1d4ed8; transform: scale(1.05); }
+    &:active { transform: scale(0.95); }
 `
 
 const ErrorMessage = styled.div`
@@ -54,91 +45,34 @@ const ErrorMessage = styled.div`
     text-align: center;
 `
 
-// --- Interfaces ---
 interface ResumeViewerProps {
-    aggregatedData: Record<string, unknown>
+    pdfUrl: string | null
+    latexCode: string | null
+    renderStatus: 'idle' | 'loading' | 'success' | 'error'
     isExpanded: boolean
     onToggleExpand: () => void
 }
 
-// --- Component ---
 export default function ResumeViewer({
-    aggregatedData,
+    pdfUrl,
+    latexCode,
+    renderStatus,
     isExpanded,
     onToggleExpand,
 }: ResumeViewerProps) {
-    const [status, setStatus] = useState<
-        'idle' | 'loading' | 'success' | 'error'
-    >('idle')
-    const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-    const [latexCode, setLatexCode] = useState<string | null>(null)
-
-    // Viewer State
     const [fitMode, setFitMode] = useState<'width' | 'height'>('width')
     const [zoom, setZoom] = useState<number | null>(null)
 
-    // Zoom Handlers
     const handleZoomIn = () => setZoom((prev) => (prev ? prev + 25 : 125))
-    const handleZoomOut = () =>
-        setZoom((prev) => (prev ? Math.max(25, prev - 25) : 75))
-    const handleFitModeChange = (mode: 'width' | 'height') => {
-        setFitMode(mode)
-        setZoom(null)
-    }
+    const handleZoomOut = () => setZoom((prev) => (prev ? Math.max(25, prev - 25) : 75))
+    const handleFitModeChange = (mode: 'width' | 'height') => { setFitMode(mode); setZoom(null) }
 
-    // Memory Cleanup
     useEffect(() => {
-        return () => {
-            if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-        }
+        return () => { if (pdfUrl) URL.revokeObjectURL(pdfUrl) }
     }, [pdfUrl])
 
-    // Live Preview Auto-Generator
-    useEffect(() => {
-        const autoGeneratePdf = async () => {
-            // 1. Safely convert the incoming data to a string
-            const dataString = JSON.stringify(aggregatedData)
-
-            // 2. Ignore empty objects
-            if (!aggregatedData || dataString === '{}') return
-
-            // 3. Deep check: If the editor passes a skeleton template with empty arrays/objects
-            // (e.g., {"education": [], "experience": {}}), ignore it until real data is typed.
-            const hasRealData = Object.values(aggregatedData).some((val) => {
-                if (Array.isArray(val)) return val.length > 0
-                if (typeof val === 'object' && val !== null)
-                    return Object.keys(val).length > 0
-                return Boolean(val)
-            })
-
-            if (!hasRealData) return // Stop the animation from running on empty templates
-
-            setStatus('loading')
-
-            try {
-                const { pdfUrl: newPdfUrl, latexCode: newLatexCode } =
-                    await generateResumeAssets(aggregatedData)
-
-                if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-                setPdfUrl(newPdfUrl)
-                setLatexCode(newLatexCode)
-
-                setStatus('success')
-            } catch (error) {
-                console.error(error)
-                setStatus('error')
-            }
-        }
-
-        autoGeneratePdf()
-
-        // 4. CRITICAL FIX: Use JSON.stringify in the dependency array to prevent infinite rendering loops!
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [JSON.stringify(aggregatedData)])
-
-    // --- Action Handlers ---
     const handleDownloadPdf = () => {
-        if (!pdfUrl) return alert('Generate PDF first!')
+        if (!pdfUrl) return alert('Render the resume first!')
         const link = document.createElement('a')
         link.href = pdfUrl
         link.download = 'Resume.pdf'
@@ -148,18 +82,17 @@ export default function ResumeViewer({
     }
 
     const handleCopyLatex = async () => {
-        if (!latexCode) return alert('Generate PDF first!')
+        if (!latexCode) return alert('Render the resume first!')
         try {
             await navigator.clipboard.writeText(latexCode)
             alert('LaTeX copied to clipboard!')
-        } catch (err) {
-            console.error('Failed to copy text: ', err)
+        } catch {
             alert('Failed to copy LaTeX to clipboard.')
         }
     }
 
     const handleDownloadLatex = () => {
-        if (!latexCode) return alert('Generate PDF first!')
+        if (!latexCode) return alert('Render the resume first!')
         const blob = new Blob([latexCode], { type: 'text/plain' })
         const tempUrl = URL.createObjectURL(blob)
         const link = document.createElement('a')
@@ -183,8 +116,8 @@ export default function ResumeViewer({
                 onDownloadLatex={handleDownloadLatex}
             />
 
-            {status === 'error' && (
-                <ErrorMessage>Error generating PDF.</ErrorMessage>
+            {renderStatus === 'error' && (
+                <ErrorMessage>Error rendering PDF. Check the console.</ErrorMessage>
             )}
 
             <CanvasContainer>
@@ -195,25 +128,19 @@ export default function ResumeViewer({
                     {isExpanded ? (
                         <img
                             src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2218%22%20height%3D%2218%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%228%22%20height%3D%2218%22%20rx%3D%222%22%20%2F%3E%3Crect%20x%3D%2213%22%20y%3D%223%22%20width%3D%228%22%20height%3D%2218%22%20rx%3D%222%22%20%2F%3E%3C%2Fsvg%3E"
-                            alt="Restore Split View"
-                            width="18"
-                            height="18"
-                            style={{ display: 'block' }}
+                            alt="Restore Split View" width="18" height="18" style={{ display: 'block' }}
                         />
                     ) : (
                         <img
                             src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2218%22%20height%3D%2218%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M15%203h6v6M9%2021H3v-6M21%203l-7%207M3%2021l7-7%22%2F%3E%3C%2Fsvg%3E"
-                            alt="Full Screen"
-                            width="18"
-                            height="18"
-                            style={{ display: 'block' }}
+                            alt="Full Screen" width="18" height="18" style={{ display: 'block' }}
                         />
                     )}
                 </ExpandButton>
 
                 <PdfCanvas
                     url={pdfUrl}
-                    isLoading={status === 'loading'}
+                    isLoading={renderStatus === 'loading'}
                     fitMode={fitMode}
                     zoom={zoom}
                 />

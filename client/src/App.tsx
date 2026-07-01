@@ -1,20 +1,81 @@
-import { useState } from 'react'
-import { useAuth } from './auth/AuthProvider' // Adjust this import path as needed
-import EditorPanel from './components/editor-panel/editor-layout' // Adjust this import path as needed
-import ResumeViewer from './components/editor-panel/ResumeViewer' // Adjust this import path as needed
+import { useEffect, useState } from 'react'
+import { Navigate, useParams } from 'react-router-dom'
+import { useAuth } from './auth/AuthProvider'
+import EditorPanel from './components/editor-panel/editor-layout'
+import ResumeViewer from './components/editor-panel/ResumeViewer'
+import { getResume, patchResume, renderResume } from './lib/api'
+import type { Resume } from './types/resume'
 
 function App() {
-    // 1. Grab the token from AuthContext
     const { token } = useAuth()
+    const { resumeId } = useParams()
 
-    // 2. Your state for the split-screen layout and data
+    const [resume, setResume] = useState<Resume | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [loadError, setLoadError] = useState<string | null>(null)
+
     const [isViewerExpanded, setIsViewerExpanded] = useState(false)
-    const [masterResumeData, setMasterResumeData] = useState<
-        Record<string, unknown>
-    >({})
+    const [renderStatus, setRenderStatus] = useState<
+        'idle' | 'loading' | 'success' | 'error'
+    >('idle')
+    const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+    const [latexCode, setLatexCode] = useState<string | null>(null)
 
-    // 3. The Auth Gate
-    // If the iframe hasn't received the token from REACH yet, show a loading screen.
+    useEffect(() => {
+        if (!token || !resumeId) {
+            setLoading(false)
+            return
+        }
+
+        let cancelled = false
+        setLoading(true)
+        setLoadError(null)
+        ;(async () => {
+            try {
+                const data = await getResume(resumeId)
+                if (!cancelled) setResume(data)
+            } catch (err) {
+                console.error('[Editor] Failed to load resume:', err)
+                if (!cancelled) setLoadError('Could not load resume.')
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        })()
+
+        return () => {
+            cancelled = true
+        }
+    }, [token, resumeId])
+
+    // Clean up blob URL on unmount
+    useEffect(() => {
+        return () => {
+            if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+        }
+    }, [pdfUrl])
+
+    const handleTitleSave = async (title: string) => {
+        if (!resumeId) return
+        await patchResume(resumeId, { title })
+        // Only update title in local state to avoid re-initializing editor sections
+        setResume((prev) => (prev ? { ...prev, title } : prev))
+    }
+
+    const handleRenderRequest = async () => {
+        if (!resumeId) return
+        setRenderStatus('loading')
+        try {
+            const result = await renderResume(resumeId)
+            if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+            setPdfUrl(result.pdfUrl)
+            setLatexCode(result.latexCode)
+            setRenderStatus('success')
+        } catch (err) {
+            console.error('[App] Render failed:', err)
+            setRenderStatus('error')
+        }
+    }
+
     if (!token) {
         return (
             <div className="app-shell">
@@ -23,15 +84,42 @@ function App() {
                     style={{ textAlign: 'center', marginTop: '20vh' }}
                 >
                     <h2>Authenticating...</h2>
-                    <p className="muted">
-                        Waiting for secure token from REACH.
-                    </p>
+                    <p className="muted">Waiting for secure token from REACH.</p>
                 </div>
             </div>
         )
     }
 
-    // 4. Once the token exists, render your actual app!
+    if (!resumeId) {
+        return <Navigate to="/home" replace />
+    }
+
+    if (loading) {
+        return (
+            <div className="app-shell">
+                <div
+                    className="card"
+                    style={{ textAlign: 'center', marginTop: '20vh' }}
+                >
+                    <h2>Loading resume…</h2>
+                </div>
+            </div>
+        )
+    }
+
+    if (loadError || !resume) {
+        return (
+            <div className="app-shell">
+                <div
+                    className="card"
+                    style={{ textAlign: 'center', marginTop: '20vh' }}
+                >
+                    <h2>{loadError ?? 'Resume not found'}</h2>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div
             className="editor-page"
@@ -42,21 +130,21 @@ function App() {
                 overflow: 'hidden',
             }}
         >
-            {/* Conditionally hide the editor if the viewer is expanded */}
             {!isViewerExpanded && (
                 <div className="editor-pane">
                     <EditorPanel
-                        onDataChange={(compiledData) =>
-                            setMasterResumeData(compiledData)
-                        }
+                        resume={resume}
+                        onTitleSave={handleTitleSave}
+                        onRenderRequest={handleRenderRequest}
                     />
                 </div>
             )}
 
-            {/* Viewer pane flexes to take up remaining space */}
             <div className="viewer-pane" style={{ flex: 1 }}>
                 <ResumeViewer
-                    aggregatedData={masterResumeData}
+                    pdfUrl={pdfUrl}
+                    latexCode={latexCode}
+                    renderStatus={renderStatus}
                     isExpanded={isViewerExpanded}
                     onToggleExpand={() =>
                         setIsViewerExpanded(!isViewerExpanded)

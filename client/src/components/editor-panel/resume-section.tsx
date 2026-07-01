@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import SectionItem from './section-item'
-import type { Section } from '../../types/editor-panel/section'
+import type { LocalSection, LocalEntry } from '../../types/editor-panel/local-state'
+import { toLocalEntry } from '../../types/editor-panel/local-state'
+import type { SectionEntry } from '../../types/resume'
+import { addEntry, deleteEntry, updateEntry } from '../../lib/api'
 import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import {
     SortableContext,
@@ -9,44 +12,27 @@ import {
     useSortable,
 } from '@dnd-kit/sortable'
 import { Pencil, Plus, Minus, GripHorizontal } from 'lucide-react'
-import type { Item } from '../../types/editor-panel/item'
 
 interface ResumeSectionProps {
-    section: Section
+    section: LocalSection
     isSectionReorderEnabled: boolean
-    onItemCollapse: (sectionId: number, itemId: number) => void
-    onItemAdd: (sectionId: number) => void
-    onItemDelete: (sectionId: number, itemId: number) => void
-    onItemDescChange: (
-        sectionId: number,
-        itemId: number,
-        updatedText: string
-    ) => void
-    onItemTextGenerated: (
-        sectionId: number,
-        itemId: number,
-        generatedText: string
-    ) => void
-    onUpdateItemGeneratedText: (
-        sectionId: number,
-        itemId: number,
-        updatedText: string
-    ) => void
-    onItemReorder: (sectionId: number, reorderedItems: Item[]) => void
-    onSectionCollapse: (sectionId: number) => void
+    resumeId: string
+    itemLabel: string
+    onSectionCollapse: (sectionId: string) => void
+    onEntriesChanged: (sectionId: string, entries: LocalEntry[]) => void
+    onEntryUpdated: (sectionId: string, entry: SectionEntry) => void
+    onRenderRequest: () => void
 }
 
 const ResumeSection = ({
     section,
     isSectionReorderEnabled,
-    onItemCollapse,
-    onItemAdd,
-    onItemDelete,
-    onItemDescChange,
-    onItemTextGenerated,
-    onUpdateItemGeneratedText,
-    onItemReorder,
+    resumeId,
+    itemLabel,
     onSectionCollapse,
+    onEntriesChanged,
+    onEntryUpdated,
+    onRenderRequest,
 }: ResumeSectionProps) => {
     const [isReorderEnabled, setReorderEnabled] = useState(false)
 
@@ -56,53 +42,62 @@ const ResumeSection = ({
             disabled: !isSectionReorderEnabled,
         })
 
-    const handleItemCollapse = (itemId: number) => {
-        onItemCollapse(section.id, itemId)
+    const handleEntryAdd = async () => {
+        try {
+            const newEntry = await addEntry(resumeId, section.id)
+            const localEntry: LocalEntry = { ...toLocalEntry(newEntry), isCollapsed: false }
+            onEntriesChanged(section.id, [...section.entries, localEntry])
+        } catch (err) {
+            console.error('[ResumeSection] addEntry failed:', err)
+        }
     }
 
-    const handleItemDelete = (itemId: number) => {
-        onItemDelete(section.id, itemId)
+    const handleEntryDelete = (entryId: string) => {
+        deleteEntry(resumeId, section.id, entryId)
+            .then(() => {
+                onEntriesChanged(
+                    section.id,
+                    section.entries.filter((e) => e.id !== entryId)
+                )
+            })
+            .catch((err) =>
+                console.error('[ResumeSection] deleteEntry failed:', err)
+            )
     }
 
-    const handleItemDescChange = (itemId: number, updatedText: string) => {
-        onItemDescChange(section.id, itemId, updatedText)
+    const handleEntryCollapseToggle = (entryId: string) => {
+        onEntriesChanged(
+            section.id,
+            section.entries.map((e) =>
+                e.id === entryId ? { ...e, isCollapsed: !e.isCollapsed } : e
+            )
+        )
     }
 
-    const handleItemTextGenerated = (itemId: number, generatedText: string) => {
-        onItemTextGenerated(section.id, itemId, generatedText)
-    }
-
-    const handleUpdateItemGeneratedText = (
-        itemId: number,
-        generatedText: string
-    ) => {
-        onUpdateItemGeneratedText(section.id, itemId, generatedText)
-    }
-
-    const handleSectionCollapse = (sectionId: number) => {
-        onSectionCollapse(sectionId)
+    const handleCollapseAll = () => {
+        onEntriesChanged(
+            section.id,
+            section.entries.map((e) => ({ ...e, isCollapsed: true }))
+        )
     }
 
     const handleDragEnd = (event: DragEndEvent) => {
         window.LAST_DND_TIME = Date.now()
-
         const { active, over } = event
+        if (!over || active.id === over.id) return
 
-        if (!over) return
+        const oldIndex = section.entries.findIndex((e) => e.id === active.id)
+        const newIndex = section.entries.findIndex((e) => e.id === over.id)
+        const reordered = arrayMove(section.entries, oldIndex, newIndex)
 
-        if (active.id === over.id) return
+        onEntriesChanged(section.id, reordered)
 
-        const oldIndex = section.items.findIndex(
-            (item) => `${section.id}-${item.id}` === active.id
-        )
-
-        const newIndex = section.items.findIndex(
-            (item) => `${section.id}-${item.id}` === over.id
-        )
-
-        const reorderedItems = arrayMove(section.items, oldIndex, newIndex)
-
-        onItemReorder(section.id, reorderedItems)
+        // Persist new order to server (optimistic — fire and forget)
+        reordered.forEach((entry, idx) => {
+            updateEntry(resumeId, section.id, entry.id, { order: idx }).catch(
+                console.error
+            )
+        })
     }
 
     return (
@@ -142,13 +137,12 @@ const ResumeSection = ({
                 <h1
                     className={`resume-section-title ${section.isCollapsed ? 'collapsed' : 'expanded'}`}
                 >
-                    {section.title}
+                    {section.sectionType.displayName}
                 </h1>
+
                 <div
                     className="resume-section-topbar-controls"
-                    style={{
-                        minWidth: '11rem',
-                    }}
+                    style={{ minWidth: '11rem' }}
                 >
                     <div
                         className="section-item-toolbar"
@@ -163,10 +157,7 @@ const ResumeSection = ({
                         <button
                             className={`item-reorder-toggle-button ${isReorderEnabled ? 'save' : 'edit'}`}
                             onClick={() => {
-                                if (!isReorderEnabled) {
-                                    handleItemCollapse(-1)
-                                }
-
+                                if (!isReorderEnabled) handleCollapseAll()
                                 setReorderEnabled((prev) => !prev)
                             }}
                         >
@@ -175,7 +166,7 @@ const ResumeSection = ({
                                     <Pencil className="lucide-button-icon" />
                                 )}
                                 <span>
-                                    {isReorderEnabled ? 'Save' : 'Edit'}{' '}
+                                    {isReorderEnabled ? 'Save' : 'Reorder'}{' '}
                                 </span>
                             </>
                         </button>
@@ -191,12 +182,8 @@ const ResumeSection = ({
                             className="section-collapse-button"
                             onClick={() => {
                                 const lastDrag = window.LAST_DND_TIME ?? 0
-
-                                if (Date.now() - lastDrag < 180) {
-                                    return
-                                }
-
-                                handleSectionCollapse(section.id)
+                                if (Date.now() - lastDrag < 180) return
+                                onSectionCollapse(section.id)
                             }}
                         >
                             {section.isCollapsed ? (
@@ -208,6 +195,7 @@ const ResumeSection = ({
                     </div>
                 </div>
             </div>
+
             <div
                 className={`section-item-container ${
                     section.isCollapsed ? 'collapsed' : 'expanded'
@@ -216,55 +204,50 @@ const ResumeSection = ({
                 <div className="section-content-wrapper">
                     <DndContext onDragEnd={handleDragEnd}>
                         <SortableContext
-                            items={section.items.map(
-                                (item) => `${section.id}-${item.id}`
-                            )}
+                            items={section.entries.map((e) => e.id)}
                             strategy={verticalListSortingStrategy}
                         >
                             <div
                                 className="item-data-container"
-                                style={{
-                                    width: '100%',
-                                    minWidth: 0,
-                                }}
+                                style={{ width: '100%', minWidth: 0 }}
                             >
-                                {section.items.map((item, index) => (
+                                {section.entries.map((entry, index) => (
                                     <SectionItem
-                                        key={`${section.id}-${item.id}`}
-                                        item={item}
-                                        label={section.label}
-                                        sectionType={section.sectionType}
-                                        sectionId={section.id}
+                                        key={entry.id}
+                                        entry={entry}
+                                        label={itemLabel}
                                         displayIndex={index}
+                                        resumeId={resumeId}
+                                        sectionId={section.id}
                                         isReorderEnabled={isReorderEnabled}
-                                        onToggleCollapse={handleItemCollapse}
-                                        onItemDelete={handleItemDelete}
-                                        onDescChange={handleItemDescChange}
-                                        onTextGenerated={
-                                            handleItemTextGenerated
+                                        onToggleCollapse={
+                                            handleEntryCollapseToggle
                                         }
-                                        onUpdateGeneratedText={
-                                            handleUpdateItemGeneratedText
+                                        onEntryUpdated={(updated) =>
+                                            onEntryUpdated(section.id, updated)
                                         }
+                                        onEntryDelete={handleEntryDelete}
+                                        onRenderRequest={onRenderRequest}
                                     />
                                 ))}
                             </div>
                         </SortableContext>
                     </DndContext>
 
-                    <div className="section-item-add">
-                        <button
-                            className="add-section-item-button"
-                            onClick={() => {
-                                onItemAdd(section.id)
-                            }}
-                        >
-                            + Add {section.label}
-                        </button>
-                    </div>
+                    {section.sectionType.allowMultipleEntries && (
+                        <div className="section-item-add">
+                            <button
+                                className="add-section-item-button"
+                                onClick={handleEntryAdd}
+                            >
+                                + Add {itemLabel}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
     )
 }
+
 export default ResumeSection

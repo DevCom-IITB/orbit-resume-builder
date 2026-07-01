@@ -60,64 +60,89 @@ if client is not None:
 
 
 TEMPLATE = r"""
-%============================================================================
-\documentclass[a4paper,10.9pt]{article}
-\usepackage[a4paper, bottom = 0.4mm, left = 14.11mm, right = 14.11mm, top = 0.6in]{geometry}
-\usepackage{lmodern}
+\documentclass[10pt]{article}
+
+\usepackage[T1]{fontenc}
 \usepackage{graphicx}
-\usepackage{amsmath}
-\usepackage{array}
 \usepackage{enumitem}
-%\usepackage{enumitem,xcolor}
-\usepackage{microtype}
-\usepackage{tabularx}
-\usepackage{wrapfig}
+\usepackage[a4paper,bottom=6.4mm,left=14.11mm,right=14.11mm,top=12mm]{geometry}
 \usepackage{titlesec}
-\usepackage{comment}
-\usepackage{verbatim}
-\usepackage[dvipsnames]{xcolor}
-\usepackage{hyperref}
-\usepackage{colortbl}
-\definecolor{myblue}{RGB}{75,65,200}
-\newcommand{\xfilll}[2][1ex]{
-\dimen0=#2\advance\dimen0 by #1
-\leaders\hrule height \dimen0 depth -#1\hfill}
-\titleformat{\section}{\Large\bfseries\color{myblue}\raggedright}{}{0em}{}
-\titlespacing*{\section}{0pt}{2pt}{1pt}
-\renewcommand\labelitemi{\raisebox{0.4ex}{\tiny$\bullet$}}
-\renewcommand{\labelitemii}{$\cdot$}
-\pagenumbering{gobble}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage[table, svgnames]{xcolor}
+\usepackage{hyphenat}
+\usepackage{romannum}
+\usepackage{anyfontsize}
+\usepackage[pdftex]{hyperref}
+\usepackage{fontawesome}
+\usepackage[misc]{ifsym}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{tfrupee}
 
-\newenvironment{localsize}[1]
-{\fontsize{#1}{#1}\selectfont}
-{}
+\setlength{\parindent}{0pt}
+\hyphenpenalty 10000
 
-% ---------- colours ----------
-\definecolor{iitbblue}{RGB}{0, 51, 102}
-
-% ---------- hyperlinks ----------
-\hypersetup{
-  colorlinks=true,
-  urlcolor=iitbblue,
-  linkcolor=iitbblue
+%%%%%%% Command for Thick hline %%%%%%%%%%
+\makeatletter
+\newcommand{\thickhline}{%
+    \noalign {\ifnum 0=`}\fi \hrule height 0.7pt
+    \futurelet \reserved@a \@xhline
 }
+\newcolumntype{"}{@{\hskip\tabcolsep\vrule width 0.7pt\hskip\tabcolsep}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\makeatother
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% ---------- no page number ----------
-\pagestyle{empty}
-
-% ---------- helper: project / experience entry ----------
-% Usage: \entry{Title | Role}{Organisation}{Location}{Date}
-\newcommand{\entry}[4]{%
-  \noindent
-  \begin{tabularx}{\linewidth}{@{}X r@{}}
-    \textbf{#1}  & \textit{#4} \\[-2pt]
-    \textit{#2}  & \textit{#3} \\
-  \end{tabularx}%
-  \vspace{2pt}%
+%%%%%%% Command Section Headers %%%%%%%%%%
+\newcommand{\xfill}[2][1ex]{
+	\dimen0=#2\advance\dimen0 by #1
+	\leaders\hrule height \dimen0 depth -#1\hfill
 }
+\newcommand{\textlarge}[1]{{\fontsize{11}{13.5}\selectfont #1}}
+\renewcommand{\section}[1]{
+	\vspace{5pt}
+	{\color{Blue}{\Large\scshape\raggedright #1\xfill[0pt]{0.5pt}}}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% ============================================================
+%%%%%%% Command Subsection Headers %%%%%%%
+\renewcommand{\subsection}[4]{
+	\def\temp{#3}
+	\vspace{5pt}
+	\parbox{\linewidth}{
+		\large
+		{\color{Black} \textbf{#1} 
+		\ifx\temp\empty
+		\else
+			{\textbf{|} #3}
+		\fi
+		\textbf{|} \textit{#4}}
+         \hfill{\fontsize{9}{11}\selectfont[#2]}
+	}
+
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%% Date Formatting %%%%%%%%%%%%%%%%
+\newcommand{\filldate}[1]{\strut\hfill {\small \textit{(#1)}}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%% Set itemize formatting %%%%%%%%%%%
+\renewcommand\labelitemi{\small$\bullet$}
+\setlist[itemize]{itemsep=-0.5mm, topsep=2pt, leftmargin=15pt, after=\vspace{1pt}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%% Edit if you want long header %%%%%%%
+% Long Header
+\newif\iflong
+\longtrue
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \begin{document}
+\parindent=0em
 
 __CONTENT__
 
@@ -125,38 +150,116 @@ __CONTENT__
 """
 
 
+def assemble_resume_latex(resume) -> str:
+    """
+    Assembles the full LaTeX document for a Resume instance.
+    Uses the resume's visual_theme for the preamble and converter set.
+    Updates resume.cached_latex and resume.latex_cache_valid.
+    """
+    if resume.latex_cache_valid and resume.cached_latex:
+        return resume.cached_latex
+
+    from resume_renderer.schemas.converter_registry import get_converter
+
+    converter_set_key = resume.visual_theme.converter_set_key
+    config_override = resume.config_override or {}
+    sections_latex = []
+
+    for section in resume.sections.filter(is_visible=True).order_by("order").select_related("section_type"):
+        stdef = section.section_type
+        try:
+            converter_fn = get_converter(converter_set_key, stdef.key)
+        except KeyError:
+            continue
+
+        done_entries = section.entries.filter(generation_status="done").order_by("order")
+
+        if stdef.allow_multiple_entries:
+            # Each entry's content may be a single dict OR a list (LLM returns arrays).
+            # Flatten so converters always receive a flat list of items.
+            section_data = []
+            for e in done_entries:
+                if e.content is None:
+                    continue
+                if isinstance(e.content, list):
+                    section_data.extend(e.content)
+                else:
+                    section_data.append(e.content)
+        else:
+            first = done_entries.first()
+            section_data = first.content if first else None
+
+        if not section_data:
+            continue
+
+        try:
+            section_latex = converter_fn(section_data, config_override)
+        except TypeError:
+            section_latex = converter_fn(section_data)
+
+        sections_latex.append(section_latex)
+
+    full_latex = resume.visual_theme.latex_preamble.replace(
+        "__CONTENT__", "\n".join(sections_latex)
+    )
+
+    resume.cached_latex = full_latex
+    resume.latex_cache_valid = True
+    resume.save(update_fields=["cached_latex", "latex_cache_valid"])
+    return full_latex
+
+
+LATEX_CONTAINER_NAME = os.getenv("LATEX_CONTAINER_NAME", "latex-renderer")
+
+
+def _get_latex_container():
+    """Find the named running LaTeX container. Raises clearly if it isn't up."""
+    try:
+        container = client.containers.get(LATEX_CONTAINER_NAME)
+        if container.status == "running":
+            return container
+        raise RuntimeError(
+            f"Container '{LATEX_CONTAINER_NAME}' exists but is not running "
+            f"(status: {container.status}). Start it with:\n"
+            f"  docker start {LATEX_CONTAINER_NAME}"
+        )
+    except docker.errors.NotFound:
+        raise RuntimeError(
+            f"Container '{LATEX_CONTAINER_NAME}' not found. Start it with:\n"
+            f"  docker run -d --name {LATEX_CONTAINER_NAME} "
+            f"--memory=1.5g -v {LATEX_CACHE_VOLUME}:/root/.cache/texmf "
+            f"{LATEX_IMAGE_NAME} sleep infinity"
+        )
+
+
 def compile_latex(latex: str) -> bytes:
-    """Compile LaTeX into PDF bytes using a Dockerized TeX Live image."""
+    """Compile LaTeX into PDF bytes using a persistent Dockerized TeX Live container."""
     if client is None:
         raise RuntimeError(
-            "Docker client is not available. Skipping LaTeX compilation."
+            "Docker client is not available. Start Docker Desktop and try again."
         )
 
-    ensure_image_exists(force_rebuild=False)
-    container = None
+    container = _get_latex_container()
 
     try:
-        container = client.containers.run(
-            image=LATEX_IMAGE_NAME,
-            command="sleep infinity",
-            working_dir="/usr/src/tex",
-            detach=True,
-            mem_limit="1.5g",
-            nano_cpus=2_000_000_000,
-            security_opt=["no-new-privileges"],
-            volumes={LATEX_CACHE_VOLUME: {"bind": "/root/.cache/texmf", "mode": "rw"}},
-        )
-
-        full_document = TEMPLATE.replace("__CONTENT__", latex)
-        # print(full_document) # Debug
-        # return
-        encoded = full_document.encode("utf-8")
+        encoded = latex.encode("utf-8")
 
         tar_buffer = BytesIO()
         with tarfile.open(fileobj=tar_buffer, mode="w") as tar:
             info = tarfile.TarInfo(name="main.tex")
             info.size = len(encoded)
             tar.addfile(tarinfo=info, fileobj=BytesIO(encoded))
+
+            # Include logo files inside the container working directory if they exist
+            base_dir = os.path.dirname(os.path.dirname(__file__))
+            for filename in ["iitb-logo.png", "iitb-logo.jpeg"]:
+                logo_path = os.path.join(base_dir, filename)
+                if os.path.exists(logo_path):
+                    with open(logo_path, "rb") as f:
+                        logo_data = f.read()
+                    logo_info = tarfile.TarInfo(name=filename)
+                    logo_info.size = len(logo_data)
+                    tar.addfile(tarinfo=logo_info, fileobj=BytesIO(logo_data))
 
         tar_buffer.seek(0)
         container.put_archive("/usr/src/tex", tar_buffer.read())
@@ -182,9 +285,10 @@ def compile_latex(latex: str) -> bytes:
                 raise RuntimeError("PDF file not found in the container.")
             return pdf_file.read()
     except RuntimeError:
+        # If compilation failed, the container is still healthy — keep it.
         raise
     except Exception as e:
+        # On unexpected errors, reset the global so the next call gets a fresh container.
+        global _latex_container
+        _latex_container = None
         raise RuntimeError(f"Unexpected docker error: {str(e)}")
-    finally:
-        if container is not None:
-            container.remove(force=True)
