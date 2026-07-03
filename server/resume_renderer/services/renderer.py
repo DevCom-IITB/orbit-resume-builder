@@ -233,8 +233,10 @@ def assemble_resume_latex(resume) -> str:
 
         sections_latex.append(section_latex)
 
-    preamble = (resume.visual_theme.latex_preamble or "").strip() or TEMPLATE
-    full_latex = preamble.replace("__CONTENT__", "\n".join(sections_latex))
+    #preamble = (resume.visual_theme.latex_preamble or "").strip() or TEMPLATE
+    full_latex = resume.visual_theme.latex_preamble.replace(
+    "__CONTENT__", "\n".join(sections_latex)
+)
 
     resume.cached_latex = full_latex
     resume.latex_cache_valid = True
