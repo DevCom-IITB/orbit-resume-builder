@@ -13,22 +13,17 @@ from typing import Any, Dict
 
 HEADER_SCHEMA: Dict[str, Any] = {
     "type": "object",
-    "required": ["name", "edu", "contact"],
+    "required": ["name", "roll_no", "department", "degree", "institution", "gender", "email", "phone"],
     "additionalProperties": False,
     "properties": {
         "name": {"type": "string"},
-        "edu": {"type": "string"},
-        "contact": {
-            "type": "object",
-            "required": ["email", "phone", "linkedin", "github"],
-            "additionalProperties": False,
-            "properties": {
-                "email": {"type": "string"},
-                "phone": {"type": "string"},
-                "linkedin": {"type": "string"},
-                "github": {"type": "string"},
-            },
-        },
+        "roll_no": {"type": "string"},
+        "department": {"type": "string"},
+        "degree": {"type": "string"},
+        "institution": {"type": "string"},
+        "gender": {"type": "string"},
+        "email": {"type": "string"},
+        "phone": {"type": "string"},
     },
 }
 
@@ -37,13 +32,15 @@ EDUCATION_SCHEMA: Dict[str, Any] = {
     "type": "array",
     "items": {
         "type": "object",
-        "required": ["degree", "institution", "cpi", "year"],
+        "required": ["examination", "university", "institute", "year", "cpi"],
         "additionalProperties": False,
         "properties": {
-            "degree": {"type": "string"},
-            "institution": {"type": "string"},
-            "cpi": {"type": "string"},
+            "examination": {"type": "string"},
+            "university": {"type": "string"},
+            "institute": {"type": "string"},
             "year": {"type": "string"},
+            "cpi": {"type": "string"},
+            "note": {"type": "string"},
         },
     },
 }
@@ -53,13 +50,14 @@ PROFESSIONAL_EXPERIENCE_SCHEMA: Dict[str, Any] = {
     "type": "array",
     "items": {
         "type": "object",
-        "required": ["title", "organization", "location", "timeline", "bullets"],
+        "required": ["title", "organization", "location", "timeline", "summary", "bullets"],
         "additionalProperties": False,
         "properties": {
             "title": {"type": "string"},
             "organization": {"type": "string"},
             "location": {"type": "string"},
             "timeline": {"type": "string"},
+            "summary": {"type": "string"},
             "bullets": {
                 "type": "array",
                 "items": {"type": "string"},
@@ -146,7 +144,15 @@ POSITIONS_OF_RESPONSIBILITY_SCHEMA: Dict[str, Any] = {
 
 SCHOLASTIC_ACHIEVEMENTS_SCHEMA: Dict[str, Any] = {
     "type": "array",
-    "items": {"type": "string"},
+    "items": {
+        "type": "object",
+        "required": ["text"],
+        "additionalProperties": False,
+        "properties": {
+            "text": {"type": "string"},
+            "year": {"type": "string"},
+        },
+    },
 }
 
 

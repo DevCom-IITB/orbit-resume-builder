@@ -85,7 +85,9 @@ def test_user_input_to_full_pdf(tmp_path, monkeypatch):
         lambda _latex: b"%PDF-1.4\n%EOF",
     )
 
-    pdf_bytes = compile_latex(latex_content)
+    from resume_renderer.services import renderer
+
+    pdf_bytes = renderer.compile_latex(latex_content)
 
     pdf_output_path = tmp_path / "full_resume_generated_from_user_input.pdf"
     pdf_output_path.write_bytes(pdf_bytes)

@@ -7,5 +7,8 @@ export default defineConfig({
     server: {
         port: 5173,
         strictPort: true,
+        headers: {
+            'X-Frame-Options': 'ALLOWALL',
+        },
     },
 })

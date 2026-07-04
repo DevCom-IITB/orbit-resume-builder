@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react'
+import { Copy, Pin, Trash2 } from 'lucide-react'
 import './ResumesList.css'
 import type { ResumeItem } from '../../../data/resumes'
 
@@ -121,13 +123,49 @@ const MenuDotsIcon = () => (
 function ResumesList({
     items,
     onStartMaking,
+    onOpenResume,
+    onPin,
+    onDuplicate,
+    onDelete,
 }: {
     items: ResumeItem[]
     onStartMaking: () => void
+    onOpenResume: (id: string) => void
+    onPin: (id: string) => void
+    onDuplicate: (id: string) => void
+    onDelete: (id: string) => void
 }) {
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+    const menuRef = useRef<HTMLDivElement>(null)
+
     const sortedItems = [...items].sort(
         (a, b) => Number(Boolean(b.starred)) - Number(Boolean(a.starred))
     )
+
+    useEffect(() => {
+        if (!openMenuId) return
+
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                menuRef.current &&
+                !menuRef.current.contains(event.target as Node)
+            ) {
+                setOpenMenuId(null)
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [openMenuId])
+
+    const handleMenuAction = (
+        e: React.MouseEvent,
+        action: () => void
+    ) => {
+        e.stopPropagation()
+        action()
+        setOpenMenuId(null)
+    }
 
     return (
         <section className="resumes" aria-label="My resumes">
@@ -198,7 +236,19 @@ function ResumesList({
 
                 {sortedItems.map((item) => (
                     <div className="resumes__row-wrap" key={item.id}>
-                        <div className="resumes__row">
+                        <div
+                            className="resumes__row"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => onOpenResume(item.id)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    onOpenResume(item.id)
+                                }
+                            }}
+                            style={{ cursor: 'pointer' }}
+                        >
                             <div className="resumes__cell resumes__cell--file">
                                 {item.starred ? <StarIcon /> : <FileIcon />}
                                 {item.name}
@@ -215,7 +265,90 @@ function ResumesList({
                         </div>
                         <div className="resumes__actions">
                             <DownloadIcon />
-                            <MenuDotsIcon />
+                            <div
+                                className="resumes__menu-wrap"
+                                ref={
+                                    openMenuId === item.id ? menuRef : undefined
+                                }
+                            >
+                                <button
+                                    type="button"
+                                    className="resumes__menu-trigger"
+                                    aria-haspopup="menu"
+                                    aria-expanded={openMenuId === item.id}
+                                    aria-label={`Actions for ${item.name}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        setOpenMenuId((current) =>
+                                            current === item.id
+                                                ? null
+                                                : item.id
+                                        )
+                                    }}
+                                >
+                                    <MenuDotsIcon />
+                                </button>
+                                {openMenuId === item.id && (
+                                    <div
+                                        className="resumes__menu"
+                                        role="menu"
+                                    >
+                                        <button
+                                            type="button"
+                                            className="resumes__menu-item"
+                                            role="menuitem"
+                                            onClick={(e) =>
+                                                handleMenuAction(e, () =>
+                                                    onPin(item.id)
+                                                )
+                                            }
+                                        >
+                                            <Pin
+                                                className="resumes__menu-icon resumes__menu-icon--pin"
+                                                size={18}
+                                                aria-hidden="true"
+                                            />
+                                            {item.starred
+                                                ? 'Unpin resume'
+                                                : 'Pin resume'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="resumes__menu-item"
+                                            role="menuitem"
+                                            onClick={(e) =>
+                                                handleMenuAction(e, () =>
+                                                    onDuplicate(item.id)
+                                                )
+                                            }
+                                        >
+                                            <Copy
+                                                className="resumes__menu-icon"
+                                                size={18}
+                                                aria-hidden="true"
+                                            />
+                                            Duplicate
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="resumes__menu-item resumes__menu-item--delete"
+                                            role="menuitem"
+                                            onClick={(e) =>
+                                                handleMenuAction(e, () =>
+                                                    onDelete(item.id)
+                                                )
+                                            }
+                                        >
+                                            <Trash2
+                                                className="resumes__menu-icon resumes__menu-icon--delete"
+                                                size={18}
+                                                aria-hidden="true"
+                                            />
+                                            Delete
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ))}

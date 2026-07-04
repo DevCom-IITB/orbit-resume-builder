@@ -26,6 +26,9 @@ def token_required(view_func):
             request = args[1]
             bound_args = args
 
+        if hasattr(request, "user") and request.user and request.user.is_authenticated:
+            return view_func(*bound_args, **kwargs)
+
         auth_header = request.headers.get("Authorization") or request.META.get(
             "HTTP_AUTHORIZATION"
         )

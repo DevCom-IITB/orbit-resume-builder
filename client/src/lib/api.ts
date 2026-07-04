@@ -1,35 +1,21 @@
 import axios from 'axios'
-
-// --- Types ---
-export type SectionType =
-    | 'scholastic_achievements'
-    | 'professional_experience'
-    | 'positions_of_responsibility'
-    | 'education'
-    | 'key_projects'
-    | 'courses'
-    | 'technical_skills'
+import type {
+    Resume,
+    ResumeListItem,
+    ResumeSection,
+    ResumeTemplate,
+    SectionEntry,
+    VisualTheme,
+} from '../types/resume'
 
 // ============================================================================
 // AXIOS BASE INSTANCE
 // ============================================================================
 
-/**
- * We create a reusable instance so we don't have to repeat headers, timeouts,
- * or base URLs for every single network call.
- */
 export const APIInstance = axios.create({
-    // Vite securely pulls the string from your .env file at build time.
-    // Fallbacks to localhost if the environment variable is missing.
-    // Make sure your .env has: VITE_API_HOST=http://localhost:8000
     baseURL: import.meta.env?.VITE_API_HOST,
-
-    // 5 minute timeout for potentially long AI generation tasks
     timeout: 300000,
-
-    // CRITICAL FOR AUTH: Ensures session cookies/JWTs are sent to your Django backend
-    withCredentials: true,
-
+    withCredentials: false,
     headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
@@ -37,73 +23,269 @@ export const APIInstance = axios.create({
 })
 
 // ============================================================================
-// SECTION GENERATION API
+// RESPONSE MAPPING HELPERS
 // ============================================================================
 
-/**
- * Universal function to call the backend for ANY resume section.
- * It dynamically routes to `/generate/<sectiontype>`.
- * * @param sectionName - Must be one of the defined SectionTypes
- * @param rawInputText - The text the user typed into the draft input box
- * @returns The parsed JSON response from the backend
- */
-export async function generateSectionData(
-    sectionName: SectionType,
-    rawInputText: string
-) {
-    try {
-        // Axios handles stringifying the body and parsing the JSON response automatically.
-        // We dynamically inject the sectionName directly into the URL path.
-        const response = await APIInstance.post(
-            `/api/resume-renderer/${sectionName}`,
-            {
-                input: rawInputText,
-            }
-        )
+function mapEntry(raw: any): SectionEntry {
+    return {
+        id: raw.id,
+        order: raw.order,
+        rawInput: raw.raw_input,
+        content: raw.content,
+        generationStatus: raw.generation_status,
+    }
+}
 
-        // response.data contains the already-parsed JSON from your backend
-        return response.data
-    } catch (error) {
-        console.error(`[API Error - ${sectionName}]:`, error)
-        throw error
+function mapSection(raw: any): ResumeSection {
+    return {
+        id: raw.id,
+        sectionType: {
+            key: raw.section_type.key,
+            displayName: raw.section_type.display_name,
+            allowMultipleEntries: raw.section_type.allow_multiple_entries,
+            entryHintText: raw.section_type.entry_hint_text,
+        },
+        order: raw.order,
+        isVisible: raw.is_visible,
+        entries: (raw.entries ?? []).map(mapEntry),
+    }
+}
+
+function mapResume(raw: any): Resume {
+    return {
+        id: raw.id,
+        title: raw.title,
+        template: { key: raw.template.key, displayName: raw.template.display_name },
+        visualTheme: { key: raw.visual_theme.key, displayName: raw.visual_theme.display_name },
+        pages: raw.pages,
+        configOverride: raw.config_override ?? {},
+        isPinned: raw.is_pinned,
+        sections: (raw.sections ?? []).map(mapSection),
+        createdAt: raw.created_at,
+        updatedAt: raw.updated_at,
+    }
+}
+
+function mapListItem(raw: any): ResumeListItem {
+    return {
+        id: raw.id,
+        title: raw.title,
+        template: { key: raw.template.key, displayName: raw.template.display_name },
+        visualTheme: { key: raw.visual_theme.key, displayName: raw.visual_theme.display_name },
+        isPinned: raw.is_pinned,
+        createdAt: raw.created_at,
+        updatedAt: raw.updated_at,
+    }
+}
+
+function mapTemplate(raw: any): ResumeTemplate {
+    return {
+        key: raw.key,
+        displayName: raw.display_name,
+        family: raw.family,
+        domain: raw.domain,
+        maxPages: raw.max_pages,
+        templateConfig: raw.template_config ?? {},
+        availableThemes: (raw.available_themes ?? []).map((t: any): VisualTheme => ({
+            key: t.key,
+            displayName: t.display_name,
+            compatibleFamilies: t.compatible_families ?? [],
+        })),
     }
 }
 
 // ============================================================================
-// PDF GENERATION API
+// TEMPLATES & THEMES
 // ============================================================================
 
-/**
- * Sends the aggregated resume data to the backend and parses the returned PDF bytes.
- * * @param resumeData - The master JSON object containing all sections
- * @returns A local Blob URL pointing to the generated PDF
- */
-export async function generatePdfData(
-    resumeData: Record<string, unknown>
-): Promise<string> {
-    try {
-        // We pass a third argument to override specific configurations just for THIS request
-        const response = await APIInstance.post(
-            '/api/resume-renderer/render/',
-            resumeData,
-            {
-                headers: {
-                    // Tell the backend we expect the file, not standard JSON
-                    Accept: 'application/pdf',
-                },
+export async function listTemplates(): Promise<ResumeTemplate[]> {
+    const res = await APIInstance.get('/api/resumes/templates/')
+    return res.data.map(mapTemplate)
+}
 
-                // CRITICAL: Tell Axios to leave the bytes as a raw binary Blob
-                responseType: 'blob',
-            }
-        )
+export async function listThemes(family?: string): Promise<VisualTheme[]> {
+    const params = family ? { family } : {}
+    const res = await APIInstance.get('/api/resumes/themes/', { params })
+    return res.data.map((t: any): VisualTheme => ({
+        key: t.key,
+        displayName: t.display_name,
+        compatibleFamilies: t.compatible_families ?? [],
+    }))
+}
 
-        // Axios automatically extracts the Blob because of the responseType above
-        const pdfBlob = response.data
+// ============================================================================
+// RESUME CRUD
+// ============================================================================
 
-        // Convert the binary Blob into a secure, temporary local URL for the iframe
-        return URL.createObjectURL(pdfBlob)
-    } catch (error) {
-        console.error('[API Error - PDF Generation]:', error)
-        throw error
+export async function listResumes(): Promise<{ count: number; results: ResumeListItem[] }> {
+    const res = await APIInstance.get('/api/resumes/')
+    return {
+        count: res.data.count ?? 0,
+        results: (res.data.results ?? []).map(mapListItem),
     }
+}
+
+export async function getResume(id: string): Promise<Resume> {
+    const res = await APIInstance.get(`/api/resumes/${id}/`)
+    return mapResume(res.data)
+}
+
+export interface CreateResumePayload {
+    title: string
+    templateKey: string
+    visualThemeKey: string
+    pages?: number
+    configOverride?: Record<string, any>
+}
+
+export async function createResume(payload: CreateResumePayload): Promise<Resume> {
+    const res = await APIInstance.post('/api/resumes/', {
+        title: payload.title,
+        template_key: payload.templateKey,
+        visual_theme_key: payload.visualThemeKey,
+        pages: payload.pages ?? 1,
+        config_override: payload.configOverride ?? {},
+    })
+    return mapResume(res.data)
+}
+
+export interface PatchResumePayload {
+    title?: string
+    visualThemeKey?: string
+    pages?: number
+    configOverride?: Record<string, any>
+    isPinned?: boolean
+}
+
+export async function patchResume(id: string, payload: PatchResumePayload): Promise<Resume> {
+    const body: Record<string, any> = {}
+    if (payload.title !== undefined) body.title = payload.title
+    if (payload.visualThemeKey !== undefined) body.visual_theme_key = payload.visualThemeKey
+    if (payload.pages !== undefined) body.pages = payload.pages
+    if (payload.configOverride !== undefined) body.config_override = payload.configOverride
+    if (payload.isPinned !== undefined) body.is_pinned = payload.isPinned
+    const res = await APIInstance.patch(`/api/resumes/${id}/`, body)
+    return mapResume(res.data)
+}
+
+export async function deleteResume(id: string): Promise<void> {
+    await APIInstance.delete(`/api/resumes/${id}/`)
+}
+
+export async function duplicateResume(id: string): Promise<Resume> {
+    const res = await APIInstance.post(`/api/resumes/${id}/duplicate/`)
+    return mapResume(res.data)
+}
+
+// ============================================================================
+// SECTIONS
+// ============================================================================
+
+export async function addSection(resumeId: string, sectionTypeKey: string): Promise<ResumeSection> {
+    const res = await APIInstance.post(`/api/resumes/${resumeId}/sections/`, {
+        section_type_key: sectionTypeKey,
+    })
+    return mapSection(res.data)
+}
+
+export async function updateSection(
+    resumeId: string,
+    sectionId: string,
+    payload: { order?: number; isVisible?: boolean }
+): Promise<ResumeSection> {
+    const body: Record<string, any> = {}
+    if (payload.order !== undefined) body.order = payload.order
+    if (payload.isVisible !== undefined) body.is_visible = payload.isVisible
+    const res = await APIInstance.patch(
+        `/api/resumes/${resumeId}/sections/${sectionId}/`,
+        body
+    )
+    return mapSection(res.data)
+}
+
+export async function deleteSection(resumeId: string, sectionId: string): Promise<void> {
+    await APIInstance.delete(`/api/resumes/${resumeId}/sections/${sectionId}/`)
+}
+
+// ============================================================================
+// ENTRIES
+// ============================================================================
+
+export async function addEntry(
+    resumeId: string,
+    sectionId: string,
+    rawInput = ''
+): Promise<SectionEntry> {
+    const res = await APIInstance.post(
+        `/api/resumes/${resumeId}/sections/${sectionId}/entries/`,
+        { raw_input: rawInput }
+    )
+    return mapEntry(res.data)
+}
+
+export async function updateEntry(
+    resumeId: string,
+    sectionId: string,
+    entryId: string,
+    payload: { rawInput?: string; content?: any; order?: number }
+): Promise<SectionEntry> {
+    const body: Record<string, any> = {}
+    if (payload.rawInput !== undefined) body.raw_input = payload.rawInput
+    if (payload.content !== undefined) body.content = payload.content
+    if (payload.order !== undefined) body.order = payload.order
+    const res = await APIInstance.patch(
+        `/api/resumes/${resumeId}/sections/${sectionId}/entries/${entryId}/`,
+        body
+    )
+    return mapEntry(res.data)
+}
+
+export async function deleteEntry(
+    resumeId: string,
+    sectionId: string,
+    entryId: string
+): Promise<void> {
+    await APIInstance.delete(
+        `/api/resumes/${resumeId}/sections/${sectionId}/entries/${entryId}/`
+    )
+}
+
+// ============================================================================
+// GENERATION & RENDERING
+// ============================================================================
+
+export async function generateEntry(
+    resumeId: string,
+    sectionId: string,
+    entryId: string
+): Promise<SectionEntry> {
+    const res = await APIInstance.post(
+        `/api/resumes/${resumeId}/sections/${sectionId}/entries/${entryId}/generate/`
+    )
+    return mapEntry(res.data)
+}
+
+export interface RenderedResumeResponse {
+    pdfUrl: string
+    latexCode: string
+}
+
+export async function renderResume(resumeId: string): Promise<RenderedResumeResponse> {
+    const res = await APIInstance.post(`/api/resumes/${resumeId}/render/`)
+
+    const pdfBase64 = res.data?.pdf
+    const latexCode = res.data?.latex
+
+    if (typeof pdfBase64 !== 'string') throw new Error('PDF payload missing or invalid')
+    if (typeof latexCode !== 'string') throw new Error('LaTeX payload missing or invalid')
+
+    const binaryString = atob(pdfBase64)
+    const byteArray = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+        byteArray[i] = binaryString.charCodeAt(i)
+    }
+    const pdfBlob = new Blob([byteArray], { type: 'application/pdf' })
+    const pdfUrl = URL.createObjectURL(pdfBlob)
+
+    return { pdfUrl, latexCode }
 }

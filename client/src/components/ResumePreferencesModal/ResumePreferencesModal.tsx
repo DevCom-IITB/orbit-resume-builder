@@ -16,12 +16,10 @@ const slideUp = keyframes`
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.55);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    animation: ${fadeIn} 0.2s ease;
 `
 
 const Modal = styled.div`
@@ -131,18 +129,21 @@ const CreateButton = styled.button<{ disabled: boolean }>`
 interface Props {
     isOpen: boolean
     onClose: () => void
+    isSubmitting?: boolean
     onCreate: (prefs: {
         fileName: string
-        resumeType: string
-        header: string
+        templateKey: string
+        visualThemeKey: string
         pages: number
-    }) => void
+        configOverride: Record<string, unknown>
+    }) => void | Promise<void>
 }
 
 export default function ResumePreferencesModal({
     isOpen,
     onClose,
     onCreate,
+    isSubmitting = false,
 }: Props) {
     const [fileName, setFileName] = useState('')
     const [resumeType, setResumeType] = useState('iitb')
@@ -161,9 +162,21 @@ export default function ResumePreferencesModal({
         reset()
     }
 
-    const handleCreate = () => {
-        if (!fileName.trim()) return
-        onCreate({ fileName: fileName.trim(), resumeType, header, pages })
+    const handleCreate = async () => {
+        if (!fileName.trim() || isSubmitting) return
+        const templateKey =
+            resumeType === 'iitb' ? 'iitb-general' : 'external-standard'
+        const visualThemeKey =
+            resumeType === 'iitb' ? 'iitb-classic' : 'external-standard'
+        const configOverride: Record<string, unknown> =
+            resumeType === 'iitb' ? { header_style: header } : {}
+        await onCreate({
+            fileName: fileName.trim(),
+            templateKey,
+            visualThemeKey,
+            pages,
+            configOverride,
+        })
         handleClose()
     }
 
@@ -187,6 +200,7 @@ export default function ResumePreferencesModal({
                             id="resume-file-name"
                             type="text"
                             placeholder="Type here"
+                            value={fileName}
                             onChange={(e) => setFileName(e.target.value)}
                             autoFocus
                         />
@@ -241,9 +255,9 @@ export default function ResumePreferencesModal({
                     <CancelButton onClick={handleClose}>Cancel</CancelButton>
                     <CreateButton
                         onClick={handleCreate}
-                        disabled={!fileName.trim()}
+                        disabled={!fileName.trim() || isSubmitting}
                     >
-                        Create
+                        {isSubmitting ? 'Creating…' : 'Create'}
                     </CreateButton>
                 </Footer>
             </Modal>

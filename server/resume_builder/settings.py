@@ -87,3 +87,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOWED_ORIGINS = env.list("FRONTEND_URLS")
 CORS_ALLOW_CREDENTIALS = True
+
+# Allow Reach (localhost:3000) to embed Orbit in an iframe during local dev.
+if DEBUG:
+    X_FRAME_OPTIONS = "ALLOWALL"

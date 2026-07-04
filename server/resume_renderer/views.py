@@ -19,7 +19,9 @@ from .schemas.converters.convert_courses import convert_courses
 from .schemas.converters.convert_technical_skills import convert_technical_skills
 from .serializers import LatexRenderSerializer
 from .services import renderer
-from rest_framework.permissions import IsAuthenticated
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from utils.token_dec import token_required
 
 import jsonschema
 from resume_renderer.JSONSchema.jsonschema import (
@@ -27,15 +29,15 @@ from resume_renderer.JSONSchema.jsonschema import (
     get_supported_section_types,
 )
 from resume_renderer.serializers import ResumeSectionRefineSerializer
-from resume_renderer.services.llm_client import GeminiLLMClient, LLMClientError
+from resume_renderer.services.llm_client import LLMClient, LLMClientError
 from resume_renderer.services.prompts import build_resume_prompt
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class LatexRenderView(APIView):
     """Render resume data into a PDF."""
 
-    permission_classes = [IsAuthenticated]
-
+    @token_required
     def post(self, request):
         try:
             data = request.data
@@ -51,6 +53,25 @@ class LatexRenderView(APIView):
             )
 
         header = data.get("header", {})
+        if not header or "name" not in header:
+            user = request.user if hasattr(request, "user") and request.user else None
+            username = user.username if user else "Student"
+            first_name = user.first_name if user else ""
+            last_name = user.last_name if user else ""
+            email = user.email if user else f"{username}@iitb.ac.in"
+            
+            full_name = f"{first_name} {last_name}".strip() or username
+            header = {
+                "name": full_name,
+                "edu": "B.Tech. in Computer Science & Engineering",
+                "contact": {
+                    "email": email,
+                    "phone": "+91 99999 99999",
+                    "linkedin": username.lower(),
+                    "github": username.lower(),
+                },
+            }
+
         education = data.get("education", [])
         experience = data.get("experience", [])
         key_projects = data.get("key_projects", [])
@@ -172,7 +193,7 @@ def refine_resume_section(request, section_type):
     try:
         prompt = build_resume_prompt(section_type, user_input)
 
-        llm_client = GeminiLLMClient()
+        llm_client = LLMClient()
         llm_output = llm_client.generate_json(prompt)
 
         schema = get_schema(section_type)

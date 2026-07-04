@@ -8,6 +8,7 @@ RUN apt-get update \
         texlive-latex-recommended \
         texlive-latex-extra \
         texlive-fonts-recommended \
+        texlive-fonts-extra \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
