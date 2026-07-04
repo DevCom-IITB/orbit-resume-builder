@@ -11,6 +11,7 @@ import {
 } from '../../lib/api'
 import type { ResumeListItem } from '../../types/resume'
 import '../App.css'
+import type { Status } from '../../types/status'
 
 function formatDate(iso: string) {
     const d = new Date(iso)
@@ -29,7 +30,8 @@ function Home() {
     const navigate = useNavigate()
     const [showModal, setShowModal] = useState(false)
     const [resumes, setResumes] = useState<ResumeListItem[]>([])
-    const [loading, setLoading] = useState(true)
+    // const [loading, setLoading] = useState(true)
+    const [status, setStatus] = useState<Status>("loading")
     const [creating, setCreating] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -39,11 +41,11 @@ function Home() {
             try {
                 const data = await listResumes()
                 if (!cancelled) setResumes(sortResumes(data.results))
+                setStatus("success")
             } catch (err) {
                 console.error('[Home] Failed to load resumes:', err)
                 if (!cancelled) setError('Could not load your resumes.')
-            } finally {
-                if (!cancelled) setLoading(false)
+                setStatus("error")
             }
         })()
         return () => {
@@ -151,21 +153,29 @@ function Home() {
         <div className="app">
             <div className="app__body" style={{ padding: '32px' }}>
                 <div className="app__main">
-                    {loading ? (
-                        <p style={{ padding: 24 }}>Loading resumes…</p>
-                    ) : error && resumes.length === 0 ? (
-                        <p style={{ padding: 24, color: '#b91c1c' }}>{error}</p>
-                    ) : resumes.length === 0 ? (
-                        <IntroSteps onStartMaking={() => setShowModal(true)} />
+                    {status === "loading" ? (
+                        <>
+                            <p style={{ padding: 24 }}>Loading resumes…</p>
+                        </>
+                    ) : status === "error" ? (
+                        <>
+                            <p style={{ padding: 24, color: '#b91c1c' }}>{error}</p>
+                        </>
+                    ) : status === "success" && resumes.length === 0 ? (
+                        <>
+                            <IntroSteps onStartMaking={() => setShowModal(true)} />
+                        </>
                     ) : (
-                        <ResumesList
-                            items={listItems}
-                            onStartMaking={() => setShowModal(true)}
-                            onOpenResume={(id) => navigate(`/editor/${id}`)}
-                            onPin={handlePin}
-                            onDuplicate={handleDuplicate}
-                            onDelete={handleDelete}
-                        />
+                        <>
+                            <ResumesList
+                                items={listItems}
+                                onStartMaking={() => setShowModal(true)}
+                                onOpenResume={(id) => navigate(`/editor/${id}`)}
+                                onPin={handlePin}
+                                onDuplicate={handleDuplicate}
+                                onDelete={handleDelete}
+                                />
+                        </>
                     )}
                 </div>
             </div>
