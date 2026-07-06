@@ -395,11 +395,21 @@ class GenerateEntryView(APIView):
         entry.save(update_fields=["generation_status"])
 
         try:
+            # Generate the query embedding from user's raw input
+            from rag.utils import EmbeddingService
+            query_embedding = None
+            try:
+                query_embedding = EmbeddingService().embed(entry.raw_input)
+            except Exception as embed_exc:
+                # Log or print warning, don't crash generation if embedding service fails
+                print(f"[WARN] Local embedding generation failed: {embed_exc}")
+
             prompt = build_resume_prompt(
                 section_type=stdef.key,
                 user_input=entry.raw_input,
                 current_content=entry.content,
                 stdef=stdef,
+                query_embedding=query_embedding,
             )
             entry.last_sent_prompt = prompt
             entry.save(update_fields=["last_sent_prompt"])

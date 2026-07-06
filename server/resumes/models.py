@@ -137,3 +137,4 @@ class Version(models.Model):
 
     def __str__(self):
         return f"Version of {self.resume.title} at {self.created_at}"
+

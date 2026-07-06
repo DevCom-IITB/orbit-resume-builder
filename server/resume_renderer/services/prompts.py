@@ -364,6 +364,7 @@ def build_resume_prompt(
     user_input: str,
     current_content=None,
     stdef=None,
+    query_embedding=None,
 ) -> str:
     """
     Build a complete stateless prompt for one resume section.
