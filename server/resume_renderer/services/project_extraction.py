@@ -2,8 +2,7 @@ from typing import Dict, Any
 from jsonschema import validate, ValidationError
 
 from .llm_client import GeminiLLMClient, LLMClientError
-from .github_services import get_user_repos, get_readme
-
+from .github_services import (get_authenticated_repos, get_readme)
 KEY_PROJECT_SCHEMA: Dict[str, Any] = {
     "type": "array",
     "items": {
@@ -34,37 +33,51 @@ class ProjectExtractionService:
 
     # ---------- Public API ----------
 
-    def extract_projects(self, username: str, max_repos: int = 5) -> list[dict]:
+    def get_repositories(self, access_token: str, max_repos: int = 10) -> list[dict]:
         """
         Fetches a user's GitHub repos + READMEs and extracts resume-ready
         project details matching KEY_PROJECT_SCHEMA.
         """
+
         try:
-            # Using the imported service function
-            repos = get_user_repos(username, max_repos=max_repos)
+            return get_authenticated_repos(
+                access_token=access_token,
+                max_repos=max_repos,
+            )
         except Exception as error:
-            raise ProjectExtractionError(f"Failed to fetch repos for '{username}': {str(error)}")
+            raise ProjectExtractionError(
+                f"Failed to fetch repositories: {str(error)}"
+            )
+        
+    def import_projects(self, access_token: str, repositories: list[dict]) -> list[dict]:
+        """
+        Extract resume-ready projects only from the
+        repositories selected by the user.
+        """
 
         projects = []
-        for repo in repos:
-            # Using the imported service function
-            readme = get_readme(username, repo["name"])
+
+        for repo in repositories:
+            readme = get_readme(
+                owner=repo["owner"]["login"],
+                repo_name=repo["name"],
+                access_token=access_token,
+            )
+
             if not readme:
                 continue
 
             try:
                 project = self._extract_single_project(repo, readme)
             except LLMClientError:
-                # skip repos where the LLM call/parsing fails, don't fail the whole batch
                 continue
 
             if project and self._is_valid(project):
                 projects.append(project)
 
         return projects
-
+    
     # ---------- LLM extraction ----------
-
     def _extract_single_project(self, repo: dict, readme: str) -> dict | None:
         prompt = self._build_prompt(repo, readme)
         result = self.llm.generate_json(prompt)
