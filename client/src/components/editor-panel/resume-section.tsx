@@ -3,7 +3,7 @@ import SectionItem from './section-item'
 import type { LocalSection, LocalEntry } from '../../types/editor-panel/local-state'
 import { toLocalEntry } from '../../types/editor-panel/local-state'
 import type { SectionEntry } from '../../types/resume'
-import { addEntry, deleteEntry, updateEntry } from '../../lib/api'
+import { addEntry, deleteEntry, updateEntry, getGithubAuthorizationUrl, getGithubStatus, getGithubRepositories, importGithubProjects } from '../../lib/api'
 import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import {
     SortableContext,
@@ -15,6 +15,7 @@ import { Pencil, Plus, Minus, GripHorizontal } from 'lucide-react'
 import ProjectModal from './modals/ProjectModal'
 import GithubModal from './modals/GithubModal'
 import type { Repo } from '../../types/editor-panel/repos'
+import GithubAuthModal from './modals/GithubAuthModal'
 
 interface ResumeSectionProps {
     section: LocalSection
@@ -43,6 +44,7 @@ const ResumeSection = ({
     const [showProjectModal, setShowProjectModal] = useState(false)
     const [showGithubModal, setShowGithubModal] = useState(false)
     const [githubRepos, setGithubRepos] = useState<Repo[]>([])
+    const [showGithubAuthModal, setShowGithubAuthModal] = useState(false)
 
     const { attributes, listeners, setNodeRef, transform, transition } =
         useSortable({
@@ -108,63 +110,53 @@ const ResumeSection = ({
         })
     }
 
-    const handleGithubImport = () => {
+    const handleGithubImport = async () => {
         setShowProjectModal(false)
-
         // Change this to an API call to check if connected to github
-        // const connected = true;
+        try {
+            const redirectTo = window.location.pathname + window.location.search
+            
+            const authorizationUrl = await getGithubAuthorizationUrl(redirectTo)
+            
+            
+            const popup = window.open(
+                authorizationUrl,
+                "github-oauth",
+                "popup,width=700,height=800,left=300,top=100"
+            )
 
-        // if(!connected) {
-        //     Need to add an API call to connect to github
-        //     console.log('not connected')
-        // }
+            setShowGithubAuthModal(true)
 
-        // need to get the available repos and then send to github
-        setGithubRepos(
-            // =========================================================================Remove after API setup=============================================================================
-            [
-                {
-                    id: 1,
-                    name: "Resume Builder",
-                    language: "React",
-                    selected: false
-                },
-                {
-                    id: 2,
-                    name: "Portfolio Website",
-                    language: "Next.js",
-                    selected: false
-                },
-                {
-                    id: 3,
-                    name: "Image Classifier",
-                    language: "Python",
-                    selected: false
-                },
-                {
-                    id: 4,
-                    name: "Resume Builder",
-                    language: "React",
-                    selected: false
-                },
-                {
-                    id: 5,
-                    name: "Portfolio Website",
-                    language: "Next.js",
-                    selected: false
-                },
-                {
-                    id: 6,
-                    name: "Image Classifier",
-                    language: "Python",
-                    selected: false
-                },
-            ]
-            // =========================================================================Remove after API setup=============================================================================
-        )
+            const timer = window.setInterval(async () => {
+                if (!popup || popup.closed) {
+                    clearInterval(timer)
 
-        console.log("GitHub selected");
-        setShowGithubModal(true);
+                    // Need to change this because modal closes before data is fetched
+                    console.log("OAuth popup closed")
+
+                    const connected = await getGithubStatus()
+                    
+                    setShowGithubAuthModal(false)
+                    
+                    if (!connected) {
+                        return
+                    }
+
+                    const repos = await getGithubRepositories()
+
+                    setGithubRepos(
+                        repos.map((repo: Repo) => ({
+                            ...repo,
+                            selected: false,
+                        }))
+                    )
+
+                    setShowGithubModal(true)
+                }
+            }, 500)
+        } catch (error) {
+            console.error("Failed to start GitHub OAuth:", error)
+        }
     }
 
     const handleClearAllImports = () => {
@@ -178,13 +170,24 @@ const ResumeSection = ({
         )
     }
 
-    const handleImportedRepoMap = () => {
+    const handleImportedRepoMap = async () => {
         // console.log(githubRepos.filter((repo) => repo.selected));
         setShowGithubModal(false)
 
-        const importedRepos = githubRepos.filter((repo) => repo.selected)
+        const selectedRepos = githubRepos.filter((repo) => repo.selected)
 
-        onImportRepos('key_projects', importedRepos)
+        const importedProjects = await importGithubProjects(selectedRepos)
+
+        onImportRepos("key_projects", importedProjects)
+    }
+
+    const handleAuthModalClose = (status: string) => {
+        if(status === 'cancel'){
+            setShowGithubAuthModal(false)
+        }else if(status === 'authenticated'){
+            setShowGithubAuthModal(false)
+            setShowGithubModal(true)
+        }
     }
 
     return (
@@ -365,6 +368,10 @@ const ResumeSection = ({
                 }}
                 onImport={handleImportedRepoMap}
                 onClear={handleClearAllImports}
+            />
+            <GithubAuthModal 
+                open={showGithubAuthModal}
+                onClose={handleAuthModalClose}
             />
         </div>
     )
