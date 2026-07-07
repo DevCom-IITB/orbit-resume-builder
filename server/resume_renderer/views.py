@@ -6,6 +6,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ParseError
 from rest_framework.decorators import api_view
+from rest_framework.views import APIView
+
+from .services.project_extraction import ProjectExtractionService, ProjectExtractionError
 from .schemas.config import RenderConfig
 from .schemas.converters.convert_education import convert_education
 from .schemas.converters.convert_experience import convert_experience
@@ -237,3 +240,44 @@ def refine_resume_section(request, section_type):
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+
+class GitHubProjectsAPIView(APIView):
+    """
+    API View to extract resume-ready projects from a user's GitHub READMEs.
+    """
+    
+    def get(self, request, username, *args, **kwargs):
+        # Optional: Allow passing max_repos as a query parameter (e.g., ?max_repos=10)
+        max_repos = int(request.query_params.get('max_repos', 5))
+        
+        try:
+            service = ProjectExtractionService()
+            projects = service.extract_projects(username=username, max_repos=max_repos)
+            
+            # Returns the exact schema format you required
+            return Response(
+                {
+                    "success": True, 
+                    "data": projects
+                }, 
+                status=status.HTTP_200_OK
+            )
+            
+        except ProjectExtractionError as e:
+            return Response(
+                {
+                    "success": False, 
+                    "error": str(e)
+                }, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            # Fallback for unhandled server errors (e.g., missing API keys)
+            return Response(
+                {
+                    "success": False, 
+                    "error": "An internal server error occurred."
+                }, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
