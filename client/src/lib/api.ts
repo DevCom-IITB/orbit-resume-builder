@@ -22,6 +22,16 @@ export const APIInstance = axios.create({
     },
 })
 
+export const GithubAPIInstance = axios.create({
+    baseURL: import.meta.env?.VITE_API_HOST,
+    timeout: 300000,
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+    },
+})
+
 // ============================================================================
 // RESPONSE MAPPING HELPERS
 // ============================================================================
@@ -288,4 +298,44 @@ export async function renderResume(resumeId: string): Promise<RenderedResumeResp
     const pdfUrl = URL.createObjectURL(pdfBlob)
 
     return { pdfUrl, latexCode }
+}
+
+export async function getGithubAuthorizationUrl(redirectTo: string): Promise<string> {
+    const res = await APIInstance.get(
+        "/api/resume-renderer/github/connect/",
+        {
+            params: {
+                redirect_to: redirectTo,
+            },
+        }
+    )
+
+    return res.data.authorization_url
+}
+
+export async function getGithubStatus(): Promise<boolean> {
+    const res = await GithubAPIInstance.get(
+        "/api/resume-renderer/github/status/"
+    )
+
+    return res.data.connected
+}
+
+export async function getGithubRepositories() {
+    const res = await GithubAPIInstance.get(
+        "/api/resume-renderer/github/repositories/"
+    )
+
+    return res.data.data
+}
+
+export async function importGithubProjects(repositories: Repo[]) {
+    const res = await GithubAPIInstance.post(
+        "/api/resume-renderer/github/import-projects/",
+        {
+            repositories,
+        }
+    )
+
+    return res.data.data
 }
