@@ -1,0 +1,339 @@
+.github-repo-card {
+
+    width: 100%;
+
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: .75rem 1.1rem;
+
+    border: 1px solid #d9d9d9;
+
+    border-radius: .8rem;
+}
+
+.github-repo-card:hover {
+
+    border-color: #2646f2;
+
+    background: #f8f9ff;
+}
+
+.github-repo-card.selected {
+
+    border-color: #2646f2;
+
+    background: #eef2ff;
+}
+
+.github-repo-checkbox {
+
+    inline-size: 1rem;
+
+    block-size: 1rem;
+
+    accent-color: #2646f2;
+
+    cursor: pointer;
+}
+
+.github-repo-name {
+
+    font-size: .98rem;
+
+    font-weight: 600;
+
+    color: #111827;
+
+    line-height: 1.2;
+}
+
+.github-repo-language {
+
+    font-size: .82rem;
+
+    color: #6b7280;
+
+    background: #f3f4f6;
+
+    width: fit-content;
+
+    padding: .15rem .5rem;
+
+    border-radius: 999px;
+}
+
+.github-import-button {
+
+    border: none;
+
+    border-radius: 0.8rem;
+
+    background: #2646f2;
+
+    color: white;
+
+    padding: 0.75rem 1.5rem;
+
+    font-size: 0.95rem;
+
+    cursor: pointer;
+
+    transition:
+        background-color 180ms ease,
+        transform 180ms ease;
+}
+
+.github-import-button:enabled:hover {
+
+    background: #1d38cb;
+
+    transform: translateY(-1px);
+}
+
+.github-modal-title {
+    margin: 0;
+
+    font-size: clamp(1.45rem, 1.8vw, 1.8rem);
+
+    font-weight: 600;
+
+    color: #111827;
+}
+
+.github-modal-subtitle {
+    margin-top: 0.4rem;
+
+    margin-bottom: 1.75rem;
+
+    color: #6b7280;
+
+    font-size: 0.95rem;
+}
+
+.github-repo-list {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: .75rem;
+
+    width: 100%;
+
+    margin-top: 1.25rem;
+
+    max-height: min(48vh, 22rem);
+
+    overflow-y: auto;
+
+    overflow-x: hidden;
+
+    padding-right: .35rem;
+}
+
+.github-repo-card {
+
+    width: 100%;
+
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 1rem 1.25rem;
+
+    border: 1px solid #d9d9d9;
+
+    border-radius: .9rem;
+
+    background: white;
+
+    cursor: pointer;
+
+    transition:
+        border-color .2s ease,
+        background-color .2s ease,
+        transform .2s ease,
+        box-shadow .2s ease;
+}
+
+.github-repo-card:hover {
+
+    border-color: #2646f2;
+
+    background: #f7f9ff;
+
+    transform: translateY(-2px);
+
+    box-shadow: 0 0.5rem 1rem rgba(38,70,242,.08);
+}
+
+.github-repo-card.selected {
+
+    border-color: #2646f2;
+
+    background: #eef3ff;
+}
+
+.github-repo-left {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: .9rem;
+
+    flex: 1;
+}
+
+.github-repo-checkbox {
+
+    width: 1rem;
+
+    height: 1rem;
+
+    accent-color: #2646f2;
+
+    cursor: pointer;
+
+    flex-shrink: 0;
+}
+
+.github-repo-content {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: .2rem;
+}
+
+.github-repo-name {
+
+    font-size: 1rem;
+
+    font-weight: 600;
+
+    color: #111827;
+}
+
+.github-repo-language {
+
+    font-size: .85rem;
+
+    color: #6b7280;
+
+    background: #f3f4f6;
+
+    width: fit-content;
+
+    padding: .2rem .55rem;
+
+    border-radius: 999px;
+}
+
+.github-modal-footer {
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: clamp(1rem, 3vw, 2rem);
+
+    margin-top: 2rem;
+
+    padding-inline: 15%;
+}
+
+.github-clear-button,
+.github-import-button {
+
+    flex: 1;
+
+    max-width: 13rem;
+
+    min-height: 2.75rem;
+
+    padding: .7rem 1.4rem;
+
+    border-radius: .6rem;
+
+    font-size: .9rem;
+
+    font-weight: 500;
+
+    font-family: inherit;
+
+    cursor: pointer;
+
+    transition:
+        opacity .15s,
+        background-color .15s,
+        color .15s,
+        transform .15s,
+        box-shadow .15s;
+}
+
+.github-import-button {
+
+    cursor: pointer;
+
+    opacity: 1;
+}
+
+.github-import-button:disabled {
+
+    cursor: not-allowed;
+
+    opacity: .45;
+}
+
+.github-import-button:hover:not(:disabled) {
+
+    background: #1d38cb;
+
+    transform: translateY(-1px);
+
+    box-shadow: 0 .4rem .9rem rgba(38,70,242,.18);
+}
+
+.github-clear-button {
+
+    cursor: pointer;
+
+    opacity: 1;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    background-color: #ffffff;
+
+
+}
+
+.github-clear-button:disabled {
+
+    cursor: not-allowed;
+
+    opacity: .45;
+}
+
+.github-clear-button:hover:not(:disabled) {
+
+    background: #f9fafb;
+
+    transform: translateY(-1px);
+
+    box-shadow: 0 .35rem .8rem rgba(38,70,242,.08);
+}

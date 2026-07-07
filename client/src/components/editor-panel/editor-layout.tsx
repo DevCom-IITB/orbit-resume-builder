@@ -12,6 +12,7 @@ import type { Resume, SectionEntry } from '../../types/resume'
 import type { LocalSection, LocalEntry } from '../../types/editor-panel/local-state'
 import { toLocalSection } from '../../types/editor-panel/local-state'
 import { updateSection } from '../../lib/api'
+import type { Repo } from '../../types/editor-panel/repos'
 
 // Maps section_type key → short label used in "Experience 1", "Project 2" etc.
 const ITEM_LABELS: Record<string, string> = {
@@ -27,6 +28,17 @@ const ITEM_LABELS: Record<string, string> = {
 
 function getItemLabel(sectionTypeKey: string): string {
     return ITEM_LABELS[sectionTypeKey] ?? sectionTypeKey
+}
+
+function repoToLocalEntry(repo: Repo): LocalEntry {
+    return {
+        id: crypto.randomUUID(),
+        order: 1,
+        rawInput: repo.name,
+        content: '',
+        generationStatus: 'done',
+        isCollapsed: true
+    }
 }
 
 interface EditorPanelProps {
@@ -133,6 +145,31 @@ const EditorPanel = ({
         })
     }
 
+    const handleImportRepos = (sectionKey: string, importedRepos: Repo[]) => {
+        console.log(importedRepos)
+    
+        // need to process the repos to match the sectionType
+        // assume processedRepos is the const which contains 
+        // the data after processing to match datatpye of Section 
+        const processedRepos = importedRepos.map(repoToLocalEntry)
+        
+        setSections(prev => 
+            prev.map(section => {
+                if(section.sectionType.key !== sectionKey) return section;
+
+                return {
+                    ...section,
+
+                    entries: [
+                        ...section.entries,
+                        ...processedRepos
+                    ]
+                }
+            })
+            
+        )
+    }
+
     return (
         <div className="editor-panel">
             <div className="resume-header">
@@ -185,6 +222,7 @@ const EditorPanel = ({
                                 onEntriesChanged={handleEntriesChanged}
                                 onEntryUpdated={handleEntryUpdated}
                                 onRenderRequest={onRenderRequest}
+                                onImportRepos={handleImportRepos}
                             />
                         ))}
                     </SortableContext>

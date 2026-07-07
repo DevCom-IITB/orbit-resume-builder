@@ -12,6 +12,9 @@ import {
     useSortable,
 } from '@dnd-kit/sortable'
 import { Pencil, Plus, Minus, GripHorizontal } from 'lucide-react'
+import ProjectModal from './modals/ProjectModal'
+import GithubModal from './modals/GithubModal'
+import type { Repo } from '../../types/editor-panel/repos'
 
 interface ResumeSectionProps {
     section: LocalSection
@@ -21,7 +24,8 @@ interface ResumeSectionProps {
     onSectionCollapse: (sectionId: string) => void
     onEntriesChanged: (sectionId: string, entries: LocalEntry[]) => void
     onEntryUpdated: (sectionId: string, entry: SectionEntry) => void
-    onRenderRequest: () => void
+    onRenderRequest: () => void,
+    onImportRepos: (sectionKey: string, importedRepos: Repo[]) => void
 }
 
 const ResumeSection = ({
@@ -33,8 +37,12 @@ const ResumeSection = ({
     onEntriesChanged,
     onEntryUpdated,
     onRenderRequest,
+    onImportRepos
 }: ResumeSectionProps) => {
     const [isReorderEnabled, setReorderEnabled] = useState(false)
+    const [showProjectModal, setShowProjectModal] = useState(false)
+    const [showGithubModal, setShowGithubModal] = useState(false)
+    const [githubRepos, setGithubRepos] = useState<Repo[]>([])
 
     const { attributes, listeners, setNodeRef, transform, transition } =
         useSortable({
@@ -98,6 +106,85 @@ const ResumeSection = ({
                 console.error
             )
         })
+    }
+
+    const handleGithubImport = () => {
+        setShowProjectModal(false)
+
+        // Change this to an API call to check if connected to github
+        // const connected = true;
+
+        // if(!connected) {
+        //     Need to add an API call to connect to github
+        //     console.log('not connected')
+        // }
+
+        // need to get the available repos and then send to github
+        setGithubRepos(
+            // =========================================================================Remove after API setup=============================================================================
+            [
+                {
+                    id: 1,
+                    name: "Resume Builder",
+                    language: "React",
+                    selected: false
+                },
+                {
+                    id: 2,
+                    name: "Portfolio Website",
+                    language: "Next.js",
+                    selected: false
+                },
+                {
+                    id: 3,
+                    name: "Image Classifier",
+                    language: "Python",
+                    selected: false
+                },
+                {
+                    id: 4,
+                    name: "Resume Builder",
+                    language: "React",
+                    selected: false
+                },
+                {
+                    id: 5,
+                    name: "Portfolio Website",
+                    language: "Next.js",
+                    selected: false
+                },
+                {
+                    id: 6,
+                    name: "Image Classifier",
+                    language: "Python",
+                    selected: false
+                },
+            ]
+            // =========================================================================Remove after API setup=============================================================================
+        )
+
+        console.log("GitHub selected");
+        setShowGithubModal(true);
+    }
+
+    const handleClearAllImports = () => {
+        setGithubRepos(
+            githubRepos.map((repo) => {
+                return({
+                    ...repo,
+                    selected: false
+                })
+            })
+        )
+    }
+
+    const handleImportedRepoMap = () => {
+        // console.log(githubRepos.filter((repo) => repo.selected));
+        setShowGithubModal(false)
+
+        const importedRepos = githubRepos.filter((repo) => repo.selected)
+
+        onImportRepos('key_projects', importedRepos)
     }
 
     return (
@@ -238,7 +325,14 @@ const ResumeSection = ({
                         <div className="section-item-add">
                             <button
                                 className="add-section-item-button"
-                                onClick={handleEntryAdd}
+                                onClick={() => {
+                                    if(section.sectionType.key === "key_projects"){
+                                        setShowProjectModal(true)
+                                        return;
+                                    }else{
+                                        handleEntryAdd()
+                                    }
+                                }}
                             >
                                 + Add {itemLabel}
                             </button>
@@ -246,6 +340,32 @@ const ResumeSection = ({
                     )}
                 </div>
             </div>
+            <ProjectModal
+                open={showProjectModal}
+                onClose={() => setShowProjectModal(false)}
+                onGithub={handleGithubImport}
+                onManual={() => {
+                    setShowProjectModal(false);
+                    handleEntryAdd();
+                }}
+            />
+            <GithubModal
+                open={showGithubModal}
+                onClose={() => {
+                    setShowGithubModal(false)
+                }}
+                repos={githubRepos}
+                onRepoToggle={(id) => {
+                    setGithubRepos((prev) => prev.map((repo) => repo.id === id ? {
+                                    ...repo,
+                                    selected: !repo.selected,
+                                } : repo
+                        )
+                    );
+                }}
+                onImport={handleImportedRepoMap}
+                onClear={handleClearAllImports}
+            />
         </div>
     )
 }

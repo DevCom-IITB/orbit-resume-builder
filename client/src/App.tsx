@@ -22,7 +22,7 @@ function App() {
     const [latexCode, setLatexCode] = useState<string | null>(null)
 
     useEffect(() => {
-        if (!token || !resumeId) {
+        if (!resumeId) {
             setLoading(false)
             return
         }
@@ -76,19 +76,19 @@ function App() {
         }
     }
 
-    if (!token) {
-        return (
-            <div className="app-shell">
-                <div
-                    className="card"
-                    style={{ textAlign: 'center', marginTop: '20vh' }}
-                >
-                    <h2>Authenticating...</h2>
-                    <p className="muted">Waiting for secure token from REACH.</p>
-                </div>
-            </div>
-        )
-    }
+    // if (!token) {
+    //     return (
+    //         <div className="app-shell">
+    //             <div
+    //                 className="card"
+    //                 style={{ textAlign: 'center', marginTop: '20vh' }}
+    //             >
+    //                 <h2>Authenticating...</h2>
+    //                 <p className="muted">Waiting for secure token from REACH.</p>
+    //             </div>
+    //         </div>
+    //     )
+    // }
 
     if (!resumeId) {
         return <Navigate to="/home" replace />
@@ -107,7 +107,7 @@ function App() {
         )
     }
 
-    if (loadError || !resume) {
+    if (!resume) {
         return (
             <div className="app-shell">
                 <div
