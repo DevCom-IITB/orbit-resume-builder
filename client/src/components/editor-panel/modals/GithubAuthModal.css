@@ -144,6 +144,19 @@
     box-shadow: 0 .35rem .8rem rgba(38,70,242,.08);
 }
 
+.github-auth-cancel:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #d1d5db;
+    color: #6b7280;
+    border-color: #d1d5db;
+}
+
+.github-auth-cancel:disabled:hover {
+    background-color: #d1d5db;
+    color: #6b7280;
+}
+
 @keyframes github-spin {
 
     from {

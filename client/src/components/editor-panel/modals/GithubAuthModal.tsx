@@ -5,12 +5,36 @@ import './GithubAuthModal.css'
 interface GithubAuthModalProps {
     open: boolean
     onClose: (status: string) => void
+    authStatus: 'auth' | 'fetch' | 'error' | 'idle'
 }
 
-const GithubAuthModal = ({open, onClose}: GithubAuthModalProps) => {
+const GithubAuthModal = ({open, onClose, authStatus}: GithubAuthModalProps) => {
 
     if(!open) return null;
     
+    const modalContent = {
+        auth: {
+            title: "Connecting to GitHub",
+            description:
+                "Finish signing in from the GitHub popup. This window will close automatically afterwards.",
+            loadingText: "Waiting for GitHub...",
+        },
+        fetch: {
+            title: "Authentication Successful",
+            description:
+                "You're connected! Fetching your repositories.",
+            loadingText: "Loading repositories...",
+        },
+        error: {
+            title: "Authentication Failed",
+            description:
+                "GitHub authentication was cancelled or unsuccessful.",
+            loadingText: "Closing...",
+        },
+    }
+
+    const content = modalContent[authStatus]
+
     return createPortal(
         <div
             className="modal-overlay"
@@ -31,23 +55,23 @@ const GithubAuthModal = ({open, onClose}: GithubAuthModalProps) => {
                 </div>
 
                 <h2 className="github-auth-title">
-                    Connecting to GitHub
+                    {content.title}
                 </h2>
 
                 <p className="github-auth-description">
-                    Finish signing in from the GitHub popup.
-                    This window will close automatically afterwards.
+                    {content.description}
                 </p>
 
                 <div className="github-auth-loading">
                     <span className="github-auth-spinner" />
 
                     <span>
-                        Waiting for GitHub...
+                        {content.loadingText}
                     </span>
                 </div>
 
                 <button
+                    disabled={authStatus === 'fetch'}
                     className="github-auth-cancel"
                     onClick={() => {
                         onClose('cancel')
