@@ -337,3 +337,41 @@
 
     box-shadow: 0 .35rem .8rem rgba(38,70,242,.08);
 }
+
+.github-import-loading{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:.8rem;
+
+    padding:.9rem 1.4rem;
+
+    border-radius:999px;
+
+    background:#f6f8fa;
+
+    border:1px solid #e5e7eb;
+
+    color:#111827;
+
+    font-weight:600;
+}
+
+.github-import-spinner{
+
+    width:18px;
+
+    height:18px;
+
+    border-radius:50%;
+
+    border:2.5px solid #d1d5db;
+
+    border-top-color:#24292f;
+
+    animation:github-spin .75s linear infinite;
+
+    flex-shrink:0;
+}
