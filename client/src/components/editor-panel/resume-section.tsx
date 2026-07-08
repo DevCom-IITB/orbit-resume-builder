@@ -45,6 +45,8 @@ const ResumeSection = ({
     const [showGithubModal, setShowGithubModal] = useState(false)
     const [githubRepos, setGithubRepos] = useState<Repo[]>([])
     const [showGithubAuthModal, setShowGithubAuthModal] = useState(false)
+    const [githubAuthStatus, setGithubAuthStatus] = useState<'auth' | 'fetch' | 'error' | 'idle'>('idle')
+    const [isImportingProjects, setIsImportingProjects] = useState(false)
 
     const { attributes, listeners, setNodeRef, transform, transition } =
         useSortable({
@@ -114,6 +116,28 @@ const ResumeSection = ({
         setShowProjectModal(false)
         // Change this to an API call to check if connected to github
         try {
+            const connected = await getGithubStatus()
+
+            if(connected){
+                setGithubAuthStatus("fetch")
+                setShowGithubAuthModal(true)
+
+                const repos = await getGithubRepositories()
+
+                setGithubRepos(
+                    repos.map((repo: Repo) => ({
+                        ...repo,
+                        selected: false,
+                    }))
+                )
+
+                setShowGithubAuthModal(false)
+                setGithubAuthStatus("idle")
+                setShowGithubModal(true)
+
+                return
+            }
+
             const redirectTo = window.location.pathname + window.location.search
             
             const authorizationUrl = await getGithubAuthorizationUrl(redirectTo)
@@ -125,22 +149,25 @@ const ResumeSection = ({
                 "popup,width=700,height=800,left=300,top=100"
             )
 
+            setGithubAuthStatus('auth')
             setShowGithubAuthModal(true)
 
             const timer = window.setInterval(async () => {
                 if (!popup || popup.closed) {
                     clearInterval(timer)
 
-                    // Need to change this because modal closes before data is fetched
-                    console.log("OAuth popup closed")
-
                     const connected = await getGithubStatus()
                     
-                    setShowGithubAuthModal(false)
-                    
                     if (!connected) {
+                        setGithubAuthStatus('error')
+
+                        setTimeout(() => {
+                            setGithubAuthStatus('idle')
+                        }, 2000)
                         return
                     }
+
+                    setGithubAuthStatus('fetch')
 
                     const repos = await getGithubRepositories()
 
@@ -151,7 +178,11 @@ const ResumeSection = ({
                         }))
                     )
 
-                    setShowGithubModal(true)
+                    setTimeout(() => {
+                        setShowGithubAuthModal(false)
+                        setGithubAuthStatus('idle')
+                        setShowGithubModal(true)
+                    }, 2000)
                 }
             }, 500)
         } catch (error) {
@@ -172,11 +203,14 @@ const ResumeSection = ({
 
     const handleImportedRepoMap = async () => {
         // console.log(githubRepos.filter((repo) => repo.selected));
-        setShowGithubModal(false)
+        setIsImportingProjects(true)
 
         const selectedRepos = githubRepos.filter((repo) => repo.selected)
 
         const importedProjects = await importGithubProjects(selectedRepos)
+
+        setIsImportingProjects(false)
+        setShowGithubModal(false)
 
         onImportRepos("key_projects", importedProjects)
     }
@@ -354,6 +388,7 @@ const ResumeSection = ({
             />
             <GithubModal
                 open={showGithubModal}
+                isImporting={isImportingProjects}
                 onClose={() => {
                     setShowGithubModal(false)
                 }}
@@ -371,6 +406,7 @@ const ResumeSection = ({
             />
             <GithubAuthModal 
                 open={showGithubAuthModal}
+                authStatus={githubAuthStatus}
                 onClose={handleAuthModalClose}
             />
         </div>
