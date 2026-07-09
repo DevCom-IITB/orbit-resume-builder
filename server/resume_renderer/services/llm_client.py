@@ -55,12 +55,26 @@ class GeminiLLMClient:
     @staticmethod
     def _clean_json_text(text):
         text = text.strip()
-        if text.startswith("```json"):
-            text = text[len("```json") :].strip()
 
-        if text.startswith("```"):
-            text = text[len("```") :].strip()
+        # Handle fenced blocks even if Gemini adds a sentence before/after them
+        # e.g. "Here's the JSON:\n```json\n{...}\n```\nLet me know if you need changes."
+        if "```" in text:
+            parts = text.split("```")
+            for part in parts:
+                part = part.strip()
+                if part.startswith("json"):
+                    part = part[len("json"):].strip()
+                if part.startswith("{") or part.startswith("["):
+                    return part
 
-        if text.endswith("```"):
-            text = text[:-3].strip()
+        # No fences: fall back to grabbing the outermost JSON object/array,
+        # in case the model added any stray preamble/trailing text.
+        start_candidates = [i for i in (text.find("{"), text.find("[")) if i != -1]
+        if start_candidates:
+            start = min(start_candidates)
+            end_char = "}" if text[start] == "{" else "]"
+            end = text.rfind(end_char)
+            if end != -1 and end > start:
+                return text[start : end + 1].strip()
+
         return text

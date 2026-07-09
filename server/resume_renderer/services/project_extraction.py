@@ -1,8 +1,11 @@
+import logging
 from typing import Dict, Any
 from jsonschema import validate, ValidationError
 
 from .llm_client import GeminiLLMClient, LLMClientError
 from .github_services import get_user_repos, get_readme
+
+logger = logging.getLogger(__name__)
 
 KEY_PROJECT_SCHEMA: Dict[str, Any] = {
     "type": "array",
@@ -45,21 +48,33 @@ class ProjectExtractionService:
         except Exception as error:
             raise ProjectExtractionError(f"Failed to fetch repos for '{username}': {str(error)}")
 
+        logger.info(f"Fetched {len(repos)} repos for '{username}'")
+
         projects = []
         for repo in repos:
             # Using the imported service function
             readme = get_readme(username, repo["name"])
             if not readme:
+                logger.warning(f"No README for {username}/{repo['name']}, skipping")
                 continue
 
             try:
                 project = self._extract_single_project(repo, readme)
-            except LLMClientError:
+            except LLMClientError as e:
                 # skip repos where the LLM call/parsing fails, don't fail the whole batch
+                logger.warning(f"LLM extraction failed for {username}/{repo['name']}: {e}")
                 continue
 
-            if project and self._is_valid(project):
+            if project is None:
+                logger.warning(f"LLM returned no usable project for {username}/{repo['name']}")
+                continue
+
+            if self._is_valid(project):
                 projects.append(project)
+            else:
+                logger.warning(
+                    f"Schema validation failed for {username}/{repo['name']}: {project}"
+                )
 
         return projects
 
@@ -108,8 +123,16 @@ README:
 
     @staticmethod
     def _is_valid(project: dict) -> bool:
+        allowed_keys = {"title", "organization", "summary", "timeline", "bullets"}
+        # Gemini often adds stray keys (e.g. "confidence") even when told not to.
+        # Strip them in place so a harmless extra field doesn't nuke the whole project.
+        for key in list(project.keys()):
+            if key not in allowed_keys:
+                project.pop(key)
+
         try:
             validate(instance=[project], schema=KEY_PROJECT_SCHEMA)
             return True
-        except ValidationError:
+        except ValidationError as e:
+            logger.warning(f"Validation error: {e.message}")
             return False
