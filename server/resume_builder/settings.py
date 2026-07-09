@@ -12,6 +12,10 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG")
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
 
+GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET")
+GITHUB_REDIRECT_URI = env("GITHUB_REDIRECT_URI")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -87,3 +91,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOWED_ORIGINS = env.list("FRONTEND_URLS")
 CORS_ALLOW_CREDENTIALS = True
+
+# Allow Reach (localhost:3000) to embed Orbit in an iframe during local dev.
+if DEBUG:
+    X_FRAME_OPTIONS = "ALLOWALL"

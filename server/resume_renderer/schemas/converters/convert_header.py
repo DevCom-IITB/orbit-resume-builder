@@ -1,85 +1,44 @@
 """
-To convert the header json data into latex
+Converts header JSON data into IITB-format LaTeX.
 
-example input:
-{
-    "name" : "Siddhant Sharma",
-    "edu" : "B.Tech. in Aerospace Engineering",
-    "contact" : {
-        "email" : "sid@sidshr.in",
-        "phone" : "+91 12345 67890",
-        "linkedin" : "1783717828",
-        "github" : "siddhantshr"
-    }
-}
+New schema fields: name, roll_no, department, degree, institution, gender, email, phone
 """
 
 from ...services.json_sanitizer import sanitize_text
 from ...services.markdown_parser import MARKDOWN_PARSER
 
 
-TEMPLATE = r"""
-\begin{center}
-  {\LARGE\bfseries\color{iitbblue} __NAME__}\\[4pt]
-  __EDU__ \quad|\quad
-  Indian Institute of Technology Bombay\\[3pt]
-    Email: \href{mailto:__EMAIL__}{__EMAIL__} \quad
-    Phone: __PHONE__ \quad
-    LinkedIn: \href{https://linkedin.com/in/__LINKEDIN__}{linkedin.com/in/__LINKEDIN__} \quad
-    GitHub: \href{https://github.com/__GITHUB__}{github.com/__GITHUB__}
-\end{center}
-"""
-
-
 def convert_header(header: dict) -> str:
-    """Convert header JSON into LaTeX.
-
-    Args:
-        header: A dictionary containing the header information.
-
-    Returns:
-        A string containing the LaTeX code for the header section of the resume.
-
-    Raises:
-        ValueError: If the input data is not in the expected format.
-    """
     if not isinstance(header, dict):
         raise ValueError("Header must be a dictionary.")
 
     try:
         name = MARKDOWN_PARSER.parse(sanitize_text(header["name"]))
+        roll_no = MARKDOWN_PARSER.parse(sanitize_text(header.get("roll_no", "")))
+        department = MARKDOWN_PARSER.parse(sanitize_text(header.get("department", "")))
+        degree = MARKDOWN_PARSER.parse(sanitize_text(header.get("degree", "")))
+        institution = MARKDOWN_PARSER.parse(
+            sanitize_text(header.get("institution", "Indian Institute of Technology Bombay"))
+        )
+        gender = MARKDOWN_PARSER.parse(sanitize_text(header.get("gender", "")))
+        email = sanitize_text(header.get("email", ""))
+        phone = sanitize_text(header.get("phone", ""))
 
-        edu = MARKDOWN_PARSER.parse(sanitize_text(header["edu"]))
-
-        contact = header.get("contact", {})
-        if not isinstance(contact, dict):
-            raise ValueError("'contact' must be a dictionary.")
-
-        email = MARKDOWN_PARSER.parse(sanitize_text(contact.get("email", "")))
-
-        phone = MARKDOWN_PARSER.parse(sanitize_text(contact.get("phone", "")))
-
-        linkedin = MARKDOWN_PARSER.parse(sanitize_text(contact.get("linkedin", "")))
-
-        github = MARKDOWN_PARSER.parse(sanitize_text(contact.get("github", "")))
-
-        replacements = {
-            "__NAME__": name,
-            "__EDU__": edu,
-            "__EMAIL__": email,
-            "__PHONE__": phone,
-            "__LINKEDIN__": linkedin,
-            "__GITHUB__": github,
-        }
-
-        latex = TEMPLATE
-        for key, value in replacements.items():
-            latex = latex.replace(key, value)
-
-        return latex
-
+        return rf"""
+\noindent
+\begin{{minipage}}{{0.15\textwidth}}
+    \includegraphics[width=\linewidth]{{iitb-logo.png}}
+\end{{minipage}}%
+\hspace{{1cm}}
+\begin{{minipage}}{{0.8\textwidth}}
+    \renewcommand{{\arraystretch}}{{1.25}}
+    \begin{{tabular}}{{@{{}}p{{7.5cm}} p{{5cm}}@{{}}}}
+        \large{{\textbf{{{name}}}}} & \textbf{{{roll_no}}} \\
+        \textbf{{{department}}} & \textbf{{{degree}}} \\
+        \textbf{{{institution}}} & \textbf{{Gender: {gender}}} \\
+        \href{{mailto:{email}}}{{{email}}} & \textbf{{{phone}}} \\
+    \end{{tabular}}
+\end{{minipage}}
+"""
     except KeyError as e:
         raise ValueError(f"Missing key in header data: {e}")
-
-    except ValueError as e:
-        raise ValueError(f"Invalid data in header: {e}")

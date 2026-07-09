@@ -31,7 +31,7 @@ const steps = [
     },
 ]
 
-function IntroSteps() {
+function IntroSteps({ onStartMaking }: { onStartMaking: () => void }) {
     return (
         <section className="intro" aria-label="Resume steps">
             <h2 className="intro__title">My Resumes</h2>
@@ -60,7 +60,11 @@ function IntroSteps() {
                 ))}
             </div>
             <div className="intro__actions">
-                <button className="intro__button" type="button">
+                <button
+                    className="intro__button"
+                    type="button"
+                    onClick={onStartMaking}
+                >
                     <svg
                         className="intro__button-icon"
                         viewBox="0 0 24 24"

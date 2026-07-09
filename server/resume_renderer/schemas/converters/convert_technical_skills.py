@@ -1,80 +1,36 @@
 """
-Converts technical skills JSON into LaTeX tabular rows.
+Converts technical skills JSON into IITB-format LaTeX.
 
-Expected input:
-[
-    {"category": "Programming", "skills": ["Python", "C++", "JavaScript"]},
-    {"category": "AI and ML", "skills": ["TensorFlow", "PyTorch"]}
-]
+Schema: list of {category, skills: [str]}
 """
 
 from ...services.json_sanitizer import sanitize_text
 from ...services.markdown_parser import MARKDOWN_PARSER
 
 
-def convert_technical_skills(skills: list) -> str:
-    """Convert technical skills JSON into LaTeX TECHNICAL SKILLS section.
-
-    Args:
-        skills: list of dicts with keys `category` and `skills` (list of strings).
-
-    Returns:
-        LaTeX string for the TECHNICAL SKILLS section.
-    """
-    if not isinstance(skills, list):
-        raise ValueError("Input must be a list of technical skill sections.")
-
-    if not skills:
+def convert_technical_skills(skills_data: list) -> str:
+    if not isinstance(skills_data, list):
+        raise ValueError("Input must be a list of skill categories.")
+    if not skills_data:
         return ""
 
-    parts: list[str] = [
-        r"""
-%============================================================================
-%   Technical Skills SECTION
-%----------------------------------------------------------------------------
-\section*{\color{myblue}{\large TECHNICAL SKILLS}\xfilll[0pt]{0.5pt}}
+    rows = []
+    for item in skills_data:
+        category = MARKDOWN_PARSER.parse(sanitize_text(item.get("category", "")))
+        skills = item.get("skills", [])
+        if not isinstance(skills, list):
+            raise ValueError("'skills' must be a list.")
+        skills_str = ", ".join(
+            MARKDOWN_PARSER.parse(sanitize_text(s)) for s in skills if isinstance(s, str)
+        )
+        rows.append(rf"    \textbf{{{category}}} & {skills_str} \\")
 
+    parts = [
+        r"""\section*{\color{myblue}{\large TECHNICAL SKILLS}\xfilll[0pt]{0.5pt}}
+\vspace{-10pt}
 \renewcommand{\arraystretch}{1.1}
-\begin{tabularx}{\linewidth}{@{}p{3.8cm}X@{}}
-"""
+\begin{tabular}{p{4cm} p{12.9cm}}"""
     ]
-
-    for item in skills:
-        try:
-            if not isinstance(item, dict):
-                raise ValueError("Each skill entry must be a dictionary.")
-
-            category = MARKDOWN_PARSER.parse(sanitize_text(item["category"]))
-
-            skill_list = item.get("skills", [])
-
-            if not isinstance(skill_list, list):
-                raise ValueError("'skills' must be a list.")
-
-            parsed_skills = []
-
-            for skill in skill_list:
-                if not isinstance(skill, str):
-                    raise ValueError("Each skill must be a string.")
-
-                parsed_skills.append(MARKDOWN_PARSER.parse(sanitize_text(skill)))
-
-            skill_text = ", ".join(parsed_skills)
-
-            parts.append(rf"\textbf{{{category}}} & {skill_text} \\")
-
-        except KeyError as e:
-            raise ValueError(f"Missing key in technical skills item: {e}")
-
-        except ValueError as e:
-            raise ValueError(f"Invalid technical skills data: {e}")
-
-    parts.extend(
-        [
-            r"\end{tabularx}",
-            r"%----------------------------------------------------------------------------",
-            r"%============================================================================",
-        ]
-    )
-
+    parts.extend(rows)
+    parts.append(r"\end{tabular}")
     return "\n".join(parts)

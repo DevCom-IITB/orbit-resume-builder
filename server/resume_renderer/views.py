@@ -1,12 +1,17 @@
 import base64
 
+import base64
+import json
+import traceback
+
+from django.http import HttpResponse
+
 from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ParseError
 from rest_framework.decorators import api_view
-from rest_framework.views import APIView
 
 from .services.project_extraction import ProjectExtractionService, ProjectExtractionError
 from .schemas.config import RenderConfig
@@ -22,7 +27,9 @@ from .schemas.converters.convert_courses import convert_courses
 from .schemas.converters.convert_technical_skills import convert_technical_skills
 from .serializers import LatexRenderSerializer
 from .services import renderer
-from rest_framework.permissions import IsAuthenticated
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from utils.token_dec import token_required
 
 import jsonschema
 from resume_renderer.JSONSchema.jsonschema import (
@@ -30,15 +37,17 @@ from resume_renderer.JSONSchema.jsonschema import (
     get_supported_section_types,
 )
 from resume_renderer.serializers import ResumeSectionRefineSerializer
-from resume_renderer.services.llm_client import GeminiLLMClient, LLMClientError
+from resume_renderer.services.llm_client import LLMClient, LLMClientError
 from resume_renderer.services.prompts import build_resume_prompt
 
+import requests
+from django.conf import settings
 
+@method_decorator(csrf_exempt, name="dispatch")
 class LatexRenderView(APIView):
     """Render resume data into a PDF."""
 
-    permission_classes = [IsAuthenticated]
-
+    @token_required
     def post(self, request):
         try:
             data = request.data
@@ -54,6 +63,25 @@ class LatexRenderView(APIView):
             )
 
         header = data.get("header", {})
+        if not header or "name" not in header:
+            user = request.user if hasattr(request, "user") and request.user else None
+            username = user.username if user else "Student"
+            first_name = user.first_name if user else ""
+            last_name = user.last_name if user else ""
+            email = user.email if user else f"{username}@iitb.ac.in"
+            
+            full_name = f"{first_name} {last_name}".strip() or username
+            header = {
+                "name": full_name,
+                "edu": "B.Tech. in Computer Science & Engineering",
+                "contact": {
+                    "email": email,
+                    "phone": "+91 99999 99999",
+                    "linkedin": username.lower(),
+                    "github": username.lower(),
+                },
+            }
+
         education = data.get("education", [])
         experience = data.get("experience", [])
         key_projects = data.get("key_projects", [])
@@ -175,7 +203,7 @@ def refine_resume_section(request, section_type):
     try:
         prompt = build_resume_prompt(section_type, user_input)
 
-        llm_client = GeminiLLMClient()
+        llm_client = LLMClient()
         llm_output = llm_client.generate_json(prompt)
 
         schema = get_schema(section_type)
@@ -221,42 +249,228 @@ def refine_resume_section(request, section_type):
         )
 
 
-class GitHubProjectsAPIView(APIView):
+class GitHubConnectAPIView(APIView):
     """
-    API View to extract resume-ready projects from a user's GitHub READMEs.
+    Returns the GitHub OAuth authorization URL.
     """
+
+    def get(self, request):
+        redirect_to = request.query_params.get(
+            "redirect_to",
+            "/",
+        )
+
+        state = base64.urlsafe_b64encode(
+            json.dumps(
+                {
+                    "redirect_to": redirect_to,
+                }
+            ).encode()
+        ).decode()
+
+        params = {
+            "client_id": settings.GITHUB_CLIENT_ID,
+            "redirect_uri": settings.GITHUB_REDIRECT_URI,
+            "scope": "repo read:user",
+            "state": state,
+        }
+
+        query = "&".join(f"{k}={v}" for k, v in params.items())
+
+        return Response(
+            {
+                "authorization_url":
+                    f"https://github.com/login/oauth/authorize?{query}"
+            }
+        )
+
+class GitHubCallbackAPIView(APIView):
+    """
+    Exchanges GitHub OAuth code for an access token.
+    """
+
+    def get(self, request):
+        code = request.query_params.get("code")
+        state = request.query_params.get("state")
+
+        if not code:
+            return Response(
+                {"error": "Missing authorization code."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        response = requests.post(
+            "https://github.com/login/oauth/access_token",
+            headers={
+                "Accept": "application/json",
+            },
+            data={
+                "client_id": settings.GITHUB_CLIENT_ID,
+                "client_secret": settings.GITHUB_CLIENT_SECRET,
+                "code": code,
+                "redirect_uri": settings.GITHUB_REDIRECT_URI,
+            },
+            timeout=10,
+        )
+
+        response.raise_for_status()
+
+        token = response.json().get("access_token")
+
+        if token is None:
+            return Response(
+                {"error": "Failed to obtain access token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        request.session["github_access_token"] = token
+        request.session.modified = True
+
+        if state:
+            try:
+                decoded_state = json.loads(
+                    base64.urlsafe_b64decode(state).decode()
+                )
+            except Exception:
+                pass
+
+        return HttpResponse(
+            f"""
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>GitHub Authentication</title>
+                </head>
+
+                <body>
+                    <script>
+                        window.close();
+                    </script>
+                </body>
+            </html>
+            """
+        )
     
-    def get(self, request, username, *args, **kwargs):
-        # Optional: Allow passing max_repos as a query parameter (e.g., ?max_repos=10)
-        max_repos = int(request.query_params.get('max_repos', 5))
-        
+class GitHubStatusAPIView(APIView):
+    """
+    Returns whether the current user has connected GitHub.
+    """
+
+    def get(self, request):
+        connected = "github_access_token" in request.session
+
+        return Response(
+            {
+                "connected": connected
+            }
+        )
+       
+class GitHubRepositoriesAPIView(APIView):
+    """
+    Returns the authenticated user's GitHub repositories.
+    """
+
+    def get(self, request, *args, **kwargs):
+        max_repos = int(request.query_params.get("max_repos", 10))
+
+        token = request.session.get("github_access_token")
+
+        if token is None:
+            return Response(
+                {
+                    "success": False,
+                    "error": "GitHub account not connected."
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
         try:
             service = ProjectExtractionService()
-            projects = service.extract_projects(username=username, max_repos=max_repos)
-            
-            # Returns the exact schema format you required
-            return Response(
-                {
-                    "success": True, 
-                    "data": projects
-                }, 
-                status=status.HTTP_200_OK
+
+            repositories = service.get_repositories(
+                access_token=token,
+                max_repos=max_repos,
             )
-            
-        except ProjectExtractionError as e:
+
             return Response(
                 {
-                    "success": False, 
-                    "error": str(e)
-                }, 
-                status=status.HTTP_400_BAD_REQUEST
+                    "success": True,
+                    "data": repositories,
+                },
+                status=status.HTTP_200_OK,
             )
-        except Exception as e:
-            # Fallback for unhandled server errors (e.g., missing API keys)
+
+        except ProjectExtractionError as error:
             return Response(
                 {
-                    "success": False, 
-                    "error": "An internal server error occurred."
-                }, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    "success": False,
+                    "error": str(error),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        except Exception as error:
+            traceback.print_exc()
+
+            return Response(
+                {
+                    "success": False,
+                    "error": str(error),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        
+class GitHubImportProjectsAPIView(APIView):
+    """
+    Extracts resume-ready projects from the selected repositories.
+    """
+
+    def post(self, request, *args, **kwargs):
+        token = request.session.get("github_access_token")
+
+        if token is None:
+            return Response(
+                {
+                    "success": False,
+                    "error": "GitHub account not connected."
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        repositories = request.data.get("repositories", [])
+
+        try:
+            service = ProjectExtractionService()
+
+            projects = service.import_projects(
+                access_token=token,
+                repositories=repositories,
+            )
+
+            return Response(
+                {
+                    "success": True,
+                    "data": projects,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except ProjectExtractionError as error:
+            return Response(
+                {
+                    "success": False,
+                    "error": str(error),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        except Exception as error:
+            traceback.print_exc()
+
+            return Response(
+                {
+                    "success": False,
+                    "error": str(error),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
