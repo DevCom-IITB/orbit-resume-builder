@@ -207,13 +207,14 @@ def retrieve_top_k_chunks(
         extra_filters=extra_filters,
     )
 
+    ids = raw["ids"][0]
     documents = raw["documents"][0]
     metadatas = raw["metadatas"][0]
     distances = raw["distances"][0]
 
     results = [
-        {"chunk": doc, "metadata": meta, "score": 1 - dist}
-        for doc, meta, dist in zip(documents, metadatas, distances)
+        {"id": chunk_id, "chunk": doc, "metadata": meta, "score": 1 - dist}
+        for chunk_id, doc, meta, dist in zip(ids, documents, metadatas, distances)
     ]
 
     # already ordered by Chroma (closest first), but sort explicitly to be safe

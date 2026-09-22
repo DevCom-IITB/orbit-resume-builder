@@ -14,6 +14,7 @@ from sentence_transformers import SentenceTransformer,CrossEncoder
 
 from .query import process_query
 from .filtering import retrieve_top_k_chunks
+from .bm25 import BM25_TOP_N, retrieve_bm25_chunks
 from .re_ranker import rerank_chunks
 from dotenv import load_dotenv
 # ---------------------------------------------------------------------------
@@ -72,13 +73,34 @@ def run_retrieval_pipeline(
     if not cleaned_query or not query_embedding:
         return {"retrieved_context": []}
 
-    candidates = retrieve_top_k_chunks(
+    semantic_candidates = retrieve_top_k_chunks(
         chroma_collection=chroma_collection,
         query_embedding=query_embedding,
         section_key=section_key,
         top_k=top_n,
         extra_filters=extra_filters,
     )
+
+    bm25_candidates = retrieve_bm25_chunks(
+        chroma_collection=chroma_collection,
+        query=cleaned_query,
+        section_key=section_key,
+        top_n=BM25_TOP_N,
+        extra_filters=extra_filters,
+    )
+
+    candidates_by_id = {}
+    for candidate in [*semantic_candidates, *bm25_candidates]:
+        candidate_id = candidate.get("id")
+        if candidate_id is None:
+            candidate_id = candidate["chunk"]
+        existing = candidates_by_id.get(candidate_id)
+        if existing is None:
+            candidates_by_id[candidate_id] = candidate
+        elif "bm25_score" in candidate:
+            existing["bm25_score"] = candidate["bm25_score"]
+
+    candidates = list(candidates_by_id.values())
 
     if not candidates:
         return {"retrieved_context": []}
