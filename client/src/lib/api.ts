@@ -7,6 +7,7 @@ import type {
     SectionEntry,
     VisualTheme,
 } from '../types/resume'
+import type { Repo } from '../types/editor-panel/repos'
 
 // ============================================================================
 // AXIOS BASE INSTANCE

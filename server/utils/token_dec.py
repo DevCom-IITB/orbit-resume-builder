@@ -3,6 +3,8 @@ import requests
 from functools import wraps
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
+from django.conf import settings
+
 
 REACH_VERIFY = os.getenv(
     "REACH_VERIFY_URL", "http://127.0.0.1:8000/api/sso/accounts/verify/"
@@ -27,6 +29,17 @@ def token_required(view_func):
             bound_args = args
 
         if hasattr(request, "user") and request.user and request.user.is_authenticated:
+            return view_func(*bound_args, **kwargs)
+
+        # Development-only authentication shortcut.
+        # This is disabled unless DEBUG=True and a username is configured.
+        dev_username = getattr(settings, "DEV_AUTH_USERNAME", "")
+
+        if settings.DEBUG and dev_username:
+            User = get_user_model()
+            user, _ = User.objects.get_or_create(username=dev_username)
+
+            request.user = user
             return view_func(*bound_args, **kwargs)
 
         auth_header = request.headers.get("Authorization") or request.META.get(

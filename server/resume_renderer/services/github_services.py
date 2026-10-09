@@ -37,6 +37,7 @@ def get_readme(owner: str, repo_name: str, access_token: str,) -> str | None:
         headers=headers,
         timeout=10,
     )
+    
     if resp.status_code != 200:
         return None
 

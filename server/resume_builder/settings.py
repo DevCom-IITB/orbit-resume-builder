@@ -12,6 +12,10 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG")
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
 
+# Development-only authentication shortcut.
+# Leave empty unless you explicitly want to enable it.
+DEV_AUTH_USERNAME = env("DEV_AUTH_USERNAME", default="")
+
 GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET")
 GITHUB_REDIRECT_URI = env("GITHUB_REDIRECT_URI")

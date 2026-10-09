@@ -15,8 +15,9 @@ class LLMClientError(Exception):
 
 class GeminiLLMClient:
     def __init__(self):
+        # To be changed to match the API that is actually going to be used
         self.api_key = os.getenv("GEMINI_API_KEY")
-        self.model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+        self.model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
         if not self.api_key:
             raise LLMClientError("GEMINI_API_KEY is missing. Add it to your .env file.")
@@ -41,16 +42,41 @@ class GeminiLLMClient:
         except Exception as error:
             raise LLMClientError(f"Gemini API call failed: {str(error)}")
 
-    def generate_json(self, prompt):
-        raw_text = self.generate_text(prompt)
-        cleaned_text = self._clean_json_text(raw_text)
-
+    def generate_json(self, prompt, response_schema=None):
         try:
-            return json.loads(cleaned_text)
-        except json.JSONDecodeError as error:
-            raise LLMClientError(
-                f"Gemini returned invalid JSON.\n\nRaw response:\n{raw_text}\n\nError:\n{str(error)}"
+            config = types.GenerateContentConfig(
+                temperature=0.2,
+                response_mime_type="application/json",
+                response_schema=response_schema,
             )
+
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=config,
+            )
+
+            if not response.text:
+                raise LLMClientError("Gemini returned an empty response.")
+
+            cleaned_text = self._clean_json_text(response.text)
+
+            try:
+                return json.loads(cleaned_text)
+            except json.JSONDecodeError as error:
+                raise LLMClientError(
+                    f"Gemini returned invalid JSON.\n\n"
+                    f"Raw response:\n{response.text}\n\n"
+                    f"Error:\n{str(error)}"
+                )
+
+        except LLMClientError:
+            raise
+
+        except Exception as error:
+            raise LLMClientError(
+                f"Gemini API call failed: {str(error)}"
+        )
 
     @staticmethod
     def _clean_json_text(text):

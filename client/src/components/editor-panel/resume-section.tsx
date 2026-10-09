@@ -14,7 +14,7 @@ import {
 import { Pencil, Plus, Minus, GripHorizontal } from 'lucide-react'
 import ProjectModal from './modals/ProjectModal'
 import GithubModal from './modals/GithubModal'
-import type { Repo } from '../../types/editor-panel/repos'
+import type { Project, Repo } from '../../types/editor-panel/repos'
 import GithubAuthModal from './modals/GithubAuthModal'
 
 interface ResumeSectionProps {
@@ -26,7 +26,7 @@ interface ResumeSectionProps {
     onEntriesChanged: (sectionId: string, entries: LocalEntry[]) => void
     onEntryUpdated: (sectionId: string, entry: SectionEntry) => void
     onRenderRequest: () => void,
-    onImportRepos: (sectionKey: string, importedRepos: Repo[]) => void
+    onImportRepos: (sectionKey: string, importedRepos: Project[]) => void
 }
 
 const ResumeSection = ({
@@ -45,7 +45,7 @@ const ResumeSection = ({
     const [showGithubModal, setShowGithubModal] = useState(false)
     const [githubRepos, setGithubRepos] = useState<Repo[]>([])
     const [showGithubAuthModal, setShowGithubAuthModal] = useState(false)
-    const [githubAuthStatus, setGithubAuthStatus] = useState<'auth' | 'fetch' | 'error' | 'idle'>('idle')
+    const [githubAuthStatus, setGithubAuthStatus] = useState<'auth' | 'fetch' | 'error'>('auth')
     const [isImportingProjects, setIsImportingProjects] = useState(false)
 
     const { attributes, listeners, setNodeRef, transform, transition } =
@@ -132,7 +132,7 @@ const ResumeSection = ({
                 )
 
                 setShowGithubAuthModal(false)
-                setGithubAuthStatus("idle")
+                setGithubAuthStatus("fetch")
                 setShowGithubModal(true)
 
                 return
@@ -141,7 +141,6 @@ const ResumeSection = ({
             const redirectTo = window.location.pathname + window.location.search
             
             const authorizationUrl = await getGithubAuthorizationUrl(redirectTo)
-            
             
             const popup = window.open(
                 authorizationUrl,
@@ -162,14 +161,18 @@ const ResumeSection = ({
                         setGithubAuthStatus('error')
 
                         setTimeout(() => {
-                            setGithubAuthStatus('idle')
+                            setShowGithubAuthModal(false)
                         }, 2000)
                         return
+                    }else{
+                        setShowGithubModal(true)
                     }
 
                     setGithubAuthStatus('fetch')
 
                     const repos = await getGithubRepositories()
+
+                    console.log(repos)
 
                     setGithubRepos(
                         repos.map((repo: Repo) => ({
@@ -180,8 +183,8 @@ const ResumeSection = ({
 
                     setTimeout(() => {
                         setShowGithubAuthModal(false)
-                        setGithubAuthStatus('idle')
-                        setShowGithubModal(true)
+                        // setGithubAuthStatus('idle')
+                        // setShowGithubModal(true)
                     }, 2000)
                 }
             }, 500)
@@ -202,12 +205,12 @@ const ResumeSection = ({
     }
 
     const handleImportedRepoMap = async () => {
-        // console.log(githubRepos.filter((repo) => repo.selected));
         setIsImportingProjects(true)
 
         const selectedRepos = githubRepos.filter((repo) => repo.selected)
 
         const importedProjects = await importGithubProjects(selectedRepos)
+        
 
         setIsImportingProjects(false)
         setShowGithubModal(false)

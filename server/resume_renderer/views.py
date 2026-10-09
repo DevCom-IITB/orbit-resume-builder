@@ -37,11 +37,13 @@ from resume_renderer.JSONSchema.jsonschema import (
     get_supported_section_types,
 )
 from resume_renderer.serializers import ResumeSectionRefineSerializer
-from resume_renderer.services.llm_client import LLMClient, LLMClientError
+from resume_renderer.services.llm_client import GeminiLLMClient, LLMClientError
 from resume_renderer.services.prompts import build_resume_prompt
 
 import requests
 from django.conf import settings
+
+from urllib.parse import urlencode
 
 @method_decorator(csrf_exempt, name="dispatch")
 class LatexRenderView(APIView):
@@ -203,7 +205,7 @@ def refine_resume_section(request, section_type):
     try:
         prompt = build_resume_prompt(section_type, user_input)
 
-        llm_client = LLMClient()
+        llm_client = GeminiLLMClient()
         llm_output = llm_client.generate_json(prompt)
 
         schema = get_schema(section_type)
@@ -275,7 +277,7 @@ class GitHubConnectAPIView(APIView):
             "state": state,
         }
 
-        query = "&".join(f"{k}={v}" for k, v in params.items())
+        query = urlencode(params)
 
         return Response(
             {

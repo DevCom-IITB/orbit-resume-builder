@@ -5,7 +5,7 @@ import './GithubAuthModal.css'
 interface GithubAuthModalProps {
     open: boolean
     onClose: (status: string) => void
-    authStatus: 'auth' | 'fetch' | 'error' | 'idle'
+    authStatus: 'auth' | 'fetch' | 'error'
 }
 
 const GithubAuthModal = ({open, onClose, authStatus}: GithubAuthModalProps) => {
@@ -15,20 +15,17 @@ const GithubAuthModal = ({open, onClose, authStatus}: GithubAuthModalProps) => {
     const modalContent = {
         auth: {
             title: "Connecting to GitHub",
-            description:
-                "Finish signing in from the GitHub popup. This window will close automatically afterwards.",
+            description: "Finish signing in from the GitHub popup. This window will close automatically afterwards.",
             loadingText: "Waiting for GitHub...",
         },
         fetch: {
             title: "Authentication Successful",
-            description:
-                "You're connected! Fetching your repositories.",
+            description: "You're connected! Fetching your repositories.",
             loadingText: "Loading repositories...",
         },
         error: {
             title: "Authentication Failed",
-            description:
-                "GitHub authentication was cancelled or unsuccessful.",
+            description: "GitHub authentication was cancelled or unsuccessful.",
             loadingText: "Closing...",
         },
     }

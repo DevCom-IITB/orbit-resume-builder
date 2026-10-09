@@ -19,7 +19,7 @@ const ProjectModal = ({open, onClose, onGithub, onManual}: ProjectModalProps) =>
             >
                 <div className="project-modal-header">
                     <h2>Add Project</h2>
-                    <p>Choose how you'd like to add your project.</p>
+                    <p>Choose how you would like to add your project.</p>
                 </div>
 
                 <div className="project-modal-options">
