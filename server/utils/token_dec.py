@@ -31,16 +31,6 @@ def token_required(view_func):
         if hasattr(request, "user") and request.user and request.user.is_authenticated:
             return view_func(*bound_args, **kwargs)
 
-        # Development-only authentication shortcut.
-        # This is disabled unless DEBUG=True and a username is configured.
-        dev_username = getattr(settings, "DEV_AUTH_USERNAME", "")
-
-        if settings.DEBUG and dev_username:
-            User = get_user_model()
-            user, _ = User.objects.get_or_create(username=dev_username)
-
-            request.user = user
-            return view_func(*bound_args, **kwargs)
 
         auth_header = request.headers.get("Authorization") or request.META.get(
             "HTTP_AUTHORIZATION"
