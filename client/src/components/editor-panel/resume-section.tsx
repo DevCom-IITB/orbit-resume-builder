@@ -3,7 +3,7 @@ import SectionItem from './section-item'
 import type { LocalSection, LocalEntry } from '../../types/editor-panel/local-state'
 import { toLocalEntry } from '../../types/editor-panel/local-state'
 import type { SectionEntry } from '../../types/resume'
-import { addEntry, deleteEntry, updateEntry } from '../../lib/api'
+import { addEntry, deleteEntry, updateEntry, getGithubAuthorizationUrl, getGithubStatus, getGithubRepositories, importGithubProjects } from '../../lib/api'
 import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import {
     SortableContext,
@@ -12,6 +12,10 @@ import {
     useSortable,
 } from '@dnd-kit/sortable'
 import { Pencil, Plus, Minus, GripHorizontal } from 'lucide-react'
+import ProjectModal from './modals/ProjectModal'
+import GithubModal from './modals/GithubModal'
+import type { Project, Repo } from '../../types/editor-panel/repos'
+import GithubAuthModal from './modals/GithubAuthModal'
 
 interface ResumeSectionProps {
     section: LocalSection
@@ -21,7 +25,8 @@ interface ResumeSectionProps {
     onSectionCollapse: (sectionId: string) => void
     onEntriesChanged: (sectionId: string, entries: LocalEntry[]) => void
     onEntryUpdated: (sectionId: string, entry: SectionEntry) => void
-    onRenderRequest: () => void
+    onRenderRequest: () => void,
+    onImportRepos: (sectionKey: string, importedRepos: Project[]) => void
 }
 
 const ResumeSection = ({
@@ -33,8 +38,15 @@ const ResumeSection = ({
     onEntriesChanged,
     onEntryUpdated,
     onRenderRequest,
+    onImportRepos
 }: ResumeSectionProps) => {
     const [isReorderEnabled, setReorderEnabled] = useState(false)
+    const [showProjectModal, setShowProjectModal] = useState(false)
+    const [showGithubModal, setShowGithubModal] = useState(false)
+    const [githubRepos, setGithubRepos] = useState<Repo[]>([])
+    const [showGithubAuthModal, setShowGithubAuthModal] = useState(false)
+    const [githubAuthStatus, setGithubAuthStatus] = useState<'auth' | 'fetch' | 'error'>('auth')
+    const [isImportingProjects, setIsImportingProjects] = useState(false)
 
     const { attributes, listeners, setNodeRef, transform, transition } =
         useSortable({
@@ -98,6 +110,121 @@ const ResumeSection = ({
                 console.error
             )
         })
+    }
+
+    const handleGithubImport = async () => {
+        setShowProjectModal(false)
+        // Change this to an API call to check if connected to github
+        try {
+            const connected = await getGithubStatus()
+
+            if(connected){
+                setGithubAuthStatus("fetch")
+                setShowGithubAuthModal(true)
+
+                const repos = await getGithubRepositories()
+
+                setGithubRepos(
+                    repos.map((repo: Repo) => ({
+                        ...repo,
+                        selected: false,
+                    }))
+                )
+
+                setShowGithubAuthModal(false)
+                setGithubAuthStatus("fetch")
+                setShowGithubModal(true)
+
+                return
+            }
+
+            const redirectTo = window.location.pathname + window.location.search
+            
+            const authorizationUrl = await getGithubAuthorizationUrl(redirectTo)
+            
+            const popup = window.open(
+                authorizationUrl,
+                "github-oauth",
+                "popup,width=700,height=800,left=300,top=100"
+            )
+
+            setGithubAuthStatus('auth')
+            setShowGithubAuthModal(true)
+
+            const timer = window.setInterval(async () => {
+                if (!popup || popup.closed) {
+                    clearInterval(timer)
+
+                    const connected = await getGithubStatus()
+                    
+                    if (!connected) {
+                        setGithubAuthStatus('error')
+
+                        setTimeout(() => {
+                            setShowGithubAuthModal(false)
+                        }, 2000)
+                        return
+                    }else{
+                        setShowGithubModal(true)
+                    }
+
+                    setGithubAuthStatus('fetch')
+
+                    const repos = await getGithubRepositories()
+
+                    console.log(repos)
+
+                    setGithubRepos(
+                        repos.map((repo: Repo) => ({
+                            ...repo,
+                            selected: false,
+                        }))
+                    )
+
+                    setTimeout(() => {
+                        setShowGithubAuthModal(false)
+                        // setGithubAuthStatus('idle')
+                        // setShowGithubModal(true)
+                    }, 2000)
+                }
+            }, 500)
+        } catch (error) {
+            console.error("Failed to start GitHub OAuth:", error)
+        }
+    }
+
+    const handleClearAllImports = () => {
+        setGithubRepos(
+            githubRepos.map((repo) => {
+                return({
+                    ...repo,
+                    selected: false
+                })
+            })
+        )
+    }
+
+    const handleImportedRepoMap = async () => {
+        setIsImportingProjects(true)
+
+        const selectedRepos = githubRepos.filter((repo) => repo.selected)
+
+        const importedProjects = await importGithubProjects(selectedRepos)
+        
+
+        setIsImportingProjects(false)
+        setShowGithubModal(false)
+
+        onImportRepos("key_projects", importedProjects)
+    }
+
+    const handleAuthModalClose = (status: string) => {
+        if(status === 'cancel'){
+            setShowGithubAuthModal(false)
+        }else if(status === 'authenticated'){
+            setShowGithubAuthModal(false)
+            setShowGithubModal(true)
+        }
     }
 
     return (
@@ -238,7 +365,14 @@ const ResumeSection = ({
                         <div className="section-item-add">
                             <button
                                 className="add-section-item-button"
-                                onClick={handleEntryAdd}
+                                onClick={() => {
+                                    if(section.sectionType.key === "key_projects"){
+                                        setShowProjectModal(true)
+                                        return;
+                                    }else{
+                                        handleEntryAdd()
+                                    }
+                                }}
                             >
                                 + Add {itemLabel}
                             </button>
@@ -246,6 +380,38 @@ const ResumeSection = ({
                     )}
                 </div>
             </div>
+            <ProjectModal
+                open={showProjectModal}
+                onClose={() => setShowProjectModal(false)}
+                onGithub={handleGithubImport}
+                onManual={() => {
+                    setShowProjectModal(false);
+                    handleEntryAdd();
+                }}
+            />
+            <GithubModal
+                open={showGithubModal}
+                isImporting={isImportingProjects}
+                onClose={() => {
+                    setShowGithubModal(false)
+                }}
+                repos={githubRepos}
+                onRepoToggle={(id) => {
+                    setGithubRepos((prev) => prev.map((repo) => repo.id === id ? {
+                                    ...repo,
+                                    selected: !repo.selected,
+                                } : repo
+                        )
+                    );
+                }}
+                onImport={handleImportedRepoMap}
+                onClear={handleClearAllImports}
+            />
+            <GithubAuthModal 
+                open={showGithubAuthModal}
+                authStatus={githubAuthStatus}
+                onClose={handleAuthModalClose}
+            />
         </div>
     )
 }

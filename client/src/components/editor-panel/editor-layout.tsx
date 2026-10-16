@@ -12,7 +12,8 @@ import { useNavigate } from 'react-router-dom'
 import type { Resume, SectionEntry } from '../../types/resume'
 import type { LocalSection, LocalEntry } from '../../types/editor-panel/local-state'
 import { toLocalSection } from '../../types/editor-panel/local-state'
-import { updateSection } from '../../lib/api'
+import { updateSection, addEntry } from '../../lib/api'
+import type { Project} from '../../types/editor-panel/repos'
 
 // Maps section_type key → short label used in "Experience 1", "Project 2" etc.
 const ITEM_LABELS: Record<string, string> = {
@@ -29,6 +30,17 @@ const ITEM_LABELS: Record<string, string> = {
 function getItemLabel(sectionTypeKey: string): string {
     return ITEM_LABELS[sectionTypeKey] ?? sectionTypeKey
 }
+
+// function projectToLocalEntry(project: Project): LocalEntry {
+//     return {
+//         id: crypto.randomUUID(),
+//         order: 1,
+//         rawInput: project.readme,
+//         content: '',
+//         generationStatus: `${project.generation ? 'done': 'pending'}` ,
+//         isCollapsed: true
+//     }
+// }
 
 interface EditorPanelProps {
     resume: Resume
@@ -135,6 +147,73 @@ const EditorPanel = ({
         })
     }
 
+    // const handleImportRepos = (sectionKey: string, importedRepos: Project[]) => {
+    //     console.log(importedRepos)
+    
+    //     // need to process the repos to match the sectionType
+    //     // assume processedRepos is the const which contains 
+    //     // the data after processing to match datatpye of Section 
+    //     const processedRepos = importedRepos.map(projectToLocalEntry)
+        
+    //     setSections(prev => 
+    //         prev.map(section => {
+    //             if(section.sectionType.key !== sectionKey) return section;
+
+    //             return {
+    //                 ...section,
+
+    //                 entries: [
+    //                     ...section.entries,
+    //                     ...processedRepos
+    //                 ]
+    //             }
+    //         })
+            
+    //     )
+    // }
+
+    const handleImportRepos = async (sectionKey: string, importedRepos: Project[]) => {
+        const section = sections.find((s) => s.sectionType.key === sectionKey)
+
+        if (!section) {
+            console.error(`Section not found: ${sectionKey}`)
+            return
+        }
+
+        const createdEntries: LocalEntry[] = []
+
+        try {
+            for (const project of importedRepos) {
+                const entry = await addEntry(
+                    resume.id,
+                    section.id,
+                    project.readme ?? ''
+                )
+
+                createdEntries.push({
+                    ...entry,
+                    isCollapsed: false,
+                })
+            }
+
+            setSections((prev) =>
+                prev.map((s) =>
+                    s.id === section.id
+                        ? {
+                            ...s,
+                            entries: [...s.entries, ...createdEntries],
+                        }
+                        : s
+                )
+            )
+        } catch (error) {
+            console.error(
+                '[EditorPanel] Failed to save imported projects:',
+                error
+            )
+        }
+    }
+
     return (
         <div className="editor-panel">
             <div className="back-navigation">
@@ -197,6 +276,7 @@ const EditorPanel = ({
                                 onEntriesChanged={handleEntriesChanged}
                                 onEntryUpdated={handleEntryUpdated}
                                 onRenderRequest={onRenderRequest}
+                                onImportRepos={handleImportRepos}
                             />
                         ))}
                     </SortableContext>

@@ -1,0 +1,169 @@
+.github-auth-container{
+
+    width:min(30rem,90vw);
+
+    padding:2.8rem 2.5rem;
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    text-align:center;
+
+    gap:1.5rem;
+}
+
+.github-auth-logo-container {
+    width:18%;
+    max-width: 5.5rem;
+    min-width: 4rem;
+
+    aspect-ratio: 1;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #f6f8fa;
+    border: 1px solid #e5e7eb;
+}
+
+.github-auth-logo {
+    width: 80%;
+    height: auto;
+
+    display: block;
+}
+
+.github-auth-title{
+
+    margin:0;
+
+    font-size:1.8rem;
+
+    font-weight:700;
+
+    color:#111827;
+}
+
+.github-auth-spinner{
+
+    width:18px;
+
+    height:18px;
+
+    border-radius:50%;
+
+    border:2.5px solid #d1d5db;
+
+    border-top-color:#24292f;
+
+    animation:github-spin .75s linear infinite;
+
+    flex-shrink:0;
+}
+
+.github-auth-description{
+
+    margin:0;
+
+    max-width:360px;
+
+    font-size:.96rem;
+
+    line-height:1.65;
+
+    color:#6b7280;
+}
+
+.github-auth-loading{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:.8rem;
+
+    padding:.9rem 1.4rem;
+
+    border-radius:999px;
+
+    background:#f6f8fa;
+
+    border:1px solid #e5e7eb;
+
+    color:#111827;
+
+    font-weight:600;
+}
+
+.github-auth-cancel {
+
+    align-self: center;
+    min-width: 8rem;
+
+    margin-top: .5rem;
+
+    min-height: 2.75rem;
+
+    padding: .7rem 1.4rem;
+
+    border: 1px solid #d1d5db;
+
+    border-radius: .6rem;
+
+    background: #ffffff;
+
+    color: #374151;
+
+    font-size: .9rem;
+
+    font-weight: 500;
+
+    font-family: inherit;
+
+    cursor: pointer;
+
+    transition:
+        background-color .15s,
+        color .15s,
+        transform .15s,
+        box-shadow .15s;
+}
+
+.github-auth-cancel:hover {
+
+    background: #f9fafb;
+
+    transform: translateY(-1px);
+
+    box-shadow: 0 .35rem .8rem rgba(38,70,242,.08);
+}
+
+.github-auth-cancel:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #d1d5db;
+    color: #6b7280;
+    border-color: #d1d5db;
+}
+
+.github-auth-cancel:disabled:hover {
+    background-color: #d1d5db;
+    color: #6b7280;
+}
+
+@keyframes github-spin {
+
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
