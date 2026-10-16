@@ -60,6 +60,42 @@ body {
     overflow-x: hidden;
 }
 
+.back-navigation {
+    display: flex;
+    align-items: center;
+    margin-bottom: -0.25rem;
+}
+
+.back-to-resumes-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.8rem 0.4rem 0;
+    background: transparent;
+    border: none;
+    color: #2646f2;
+    font-family: 'Lato', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    transition:
+        color 0.18s ease,
+        transform 0.18s ease;
+}
+
+.back-to-resumes-button:hover {
+    color: #1e37c7;
+    transform: translateX(-2px);
+}
+
+.back-to-resumes-button .lucide-button-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+    stroke: currentColor;
+    stroke-width: 2.25;
+}
+
 .resume-header {
     display: flex;
     align-items: center;

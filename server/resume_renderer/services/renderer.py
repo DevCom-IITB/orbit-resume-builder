@@ -15,13 +15,32 @@ if docker is not None:
     except Exception:
         client = None
 
+
+def _get_docker_client():
+    """Return a live Docker client, reconnecting if the module was imported too early."""
+    global client
+
+    if client is not None:
+        return client
+
+    if docker is None:
+        return None
+
+    try:
+        client = docker.from_env()
+    except Exception:
+        client = None
+
+    return client
+
 LATEX_IMAGE_NAME = os.getenv("LATEX_IMAGE_NAME", "resume-renderer:latest")
 DOCKERFILE_PATH = os.path.join(os.path.dirname(__file__), "..", "Dockerfile")
 
 
 def ensure_image_exists(force_rebuild=False):
     """Build the LaTeX image if it is not already available locally."""
-    if client is None:
+    current_client = _get_docker_client()
+    if current_client is None:
         raise RuntimeError(
             "Docker client is not available. Install docker SDK and ensure Docker daemon is running."
         )
@@ -29,17 +48,17 @@ def ensure_image_exists(force_rebuild=False):
     if force_rebuild:
         print("Force rebuilding the LaTeX image...")
         try:
-            client.images.remove(LATEX_IMAGE_NAME, force=True)
+            current_client.images.remove(LATEX_IMAGE_NAME, force=True)
         except Exception:
             pass  # Image doesn't exist, no need to remove
     try:
-        client.images.get(LATEX_IMAGE_NAME)
+        current_client.images.get(LATEX_IMAGE_NAME)
     except Exception:
         if not os.path.exists(DOCKERFILE_PATH):
             raise RuntimeError(f"Dockerfile not found at {DOCKERFILE_PATH}")
 
         dockerfile_dir = os.path.dirname(DOCKERFILE_PATH)
-        client.images.build(
+        current_client.images.build(
             path=dockerfile_dir,
             tag=LATEX_IMAGE_NAME,
             dockerfile="Dockerfile",
@@ -49,105 +68,15 @@ def ensure_image_exists(force_rebuild=False):
 
 LATEX_CACHE_VOLUME = "latex-cache"
 cache_volume = None
-if client is not None:
+_cache_client = _get_docker_client()
+if _cache_client is not None:
     try:
-        cache_volume = client.volumes.get(LATEX_CACHE_VOLUME)
+        cache_volume = _cache_client.volumes.get(LATEX_CACHE_VOLUME)
     except Exception:
         try:
-            cache_volume = client.volumes.create(LATEX_CACHE_VOLUME)
+            cache_volume = _cache_client.volumes.create(LATEX_CACHE_VOLUME)
         except Exception:
             cache_volume = None
-
-
-TEMPLATE = r"""
-\documentclass[10pt]{article}
-
-\usepackage[T1]{fontenc}
-\usepackage{graphicx}
-\usepackage{enumitem}
-\usepackage[a4paper,bottom=6.4mm,left=14.11mm,right=14.11mm,top=12mm]{geometry}
-\usepackage{titlesec}
-\usepackage{tabularx}
-\usepackage{booktabs}
-\usepackage[table, svgnames]{xcolor}
-\usepackage{hyphenat}
-\usepackage{romannum}
-\usepackage{anyfontsize}
-\usepackage[pdftex]{hyperref}
-\usepackage{fontawesome}
-\usepackage[misc]{ifsym}
-\usepackage{array}
-\usepackage{xcolor}
-\usepackage{tfrupee}
-
-\setlength{\parindent}{0pt}
-\hyphenpenalty 10000
-
-%%%%%%% Command for Thick hline %%%%%%%%%%
-\makeatletter
-\newcommand{\thickhline}{%
-    \noalign {\ifnum 0=`}\fi \hrule height 0.7pt
-    \futurelet \reserved@a \@xhline
-}
-\newcolumntype{"}{@{\hskip\tabcolsep\vrule width 0.7pt\hskip\tabcolsep}}
-\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
-\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
-\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
-\makeatother
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%% Command Section Headers %%%%%%%%%%
-\newcommand{\xfill}[2][1ex]{
-	\dimen0=#2\advance\dimen0 by #1
-	\leaders\hrule height \dimen0 depth -#1\hfill
-}
-\newcommand{\textlarge}[1]{{\fontsize{11}{13.5}\selectfont #1}}
-\renewcommand{\section}[1]{
-	\vspace{5pt}
-	{\color{Blue}{\Large\scshape\raggedright #1\xfill[0pt]{0.5pt}}}
-}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%% Command Subsection Headers %%%%%%%
-\renewcommand{\subsection}[4]{
-	\def\temp{#3}
-	\vspace{5pt}
-	\parbox{\linewidth}{
-		\large
-		{\color{Black} \textbf{#1} 
-		\ifx\temp\empty
-		\else
-			{\textbf{|} #3}
-		\fi
-		\textbf{|} \textit{#4}}
-         \hfill{\fontsize{9}{11}\selectfont[#2]}
-	}
-
-}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%% Date Formatting %%%%%%%%%%%%%%%%
-\newcommand{\filldate}[1]{\strut\hfill {\small \textit{(#1)}}}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%% Set itemize formatting %%%%%%%%%%%
-\renewcommand\labelitemi{\small$\bullet$}
-\setlist[itemize]{itemsep=-0.5mm, topsep=2pt, leftmargin=15pt, after=\vspace{1pt}}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%% Edit if you want long header %%%%%%%
-% Long Header
-\newif\iflong
-\longtrue
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{document}
-\parindent=0em
-
-__CONTENT__
-
-\end{document}
-"""
 
 
 def assemble_resume_latex(resume) -> str:
@@ -156,7 +85,8 @@ def assemble_resume_latex(resume) -> str:
     Uses the resume's visual_theme for the preamble and converter set.
     Updates resume.cached_latex and resume.latex_cache_valid.
     """
-    if resume.latex_cache_valid and resume.cached_latex:
+    cache_marker = "% renderer-v2"
+    if resume.latex_cache_valid and resume.cached_latex and cache_marker in resume.cached_latex:
         return resume.cached_latex
 
     from resume_renderer.schemas.converter_registry import get_converter
@@ -199,9 +129,10 @@ def assemble_resume_latex(resume) -> str:
 
         sections_latex.append(section_latex)
 
+    #preamble = (resume.visual_theme.latex_preamble or "").strip() or TEMPLATE
     full_latex = resume.visual_theme.latex_preamble.replace(
-        "__CONTENT__", "\n".join(sections_latex)
-    )
+    "__CONTENT__", "\n".join(sections_latex)
+)
 
     resume.cached_latex = full_latex
     resume.latex_cache_valid = True
@@ -214,8 +145,14 @@ LATEX_CONTAINER_NAME = os.getenv("LATEX_CONTAINER_NAME", "latex-renderer")
 
 def _get_latex_container():
     """Find the named running LaTeX container. Raises clearly if it isn't up."""
+    current_client = _get_docker_client()
+    if current_client is None:
+        raise RuntimeError(
+            "Docker client is not available. Start Docker Desktop and try again."
+        )
+
     try:
-        container = client.containers.get(LATEX_CONTAINER_NAME)
+        container = current_client.containers.get(LATEX_CONTAINER_NAME)
         if container.status == "running":
             return container
         raise RuntimeError(
@@ -234,7 +171,7 @@ def _get_latex_container():
 
 def compile_latex(latex: str) -> bytes:
     """Compile LaTeX into PDF bytes using a persistent Dockerized TeX Live container."""
-    if client is None:
+    if _get_docker_client() is None:
         raise RuntimeError(
             "Docker client is not available. Start Docker Desktop and try again."
         )
