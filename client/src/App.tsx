@@ -22,7 +22,7 @@ function App() {
     const [latexCode, setLatexCode] = useState<string | null>(null)
 
     useEffect(() => {
-        if (!token || !resumeId) {
+        if (!resumeId) {
             setLoading(false)
             return
         }
@@ -107,7 +107,7 @@ function App() {
         )
     }
 
-    if (loadError || !resume) {
+    if (!resume) {
         return (
             <div className="app-shell">
                 <div
