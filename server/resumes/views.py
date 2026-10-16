@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from resume_renderer.services.line_fitter import fit_bullets_in_content
-from resume_renderer.services.llm_client import LLMClient, LLMClientError
+from resume_renderer.services.llm_client import GeminiLLMClient, LLMClientError
 from resume_renderer.services.prompts import build_resume_prompt
 from resume_renderer.services.renderer import assemble_resume_latex, compile_latex
 from utils.token_dec import token_required

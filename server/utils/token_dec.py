@@ -3,6 +3,8 @@ import requests
 from functools import wraps
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
+from django.conf import settings
+
 
 REACH_VERIFY = os.getenv(
     "REACH_VERIFY_URL", "http://127.0.0.1:8000/api/sso/accounts/verify/"
@@ -28,6 +30,7 @@ def token_required(view_func):
 
         if hasattr(request, "user") and request.user and request.user.is_authenticated:
             return view_func(*bound_args, **kwargs)
+
 
         auth_header = request.headers.get("Authorization") or request.META.get(
             "HTTP_AUTHORIZATION"
