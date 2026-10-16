@@ -7,7 +7,8 @@ import {
     arrayMove,
 } from '@dnd-kit/sortable'
 import './editor-layout.css'
-import { Pencil } from 'lucide-react'
+import { Pencil, ArrowLeft } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import type { Resume, SectionEntry } from '../../types/resume'
 import type { LocalSection, LocalEntry } from '../../types/editor-panel/local-state'
 import { toLocalSection } from '../../types/editor-panel/local-state'
@@ -52,6 +53,7 @@ const EditorPanel = ({
     onTitleSave,
     onRenderRequest,
 }: EditorPanelProps) => {
+    const navigate = useNavigate()
     const [sections, setSections] = useState<LocalSection[]>(() =>
         resume.sections.map(toLocalSection)
     )
@@ -214,6 +216,16 @@ const EditorPanel = ({
 
     return (
         <div className="editor-panel">
+            <div className="back-navigation">
+                <button
+                    className="back-to-resumes-button"
+                    onClick={() => navigate('/home')}
+                >
+                    <ArrowLeft className="lucide-button-icon" />
+                    <span>Back to Resumes</span>
+                </button>
+            </div>
+
             <div className="resume-header">
                 <textarea
                     className="file-name-input"
