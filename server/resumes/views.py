@@ -25,6 +25,7 @@ from .serializers import (
     VersionSerializer,
     VisualThemeSerializer,
 )
+from rag.retrieval.filtering import SectionKey
 
 
 def _get_resume_or_404(resume_id, user):
@@ -395,11 +396,35 @@ class GenerateEntryView(APIView):
         entry.save(update_fields=["generation_status"])
 
         try:
+            # Only these section types have a senior-resume retrieval repository.
+            RETRIEVAL_SECTION_KEYS = {s.value for s in SectionKey}
+
+            retrieved_context = None
+            if stdef.key in RETRIEVAL_SECTION_KEYS:
+                from rag.chroma_client import get_resume_collection
+                from rag.retrieval.main_pipeline import run_retrieval_pipeline
+
+                try:
+                    collection = get_resume_collection()
+                    rag_result = run_retrieval_pipeline(
+                        query=entry.raw_input,
+                        section_key=stdef.key,
+                        chroma_collection=collection,
+                        top_n=20,
+                        top_m=5,
+                    )
+                    retrieved_context = rag_result.get("retrieved_context")
+                except Exception as rag_exc:
+                    # Don't crash generation if retrieval fails — proceed without context.
+                    print(f"[WARN] RAG retrieval failed: {rag_exc}")
+                    retrieved_context = None
+
             prompt = build_resume_prompt(
                 section_type=stdef.key,
                 user_input=entry.raw_input,
                 current_content=entry.content,
                 stdef=stdef,
+                retrieved_context=retrieved_context,
             )
             entry.last_sent_prompt = prompt
             entry.save(update_fields=["last_sent_prompt"])

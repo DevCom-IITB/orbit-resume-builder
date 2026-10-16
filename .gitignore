@@ -57,3 +57,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local databases
+chroma_db/
+db.sqlite3
+db.sqlite3-journal

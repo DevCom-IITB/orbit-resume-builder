@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "ssoAuth",
     "resume_renderer",
     "resumes",
+    "rag",
 ]
 
 MIDDLEWARE = [

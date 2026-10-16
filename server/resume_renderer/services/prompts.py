@@ -15,7 +15,7 @@ The prompts must match the JSON-to-LaTeX converter field names exactly.
 """
 
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from resume_renderer.JSONSchema.jsonschema import get_schema
 
@@ -359,11 +359,43 @@ Rules:
 }
 
 
+def _format_retrieved_context(retrieved_context: Optional[List[Dict[str, Any]]]) -> str:
+    """
+    Serialize RAG-retrieved reference chunks into a prompt block.
+
+    Framed explicitly as STYLE/STRUCTURE examples from other students'
+    resumes — not the user's own facts. Critical: without this framing the
+    LLM can bleed facts/numbers/tools from someone else's resume into the
+    user's output, which is a fabrication risk on top of BASE_SYSTEM_PROMPT's
+    "do not invent facts" rule (those reference chunks ARE facts, just not
+    the user's).
+    """
+    if not retrieved_context:
+        return ""
+
+    lines = [
+        "Retrieved reference examples (senior resumes, same section type):",
+        "These illustrate STYLE, structure, phrasing, and bullet quality only.",
+        "Do NOT copy facts, numbers, tools, organizations, or claims from these",
+        "examples into the output. Only the user's own input below is the",
+        "source of truth for what actually happened.",
+        "",
+    ]
+    for i, item in enumerate(retrieved_context, start=1):
+        entry_title = item.get("entry_title", "")
+        chunk = item.get("chunk", "")
+        lines.append(f"{i}. [{entry_title}] {chunk}")
+
+    return "\n" + "\n".join(lines) + "\n"
+
+
 def build_resume_prompt(
     section_type: str,
     user_input: str,
     current_content=None,
     stdef=None,
+    query_embedding=None,
+    retrieved_context: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     """
     Build a complete stateless prompt for one resume section.
@@ -371,6 +403,14 @@ def build_resume_prompt(
     If stdef (a SectionTypeDefinition instance) is provided, reads instructions
     and schema from the DB record. Falls back to hardcoded dicts for backwards
     compatibility with legacy callers.
+
+    retrieved_context: top-m chunks from the RAG pipeline
+        ({"entry_title", "section_key", "chunk", "score"}), or None if this
+        section_type has no retrieval repository (e.g. header, education).
+
+    query_embedding: accepted for backwards compatibility / debug logging
+        only — NOT used in prompt content. Do not thread it into the LLM
+        call itself.
     """
     if stdef is not None and stdef.llm_prompt_instructions and stdef.json_schema:
         section_instruction = stdef.llm_prompt_instructions
@@ -390,6 +430,8 @@ Current content (prior generation — use as context when regenerating):
 {json.dumps(current_content, indent=2)}
 """
 
+    retrieved_context_block = _format_retrieved_context(retrieved_context)
+
     return f"""
 {BASE_SYSTEM_PROMPT}
 
@@ -401,6 +443,7 @@ Section type:
 Expected JSON schema:
 {schema_text}
 {current_context}
+{retrieved_context_block}
 User input:
 {user_input}
 
