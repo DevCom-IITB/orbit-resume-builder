@@ -138,16 +138,25 @@ class LLMRateLimiter:
 
         try:
             # Execute atomic Lua script
-            result = client.eval(
-                _RATE_LIMIT_LUA_SCRIPT,
-                2,
-                k_30m,
-                k_daily,
-                limit_30m,
-                window_30m,
-                limit_daily,
-                window_daily,
-            )
+            try:
+                result = client.eval(
+                    _RATE_LIMIT_LUA_SCRIPT,
+                    2,
+                    k_30m,
+                    k_daily,
+                    limit_30m,
+                    window_30m,
+                    limit_daily,
+                    window_daily,
+                )
+            except Exception as eval_err:
+                if "eval" in str(eval_err).lower() or "unknown command" in str(eval_err).lower():
+                    # Fallback for environments/fakeredis without Lua/eval support
+                    result = self._check_and_acquire_pipeline(
+                        client, k_30m, k_daily, limit_30m, window_30m, limit_daily, window_daily
+                    )
+                else:
+                    raise eval_err
 
             # result format: {allowed_flag, status_or_limit_type, ttl_seconds, count_or_new30m, [new_daily]}
             is_allowed = bool(result[0] == 1)
@@ -194,6 +203,47 @@ class LLMRateLimiter:
                 reset_at=None,
                 message="Quota check passed (degraded mode).",
             )
+
+    def _check_and_acquire_pipeline(
+        self, client, k_30m, k_daily, limit_30m, window_30m, limit_daily, window_daily
+    ):
+        """Python-based pipeline fallback for Redis/fakeredis environments lacking Lua/eval."""
+        with client.pipeline() as pipe:
+            while True:
+                try:
+                    pipe.watch(k_30m, k_daily)
+                    raw_30 = client.get(k_30m)
+                    raw_daily = client.get(k_daily)
+                    c_30 = int(raw_30) if raw_30 else 0
+                    c_daily = int(raw_daily) if raw_daily else 0
+
+                    if c_30 >= limit_30m:
+                        ttl_30 = client.ttl(k_30m)
+                        pipe.reset()
+                        retry = max(1, ttl_30) if ttl_30 and ttl_30 > 0 else window_30m
+                        return [0, "30_minute", retry, c_30]
+
+                    if c_daily >= limit_daily:
+                        ttl_daily = client.ttl(k_daily)
+                        pipe.reset()
+                        retry = max(1, ttl_daily) if ttl_daily and ttl_daily > 0 else window_daily
+                        return [0, "daily", retry, c_daily]
+
+                    pipe.multi()
+                    pipe.incr(k_30m)
+                    if c_30 == 0:
+                        pipe.expire(k_30m, window_30m)
+                    pipe.incr(k_daily)
+                    if c_daily == 0:
+                        pipe.expire(k_daily, window_daily)
+                    res = pipe.execute()
+                    new_30 = res[0]
+                    return [1, "ok", 0, new_30]
+                except Exception as exc:
+                    # If watch failed due to concurrency conflict, retry
+                    if "watch" in str(exc).lower() or getattr(exc, "__class__", None).__name__ == "WatchError":
+                        continue
+                    raise exc
 
     def get_usage(self, ldap_id: str) -> dict:
         """Read current counters and remaining TTLs without modifying them."""

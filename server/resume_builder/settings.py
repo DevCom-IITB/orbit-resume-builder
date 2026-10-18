@@ -16,9 +16,9 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
 # Leave empty unless you explicitly want to enable it.
 DEV_AUTH_USERNAME = env("DEV_AUTH_USERNAME", default="")
 
-GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID")
-GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET")
-GITHUB_REDIRECT_URI = env("GITHUB_REDIRECT_URI")
+GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
+GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET", default="")
+GITHUB_REDIRECT_URI = env("GITHUB_REDIRECT_URI", default="")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
