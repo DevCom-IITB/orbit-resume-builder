@@ -8,9 +8,18 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from resume_renderer.services.line_fitter import fit_bullets_in_content
-from resume_renderer.services.llm_client import GeminiLLMClient, LLMClientError
+from resume_renderer.services.llm_client import LLMClient, LLMClientError
+from resume_renderer.services.llm_rate_limiter import rate_limiter
 from resume_renderer.services.prompts import build_resume_prompt
 from resume_renderer.services.renderer import assemble_resume_latex, compile_latex
+from resume_renderer.services.security import (
+    check_user_restriction,
+    detect_prompt_injection,
+    get_client_ip,
+    log_security_event,
+    record_user_violation,
+    validate_and_classify_llm_output,
+)
 from utils.token_dec import token_required
 
 from .models import Resume, ResumeTemplate, Section, SectionEntry, TemplateSectionType, Version, VisualTheme
@@ -181,8 +190,24 @@ class RenderResumeView(APIView):
             pdf_bytes = compile_latex(latex)
             pdf_b64 = base64.b64encode(pdf_bytes).decode("utf-8")
             return Response({"pdf": pdf_b64, "latex": latex})
+        except ValueError as exc:
+            ldap_id = getattr(request.user, "username", "unknown")
+            ip_address = get_client_ip(request)
+            record_user_violation(
+                ldap_id=ldap_id,
+                event_type="RENDERING_SECURITY_VIOLATION",
+                severity="high",
+                resume_id=str(resume.id),
+                endpoint=request.path,
+                ip_address=ip_address,
+                metadata={"error": str(exc)},
+            )
+            return Response(
+                {"error": f"Rendering security violation: {str(exc)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Resume compilation failed: {str(exc)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -383,13 +408,75 @@ class GenerateEntryView(APIView):
         if not entry:
             return Response({"error": "not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        if not entry.raw_input.strip():
+        stdef = section.section_type
+        ldap_id = getattr(request.user, "username", "anonymous")
+        ip_address = get_client_ip(request)
+
+        # 1. Check account restriction in MySQL/Django
+        restriction = check_user_restriction(ldap_id)
+        if restriction is not None:
+            blocked_str = restriction.blocked_until.isoformat() if restriction.blocked_until else ""
+            return Response(
+                {
+                    "error": "account_restricted",
+                    "message": "AI generation is temporarily restricted for this account.",
+                    "blocked_until": blocked_str,
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # 2. Validate basic input constraints
+        if not entry.raw_input or not entry.raw_input.strip():
             return Response(
                 {"error": "raw_input is empty — provide input before generating."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        stdef = section.section_type
+        # 3. Check for prompt injection signal in untrusted user input
+        if detect_prompt_injection(entry.raw_input):
+            record_user_violation(
+                ldap_id=ldap_id,
+                event_type="PROMPT_INJECTION_SIGNAL",
+                severity="high",
+                resume_id=str(resume.id),
+                section_type=stdef.key,
+                endpoint=request.path,
+                ip_address=ip_address,
+                metadata={"input_snippet": entry.raw_input[:200]},
+            )
+
+        # 4. Check & acquire quota from Redis rate limiter (atomic Lua script)
+        rate_res = rate_limiter.check_and_acquire(ldap_id)
+        if not rate_res.is_allowed:
+            ev_type = (
+                "LLM_DAILY_LIMIT_EXCEEDED"
+                if rate_res.limit_type == "daily"
+                else "LLM_RATE_LIMIT_EXCEEDED"
+            )
+            log_security_event(
+                ldap_id=ldap_id,
+                event_type=ev_type,
+                severity="warning",
+                resume_id=str(resume.id),
+                section_type=stdef.key,
+                endpoint=request.path,
+                ip_address=ip_address,
+                metadata={
+                    "limit_type": rate_res.limit_type,
+                    "retry_after": rate_res.retry_after,
+                    "current_count": rate_res.current_count,
+                },
+            )
+            return Response(
+                {
+                    "error": "llm_rate_limit_exceeded",
+                    "limit_type": rate_res.limit_type,
+                    "message": rate_res.message,
+                    "retry_after": rate_res.retry_after,
+                    "reset_at": rate_res.reset_at.isoformat() if rate_res.reset_at else None,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
 
         # Mark as generating
         entry.generation_status = "generating"
@@ -414,6 +501,14 @@ class GenerateEntryView(APIView):
                         top_m=5,
                     )
                     retrieved_context = rag_result.get("retrieved_context")
+                    if retrieved_context:
+                        print(f"\n==================== [RAG RETRIEVAL PIPELINE] ====================")
+                        print(f"Query/Input: {repr(entry.raw_input[:100])}...")
+                        print(f"Retrieved {len(retrieved_context)} context chunks for LLM Generation:")
+                        for idx, ctx in enumerate(retrieved_context):
+                            print(f"  * Chunk #{idx+1} | Score: {ctx.get('score')} | Section: {ctx.get('section_key')} | Title: {ctx.get('entry_title')}")
+                            print(f"    Content: {repr(ctx.get('chunk')[:150])}...")
+                        print(f"==================================================================\n")
                 except Exception as rag_exc:
                     # Don't crash generation if retrieval fails — proceed without context.
                     print(f"[WARN] RAG retrieval failed: {rag_exc}")
@@ -432,8 +527,53 @@ class GenerateEntryView(APIView):
             llm = LLMClient()
             raw_output = llm.generate_json(prompt)
 
-            # Validate against schema
-            jsonschema_lib.validate(instance=raw_output, schema=stdef.json_schema)
+            # 5. Validate output against expected JSON schema and classify content
+            is_valid, is_empty, err_msg = validate_and_classify_llm_output(
+                raw_output, stdef.json_schema, stdef.key
+            )
+
+            if not is_valid:
+                log_security_event(
+                    ldap_id=ldap_id,
+                    event_type="INVALID_LLM_JSON",
+                    severity="warning",
+                    resume_id=str(resume.id),
+                    section_type=stdef.key,
+                    endpoint=request.path,
+                    ip_address=ip_address,
+                    metadata={"error": err_msg, "raw_snippet": str(raw_output)[:300]},
+                )
+                entry.generation_status = "failed"
+                entry.save(update_fields=["generation_status"])
+                return Response(
+                    {
+                        "error": "invalid_llm_json",
+                        "message": f"LLM output failed schema validation: {err_msg}",
+                    },
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+
+            # 6. Handle valid empty JSON as off-topic input
+            if is_empty:
+                record_user_violation(
+                    ldap_id=ldap_id,
+                    event_type="OFF_TOPIC_INPUT",
+                    severity="info",
+                    resume_id=str(resume.id),
+                    section_type=stdef.key,
+                    endpoint=request.path,
+                    ip_address=ip_address,
+                    metadata={"input_snippet": entry.raw_input[:200]},
+                )
+                entry.generation_status = "failed"
+                entry.save(update_fields=["generation_status"])
+                return Response(
+                    {
+                        "error": "invalid_resume_content",
+                        "message": "The input does not appear to contain content relevant to this resume section.",
+                    },
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
 
             # Measure bullet widths and repair out-of-band ones (1 LLM retry).
             raw_output = fit_bullets_in_content(raw_output, stdef.key, llm)
@@ -448,17 +588,30 @@ class GenerateEntryView(APIView):
             return Response(SectionEntrySerializer(entry).data)
 
         except LLMClientError as exc:
-            entry.generation_status = "failed"
-            entry.save(update_fields=["generation_status"])
-            return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
-        except jsonschema_lib.ValidationError as exc:
+            log_security_event(
+                ldap_id=ldap_id,
+                event_type="LLM_PROVIDER_ERROR",
+                severity="warning",
+                resume_id=str(resume.id),
+                section_type=stdef.key,
+                endpoint=request.path,
+                ip_address=ip_address,
+                metadata={"error": str(exc)},
+            )
             entry.generation_status = "failed"
             entry.save(update_fields=["generation_status"])
             return Response(
-                {"error": f"LLM output failed schema validation: {exc.message}"},
+                {
+                    "error": "llm_provider_error",
+                    "message": "The AI service could not complete this request. Please try again later.",
+                    "details": str(exc),
+                },
                 status=status.HTTP_502_BAD_GATEWAY,
             )
         except Exception as exc:
             entry.generation_status = "failed"
             entry.save(update_fields=["generation_status"])
-            return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": "internal_error", "message": str(exc)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
