@@ -1,15 +1,7 @@
 import React, { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import styled, { keyframes } from 'styled-components'
-import {
-    Clock,
-    CalendarClock,
-    ShieldAlert,
-    AlertCircle,
-    AlertTriangle,
-    X,
-    RefreshCw,
-    PenLine,
-} from 'lucide-react'
+import { X, RefreshCw, PenLine, Clock } from 'lucide-react'
 import type { LLMGenerationErrorPayload } from '../../lib/api'
 
 const fadeIn = keyframes`
@@ -17,161 +9,100 @@ const fadeIn = keyframes`
   to { opacity: 1; }
 `
 
-const scaleUp = keyframes`
-  from { opacity: 0; transform: scale(0.95) translateY(12px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-`
-
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+const slideUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 `
 
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.65);
-    backdrop-filter: blur(6px);
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(3px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2000;
     padding: 16px;
-    animation: ${fadeIn} 0.18s ease-out;
+    animation: ${fadeIn} 0.15s ease-out;
 `
 
 const ModalCard = styled.div`
     background: #ffffff;
-    border-radius: 16px;
-    width: 460px;
-    max-width: 100%;
+    border-radius: 14px;
+    width: 480px;
+    max-width: calc(100vw - 32px);
     box-shadow:
-        0 20px 40px -12px rgba(0, 0, 0, 0.25),
-        0 0 0 1px rgba(0, 0, 0, 0.05);
+        0 20px 48px -12px rgba(15, 23, 42, 0.22),
+        0 0 0 1px rgba(15, 23, 42, 0.06);
     overflow: hidden;
-    animation: ${scaleUp} 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: ${slideUp} 0.18s ease-out;
     display: flex;
     flex-direction: column;
+    font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 `
 
-const HeaderSection = styled.div<{ $variant: 'warning' | 'danger' | 'purple' | 'amber' }>`
-    padding: 24px 24px 16px;
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    border-bottom: 1px solid #f1f5f9;
-    position: relative;
-
+const HeaderBanner = styled.div<{ $variant?: 'primary' | 'danger' | 'amber' }>`
     background: ${({ $variant }) => {
-        switch ($variant) {
-            case 'danger':
-                return 'linear-gradient(180deg, #fef2f2 0%, #ffffff 100%)'
-            case 'purple':
-                return 'linear-gradient(180deg, #faf5ff 0%, #ffffff 100%)'
-            case 'amber':
-                return 'linear-gradient(180deg, #fffbeb 0%, #ffffff 100%)'
-            case 'warning':
-            default:
-                return 'linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)'
-        }
-    }};
-`
-
-const IconContainer = styled.div<{ $variant: 'warning' | 'danger' | 'purple' | 'amber' }>`
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-
-    background: ${({ $variant }) => {
-        switch ($variant) {
-            case 'danger':
-                return '#fee2e2'
-            case 'purple':
-                return '#f3e8ff'
-            case 'amber':
-                return '#fef3c7'
-            case 'warning':
-            default:
-                return '#dbeafe'
-        }
-    }};
-
-    color: ${({ $variant }) => {
         switch ($variant) {
             case 'danger':
                 return '#dc2626'
-            case 'purple':
-                return '#7e22ce'
             case 'amber':
-                return '#d97706'
-            case 'warning':
+                return '#2563eb'
+            case 'primary':
             default:
                 return '#2563eb'
         }
     }};
+    color: #ffffff;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 `
 
-const TitleContainer = styled.div`
-    flex: 1;
+const HeaderLeft = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 `
 
-const ModalTitle = styled.h3`
-    font-size: 17px;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 0 0 4px 0;
-    line-height: 1.3;
-`
-
-const Badge = styled.span<{ $variant: 'warning' | 'danger' | 'purple' | 'amber' }>`
+const HeaderBadge = styled.span`
     display: inline-block;
+    align-self: flex-start;
     font-size: 11px;
     font-weight: 600;
+    font-family: 'Poppins', 'Lato', sans-serif;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
     padding: 2px 8px;
     border-radius: 999px;
-    margin-bottom: 6px;
-
-    background: ${({ $variant }) => {
-        switch ($variant) {
-            case 'danger':
-                return '#fee2e2'
-            case 'purple':
-                return '#f3e8ff'
-            case 'amber':
-                return '#fef3c7'
-            case 'warning':
-            default:
-                return '#dbeafe'
-        }
-    }};
-
-    color: ${({ $variant }) => {
-        switch ($variant) {
-            case 'danger':
-                return '#b91c1c'
-            case 'purple':
-                return '#6b21a8'
-            case 'amber':
-                return '#b45309'
-            case 'warning':
-            default:
-                return '#1d4ed8'
-        }
-    }};
 `
 
-const CloseIconButton = styled.button`
+const ModalTitle = styled.h2`
+    font-size: 1.12rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+    font-family: 'Poppins', 'Lato', sans-serif;
+    letter-spacing: -0.01em;
+`
+
+const CloseButton = styled.button`
     background: transparent;
     border: none;
     cursor: pointer;
-    color: #94a3b8;
-    padding: 4px;
+    color: rgba(255, 255, 255, 0.85);
+    padding: 6px;
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -179,89 +110,103 @@ const CloseIconButton = styled.button`
     transition: all 0.15s ease;
 
     &:hover {
-        background: rgba(0, 0, 0, 0.05);
-        color: #475569;
+        background: rgba(255, 255, 255, 0.18);
+        color: #ffffff;
     }
 `
 
 const ContentBody = styled.div`
-    padding: 20px 24px;
-    font-size: 14px;
-    color: #475569;
-    line-height: 1.55;
+    padding: 22px 24px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 16px;
+    background: #ffffff;
 `
 
-const CountdownBanner = styled.div`
+const DescriptionText = styled.p`
+    font-size: 14.5px;
+    color: #334155;
+    line-height: 1.6;
+    margin: 0;
+    font-family: 'Lato', sans-serif;
+`
+
+const GuidanceText = styled.p`
+    font-size: 13.5px;
+    color: #64748b;
+    line-height: 1.55;
+    margin: 0;
+    font-family: 'Lato', sans-serif;
+`
+
+const StatusPanel = styled.div`
     background: #f8fafc;
     border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 12px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 13px;
 `
 
-const CountdownTimer = styled.span`
-    font-size: 15px;
+const StatusLabel = styled.span`
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+    font-family: 'Lato', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`
+
+const StatusValue = styled.span`
+    font-size: 14.5px;
     font-weight: 700;
     color: #0f172a;
+    font-family: 'Poppins', 'Lato', sans-serif;
     font-variant-numeric: tabular-nums;
-    animation: ${pulse} 2s infinite ease-in-out;
-`
-
-const TipBox = styled.div`
-    background: #f8fafc;
-    border-left: 3px solid #3b82f6;
-    padding: 10px 14px;
-    border-radius: 0 8px 8px 0;
-    font-size: 13px;
-    color: #334155;
 `
 
 const FooterActions = styled.div`
-    padding: 16px 24px 20px;
+    padding: 14px 24px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 10px;
-    background: #fafafa;
+    background: #ffffff;
     border-top: 1px solid #f1f5f9;
 `
 
-const Button = styled.button<{ $primary?: boolean; $variant?: 'primary' | 'danger' }>`
-    padding: 9px 18px;
+const ActionButton = styled.button<{ $primary?: boolean }>`
+    padding: 8px 18px;
     border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 13.5px;
+    font-weight: 500;
+    font-family: 'Poppins', 'Lato', sans-serif;
     cursor: pointer;
     transition: all 0.15s ease;
     display: inline-flex;
     align-items: center;
     gap: 6px;
 
-    ${({ $primary, $variant }) =>
+    ${({ $primary }) =>
         $primary
             ? `
-        background: ${$variant === 'danger' ? '#ef4444' : '#2563eb'};
+        background: #2563eb;
         color: #ffffff;
         border: none;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
         &:hover {
-          background: ${$variant === 'danger' ? '#dc2626' : '#1d4ed8'};
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+          background: #1d4ed8;
         }
       `
             : `
         background: #ffffff;
-        color: #334155;
-        border: 1px solid #cbd5e1;
+        color: #475569;
+        border: 1.5px solid #cbd5e1;
         &:hover {
-          background: #f1f5f9;
-          color: #0f172a;
+          background: #f8fafc;
+          border-color: #94a3b8;
+          color: #1e293b;
         }
       `}
 `
@@ -307,7 +252,7 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
         setSecondsRemaining(feedback?.retryAfter ?? 0)
     }, [feedback?.retryAfter])
 
-    // Live countdown interval
+    // Live countdown timer
     useEffect(() => {
         if (!secondsRemaining || secondsRemaining <= 0) return
         const timer = setInterval(() => {
@@ -330,171 +275,181 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
         errorType === 'llm_provider_error' ||
         errorType === 'invalid_llm_json'
 
-    let variant: 'warning' | 'danger' | 'purple' | 'amber' = 'warning'
     let badgeText = 'Notice'
     let title = 'Generation Notice'
-    let icon = <AlertCircle size={24} />
+    let bannerVariant: 'primary' | 'danger' | 'amber' = 'primary'
 
     if (is30MinRateLimit) {
-        variant = 'warning'
         badgeText = 'Rate Limit'
-        title = 'AI generation limit reached'
-        icon = <Clock size={24} />
+        title = 'Generation Quota Reached'
+        bannerVariant = 'primary'
     } else if (isDailyRateLimit) {
-        variant = 'purple'
         badgeText = 'Daily Quota'
-        title = 'Daily AI generation limit reached'
-        icon = <CalendarClock size={24} />
+        title = 'Daily Limit Reached'
+        bannerVariant = 'primary'
     } else if (isRestricted) {
-        variant = 'danger'
-        badgeText = 'Account Restriction'
-        title = 'AI generation temporarily restricted'
-        icon = <ShieldAlert size={24} />
+        badgeText = 'Account Cooldown'
+        title = 'Generation Temporarily Paused'
+        bannerVariant = 'danger'
     } else if (isInvalidContent) {
-        variant = 'amber'
-        badgeText = 'Content Mismatch'
-        title = "Content doesn't match this section"
-        icon = <AlertCircle size={24} />
+        badgeText = 'Content Verification'
+        title = 'Content Mismatch'
+        bannerVariant = 'primary'
     } else if (isProviderFailure) {
-        variant = 'danger'
-        badgeText = 'Service Issue'
-        title = 'Generation failed'
-        icon = <AlertTriangle size={24} />
+        badgeText = 'Service Notice'
+        title = 'Generation Unavailable'
+        bannerVariant = 'amber'
     }
 
-    return (
+    return createPortal(
         <Overlay onClick={onClose}>
-            <ModalCard onClick={(e) => e.stopPropagation()}>
-                <HeaderSection $variant={variant}>
-                    <IconContainer $variant={variant}>{icon}</IconContainer>
-                    <TitleContainer>
-                        <Badge $variant={variant}>{badgeText}</Badge>
+            <ModalCard onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+                <HeaderBanner $variant={bannerVariant}>
+                    <HeaderLeft>
+                        <HeaderBadge>{badgeText}</HeaderBadge>
                         <ModalTitle>{title}</ModalTitle>
-                    </TitleContainer>
-                    <CloseIconButton onClick={onClose} aria-label="Close modal">
-                        <X size={18} />
-                    </CloseIconButton>
-                </HeaderSection>
+                    </HeaderLeft>
+                    <CloseButton onClick={onClose} aria-label="Close dialog">
+                        <X size={19} />
+                    </CloseButton>
+                </HeaderBanner>
 
                 <ContentBody>
                     {is30MinRateLimit && (
                         <>
-                            <p>
-                                You&apos;ve made several generation requests recently. To ensure fair
-                                availability for all students, generation is paused for a short
-                                cooldown window.
-                            </p>
+                            <DescriptionText>
+                                You have reached the short-term AI generation limit. To ensure fair
+                                availability for all students on campus, generation requests are
+                                briefly paused.
+                            </DescriptionText>
                             {secondsRemaining > 0 && (
-                                <CountdownBanner>
-                                    <span>Cooldown remaining:</span>
-                                    <CountdownTimer>{formatDuration(secondsRemaining)}</CountdownTimer>
-                                </CountdownBanner>
+                                <StatusPanel>
+                                    <StatusLabel>
+                                        <Clock size={16} />
+                                        Cooldown remaining
+                                    </StatusLabel>
+                                    <StatusValue>{formatDuration(secondsRemaining)}</StatusValue>
+                                </StatusPanel>
                             )}
+                            <GuidanceText>
+                                Manual resume editing and LaTeX compilation remain fully available
+                                while the cooldown resets.
+                            </GuidanceText>
                         </>
                     )}
 
                     {isDailyRateLimit && (
                         <>
-                            <p>
-                                You&apos;ve reached today&apos;s AI generation limit. You can use AI
-                                generation again after the daily quota resets.
-                            </p>
+                            <DescriptionText>
+                                You have reached today&apos;s AI generation allowance. Generation
+                                will be available again when the daily quota resets.
+                            </DescriptionText>
                             {feedback.resetAt && (
-                                <CountdownBanner>
-                                    <span>Reset time:</span>
-                                    <CountdownTimer>
-                                        {formatTimeString(feedback.resetAt)}
-                                    </CountdownTimer>
-                                </CountdownBanner>
+                                <StatusPanel>
+                                    <StatusLabel>
+                                        <Clock size={16} />
+                                        Quota resets at
+                                    </StatusLabel>
+                                    <StatusValue>{formatTimeString(feedback.resetAt)}</StatusValue>
+                                </StatusPanel>
                             )}
                             {secondsRemaining > 0 && !feedback.resetAt && (
-                                <CountdownBanner>
-                                    <span>Reset in approximately:</span>
-                                    <CountdownTimer>{formatDuration(secondsRemaining)}</CountdownTimer>
-                                </CountdownBanner>
+                                <StatusPanel>
+                                    <StatusLabel>
+                                        <Clock size={16} />
+                                        Reset in approximately
+                                    </StatusLabel>
+                                    <StatusValue>{formatDuration(secondsRemaining)}</StatusValue>
+                                </StatusPanel>
                             )}
+                            <GuidanceText>
+                                You can continue editing, rearranging sections, and rendering your
+                                resume PDF as normal.
+                            </GuidanceText>
                         </>
                     )}
 
                     {isRestricted && (
                         <>
-                            <p>
-                                AI generation is temporarily restricted for this account due to repeated
-                                policy violations or unexpected activity.
-                            </p>
+                            <DescriptionText>
+                                AI generation is temporarily restricted for this account following
+                                repeated policy flags or off-topic inputs.
+                            </DescriptionText>
                             {feedback.blockedUntil && (
-                                <CountdownBanner>
-                                    <span>Access will be restored at:</span>
-                                    <CountdownTimer>
-                                        {formatTimeString(feedback.blockedUntil)}
-                                    </CountdownTimer>
-                                </CountdownBanner>
+                                <StatusPanel>
+                                    <StatusLabel>
+                                        <Clock size={16} />
+                                        Access restores at
+                                    </StatusLabel>
+                                    <StatusValue>{formatTimeString(feedback.blockedUntil)}</StatusValue>
+                                </StatusPanel>
                             )}
-                            <TipBox>
-                                Normal manual editing of your resume and LaTeX rendering remain
-                                fully available during this temporary cooldown.
-                            </TipBox>
+                            <GuidanceText>
+                                You may continue manual resume editing and LaTeX rendering without
+                                interruption.
+                            </GuidanceText>
                         </>
                     )}
 
                     {isInvalidContent && (
                         <>
-                            <p>
+                            <DescriptionText>
                                 {feedback.message ||
-                                    'The input does not appear to contain content relevant to this resume section.'}
-                            </p>
-                            <TipBox>
-                                Please verify that your rough notes contain relevant facts, titles,
-                                dates, metrics, or technical roles meant for this specific resume
+                                    'The input provided does not appear to contain content relevant to this resume section.'}
+                            </DescriptionText>
+                            <GuidanceText>
+                                Please verify that your rough notes include relevant achievements,
+                                metrics, titles, or technical responsibilities suited for this specific
                                 section.
-                            </TipBox>
+                            </GuidanceText>
                         </>
                     )}
 
                     {isProviderFailure && (
                         <>
-                            <p>
+                            <DescriptionText>
                                 {feedback.message ||
-                                    'The AI service could not complete this request. Please try again later.'}
-                            </p>
-                            <TipBox>
-                                Your previous text input is preserved. You can click Retry or try
-                                again in a few moments.
-                            </TipBox>
+                                    'The AI generation service is currently experiencing high load and could not complete this request.'}
+                            </DescriptionText>
+                            <GuidanceText>
+                                Your entered notes have been preserved. You can click Retry below or try
+                                again in a moment.
+                            </GuidanceText>
                         </>
                     )}
                 </ContentBody>
 
                 <FooterActions>
                     {isInvalidContent && onEditInput && (
-                        <Button
+                        <ActionButton
                             $primary
                             onClick={() => {
                                 onClose()
                                 onEditInput()
                             }}
                         >
-                            <PenLine size={15} />
+                            <PenLine size={14} />
                             Edit Input
-                        </Button>
+                        </ActionButton>
                     )}
 
                     {isProviderFailure && onRetry && (
-                        <Button
+                        <ActionButton
                             $primary
                             onClick={() => {
                                 onClose()
                                 onRetry()
                             }}
                         >
-                            <RefreshCw size={15} />
+                            <RefreshCw size={14} />
                             Retry
-                        </Button>
+                        </ActionButton>
                     )}
 
-                    <Button onClick={onClose}>Close</Button>
+                    <ActionButton onClick={onClose}>Close</ActionButton>
                 </FooterActions>
             </ModalCard>
-        </Overlay>
+        </Overlay>,
+        document.body
     )
 }

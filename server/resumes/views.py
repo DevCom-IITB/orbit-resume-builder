@@ -488,10 +488,10 @@ class GenerateEntryView(APIView):
 
             retrieved_context = None
             if stdef.key in RETRIEVAL_SECTION_KEYS:
-                from rag.chroma_client import get_resume_collection
-                from rag.retrieval.main_pipeline import run_retrieval_pipeline
-
                 try:
+                    from rag.chroma_client import get_resume_collection
+                    from rag.retrieval.main_pipeline import run_retrieval_pipeline
+
                     collection = get_resume_collection()
                     rag_result = run_retrieval_pipeline(
                         query=entry.raw_input,
