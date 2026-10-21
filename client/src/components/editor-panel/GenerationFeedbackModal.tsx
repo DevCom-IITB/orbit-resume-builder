@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import styled, { keyframes } from 'styled-components'
-import { X, RefreshCw, PenLine, Clock } from 'lucide-react'
+import { X, RefreshCw, PenLine } from 'lucide-react'
 import type { LLMGenerationErrorPayload } from '../../lib/api'
 
 const fadeIn = keyframes`
@@ -9,10 +9,10 @@ const fadeIn = keyframes`
   to { opacity: 1; }
 `
 
-const slideUp = keyframes`
+const scaleUp = keyframes`
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.98);
+    transform: translateY(6px) scale(0.98);
   }
   to {
     opacity: 1;
@@ -23,7 +23,7 @@ const slideUp = keyframes`
 const Overlay = styled.div`
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.45);
+    background: rgba(15, 23, 42, 0.4);
     backdrop-filter: blur(3px);
     display: flex;
     align-items: center;
@@ -36,64 +36,33 @@ const Overlay = styled.div`
 const ModalCard = styled.div`
     background: #ffffff;
     border-radius: 14px;
-    width: 480px;
+    width: 470px;
     max-width: calc(100vw - 32px);
-    box-shadow:
-        0 20px 48px -12px rgba(15, 23, 42, 0.22),
-        0 0 0 1px rgba(15, 23, 42, 0.06);
+    border: 1px solid #0f0c0ca9;
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.14), 0 0 1px 1px rgba(0, 0, 0, 0.04);
     overflow: hidden;
-    animation: ${slideUp} 0.18s ease-out;
+    animation: ${scaleUp} 0.18s ease-out;
     display: flex;
     flex-direction: column;
     font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 `
 
-const HeaderBanner = styled.div<{ $variant?: 'primary' | 'danger' | 'amber' }>`
-    background: ${({ $variant }) => {
-        switch ($variant) {
-            case 'danger':
-                return '#dc2626'
-            case 'amber':
-                return '#2563eb'
-            case 'primary':
-            default:
-                return '#2563eb'
-        }
-    }};
-    color: #ffffff;
-    padding: 16px 22px;
+const ModalHeader = styled.div`
+    padding: 24px 24px 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
 `
 
-const HeaderLeft = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-`
-
-const HeaderBadge = styled.span`
-    display: inline-block;
-    align-self: flex-start;
-    font-size: 11px;
-    font-weight: 600;
-    font-family: 'Poppins', 'Lato', sans-serif;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    background: rgba(255, 255, 255, 0.18);
-    color: #ffffff;
-    padding: 2px 8px;
-    border-radius: 999px;
-`
-
 const ModalTitle = styled.h2`
-    font-size: 1.12rem;
-    font-weight: 600;
-    color: #ffffff;
+    font-size: 1.25rem;
+    font-weight: 700;
+    padding-left: 10px;
+    justify-self: center;
+    color: #000000ff;
     margin: 0;
-    font-family: 'Poppins', 'Lato', sans-serif;
+    font-family: 'Lato', sans-serif;
     letter-spacing: -0.01em;
 `
 
@@ -101,8 +70,8 @@ const CloseButton = styled.button`
     background: transparent;
     border: none;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.85);
-    padding: 6px;
+    color: #4b5563;
+    padding: 4px;
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -110,103 +79,101 @@ const CloseButton = styled.button`
     transition: all 0.15s ease;
 
     &:hover {
-        background: rgba(255, 255, 255, 0.18);
-        color: #ffffff;
+        background: #f1f5f9;
+        color: #111827;
     }
 `
 
-const ContentBody = styled.div`
-    padding: 22px 24px;
+const ModalBody = styled.div`
+    padding: 0 24px 16px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    background: #ffffff;
+    gap: 14px;
 `
 
 const DescriptionText = styled.p`
     font-size: 14.5px;
-    color: #334155;
+    font-weight: 500;
+    color: #03050aff;
     line-height: 1.6;
     margin: 0;
     font-family: 'Lato', sans-serif;
 `
 
-const GuidanceText = styled.p`
-    font-size: 13.5px;
-    color: #64748b;
+const Subtext = styled.p`
+    font-size: 13px;
+    font-weight: 500;
+    color: #292e35ff;
     line-height: 1.55;
     margin: 0;
     font-family: 'Lato', sans-serif;
 `
 
 const StatusPanel = styled.div`
-    background: #f8fafc;
+    background: #ededed14;
     border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 12px 16px;
+    border-radius: 10px;
+    padding: 12px 25px;
+    font-style: italic;
     display: flex;
     align-items: center;
     justify-content: space-between;
 `
 
 const StatusLabel = styled.span`
-    font-size: 13px;
-    color: #64748b;
+    font-size: 13.5px;
+    color: #00184fff;
     font-weight: 500;
     font-family: 'Lato', sans-serif;
-    display: flex;
-    align-items: center;
-    gap: 8px;
 `
 
 const StatusValue = styled.span`
-    font-size: 14.5px;
+    font-size: 15px;
     font-weight: 700;
-    color: #0f172a;
-    font-family: 'Poppins', 'Lato', sans-serif;
+    color: #2646f2;
+    font-family: 'Lato', sans-serif;
     font-variant-numeric: tabular-nums;
 `
 
-const FooterActions = styled.div`
-    padding: 14px 24px;
+const ModalFooter = styled.div`
+    padding: 0px 24px 8px 8px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 10px;
     background: #ffffff;
-    border-top: 1px solid #f1f5f9;
 `
 
-const ActionButton = styled.button<{ $primary?: boolean }>`
-    padding: 8px 18px;
+const ActionButton = styled.button<{ $outline?: boolean }>`
+    padding: 8px 24px;
     border-radius: 8px;
-    font-size: 13.5px;
-    font-weight: 500;
-    font-family: 'Poppins', 'Lato', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Lato', sans-serif;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.18s ease;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
 
-    ${({ $primary }) =>
-        $primary
+    ${({ $outline }) =>
+        $outline
             ? `
-        background: #2563eb;
-        color: #ffffff;
-        border: none;
+        background: #ffffff;
+        color: #2646f2;
+        border: 1.5px solid #2646f2;
         &:hover {
-          background: #1d4ed8;
+          background: #f8f9ff;
         }
       `
             : `
-        background: #ffffff;
-        color: #475569;
-        border: 1.5px solid #cbd5e1;
+        background: #2646f2;
+        color: #ffffff;
+        border: 1px solid #2646f2;
         &:hover {
-          background: #f8fafc;
-          border-color: #94a3b8;
-          color: #1e293b;
+          background: #1d38cb;
+          border-color: #1d38cb;
         }
       `}
 `
@@ -275,46 +242,31 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
         errorType === 'llm_provider_error' ||
         errorType === 'invalid_llm_json'
 
-    let badgeText = 'Notice'
-    let title = 'Generation Notice'
-    let bannerVariant: 'primary' | 'danger' | 'amber' = 'primary'
+    let title = 'Notice'
 
     if (is30MinRateLimit) {
-        badgeText = 'Rate Limit'
-        title = 'Generation Quota Reached'
-        bannerVariant = 'primary'
+        title = 'Generation Limit Reached'
     } else if (isDailyRateLimit) {
-        badgeText = 'Daily Quota'
         title = 'Daily Limit Reached'
-        bannerVariant = 'primary'
     } else if (isRestricted) {
-        badgeText = 'Account Cooldown'
         title = 'Generation Temporarily Paused'
-        bannerVariant = 'danger'
     } else if (isInvalidContent) {
-        badgeText = 'Content Verification'
         title = 'Content Mismatch'
-        bannerVariant = 'primary'
     } else if (isProviderFailure) {
-        badgeText = 'Service Notice'
         title = 'Generation Unavailable'
-        bannerVariant = 'amber'
     }
 
     return createPortal(
         <Overlay onClick={onClose}>
             <ModalCard onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-                <HeaderBanner $variant={bannerVariant}>
-                    <HeaderLeft>
-                        <HeaderBadge>{badgeText}</HeaderBadge>
-                        <ModalTitle>{title}</ModalTitle>
-                    </HeaderLeft>
+                <ModalHeader>
+                    <ModalTitle>{title}</ModalTitle>
                     <CloseButton onClick={onClose} aria-label="Close dialog">
-                        <X size={19} />
+                        <X size={20} />
                     </CloseButton>
-                </HeaderBanner>
+                </ModalHeader>
 
-                <ContentBody>
+                <ModalBody>
                     {is30MinRateLimit && (
                         <>
                             <DescriptionText>
@@ -324,17 +276,14 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
                             </DescriptionText>
                             {secondsRemaining > 0 && (
                                 <StatusPanel>
-                                    <StatusLabel>
-                                        <Clock size={16} />
-                                        Cooldown remaining
-                                    </StatusLabel>
+                                    <StatusLabel>Cooldown remaining</StatusLabel>
                                     <StatusValue>{formatDuration(secondsRemaining)}</StatusValue>
                                 </StatusPanel>
                             )}
-                            <GuidanceText>
+                            <Subtext>
                                 Manual resume editing and LaTeX compilation remain fully available
                                 while the cooldown resets.
-                            </GuidanceText>
+                            </Subtext>
                         </>
                     )}
 
@@ -346,26 +295,20 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
                             </DescriptionText>
                             {feedback.resetAt && (
                                 <StatusPanel>
-                                    <StatusLabel>
-                                        <Clock size={16} />
-                                        Quota resets at
-                                    </StatusLabel>
+                                    <StatusLabel>Quota resets at</StatusLabel>
                                     <StatusValue>{formatTimeString(feedback.resetAt)}</StatusValue>
                                 </StatusPanel>
                             )}
                             {secondsRemaining > 0 && !feedback.resetAt && (
                                 <StatusPanel>
-                                    <StatusLabel>
-                                        <Clock size={16} />
-                                        Reset in approximately
-                                    </StatusLabel>
+                                    <StatusLabel>Reset in approximately</StatusLabel>
                                     <StatusValue>{formatDuration(secondsRemaining)}</StatusValue>
                                 </StatusPanel>
                             )}
-                            <GuidanceText>
+                            <Subtext>
                                 You can continue editing, rearranging sections, and rendering your
                                 resume PDF as normal.
-                            </GuidanceText>
+                            </Subtext>
                         </>
                     )}
 
@@ -377,17 +320,14 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
                             </DescriptionText>
                             {feedback.blockedUntil && (
                                 <StatusPanel>
-                                    <StatusLabel>
-                                        <Clock size={16} />
-                                        Access restores at
-                                    </StatusLabel>
+                                    <StatusLabel>Access restores at</StatusLabel>
                                     <StatusValue>{formatTimeString(feedback.blockedUntil)}</StatusValue>
                                 </StatusPanel>
                             )}
-                            <GuidanceText>
+                            <Subtext>
                                 You may continue manual resume editing and LaTeX rendering without
                                 interruption.
-                            </GuidanceText>
+                            </Subtext>
                         </>
                     )}
 
@@ -397,11 +337,11 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
                                 {feedback.message ||
                                     'The input provided does not appear to contain content relevant to this resume section.'}
                             </DescriptionText>
-                            <GuidanceText>
+                            <Subtext>
                                 Please verify that your rough notes include relevant achievements,
                                 metrics, titles, or technical responsibilities suited for this specific
                                 section.
-                            </GuidanceText>
+                            </Subtext>
                         </>
                     )}
 
@@ -411,18 +351,18 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
                                 {feedback.message ||
                                     'The AI generation service is currently experiencing high load and could not complete this request.'}
                             </DescriptionText>
-                            <GuidanceText>
+                            <Subtext>
                                 Your entered notes have been preserved. You can click Retry below or try
                                 again in a moment.
-                            </GuidanceText>
+                            </Subtext>
                         </>
                     )}
-                </ContentBody>
+                </ModalBody>
 
-                <FooterActions>
+                <ModalFooter>
                     {isInvalidContent && onEditInput && (
                         <ActionButton
-                            $primary
+                            $outline
                             onClick={() => {
                                 onClose()
                                 onEditInput()
@@ -435,7 +375,7 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
 
                     {isProviderFailure && onRetry && (
                         <ActionButton
-                            $primary
+                            $outline
                             onClick={() => {
                                 onClose()
                                 onRetry()
@@ -447,7 +387,7 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
                     )}
 
                     <ActionButton onClick={onClose}>Close</ActionButton>
-                </FooterActions>
+                </ModalFooter>
             </ModalCard>
         </Overlay>,
         document.body
