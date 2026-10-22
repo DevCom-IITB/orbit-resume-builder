@@ -1,0 +1,122 @@
+
+\documentclass[a4paper,10.9pt]{article}
+\usepackage[a4paper, bottom = 0.4mm, left = 14.11mm, right = 14.11mm, top = 0.6in]{geometry}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage[table, svgnames]{xcolor}
+\usepackage{wrapfig}
+\usepackage{comment}
+\usepackage{verbatim}
+\usepackage{microtype}
+\usepackage{colortbl}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage[pdftex,colorlinks=false,pdfborder={0 0 0}]{hyperref}
+\usepackage{hyphenat}
+\usepackage{anyfontsize}
+\usepackage{fontawesome}
+\definecolor{myblue}{HTML}{4B41C8}
+\hyphenpenalty 10000
+\pagenumbering{gobble}
+\setlength{\parindent}{0pt}
+\newcommand\xfilll[2][1ex]{
+  \dimen0=#2\advance\dimen0 by #1
+  \leaders\hrule height \dimen0 depth -#1\hfill
+}
+\newenvironment{localsize}[1]{
+  \begingroup
+  \fontsize{#1}{\baselineskip}\selectfont
+}{
+  \endgroup
+}
+\begin{document}
+\parindent=0em
+
+\noindent
+\begin{minipage}{0.15\textwidth}
+    \includegraphics[width=\linewidth]{iitb-logo.png}
+\end{minipage}%
+\hspace{1cm}
+\begin{minipage}{0.8\textwidth}
+    \renewcommand{\arraystretch}{1.25}
+    \begin{tabular}{@{}p{7.5cm} p{5cm}@{}}
+        \large{\textbf{Jane Doe}} & \textbf{210050001} \\
+        \textbf{Computer Science} & \textbf{B.Tech.} \\
+        \textbf{IIT Bombay} & \textbf{Gender: } \\
+        \href{mailto:jane@example.com}{jane@example.com} & \textbf{+91 9876543210} \\
+    \end{tabular}
+\end{minipage}
+
+
+\noindent
+\begin{tabularx}{\textwidth}{p{3.2cm} p{4cm} p{5.5cm} p{2cm} p{2cm}}
+    \midrule
+    \textbf{Examination} & \textbf{University} & \textbf{Institute} & \textbf{Year} & \textbf{CPI} \\
+    \midrule
+
+    B.Tech. in Computer Science & IIT Bombay & IIT Bombay & 2021 - 2025 & 9.8/10 \\
+    \bottomrule
+\end{tabularx}
+
+\vspace{10pt}
+\noindent Dean's List \\
+\vspace{-18pt}
+\section*{\color{myblue}{\large PROFESSIONAL EXPERIENCE}\xfilll[0pt]{0.5pt}}
+\vspace{-8pt}
+
+\begin{localsize}{11}
+{\bf \noindent Software Engineering Intern} $\vert$\ \it\small{Google} $\vert$\ \it\small{Mountain View, CA} \vspace{-7pt}
+\hfill{\small\it(May 2024 - Aug 2024)}
+\rule{\linewidth}{0.4pt}
+\end{localsize}
+\vspace{-11pt}
+\\{\it Core infrastructure team.}\\
+\vspace{-18pt}
+\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.75 mm, leftmargin=*]
+    \item Reduced backend latency by 25\% through async processing.
+\end{itemize}
+\section*{\color{myblue}{\large KEY PROJECTS}\xfilll[0pt]{0.5pt}}
+\vspace{-8pt}
+
+\begin{localsize}{11}
+{\bf \noindent Resume Builder Engine} $\vert$\ \it\small{Personal Project} \vspace{-7pt}
+\hfill{\small\it(Jan 2025 - Mar 2025)}
+\rule{\linewidth}{0.4pt}
+\end{localsize}
+\vspace{-11pt}
+\\{\it Full-stack resume compiler.}\\
+\vspace{-18pt}
+\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.75 mm, leftmargin=*]
+    \item Implemented Awesome-CV renderer with dynamic accent colours.
+\end{itemize}
+\section*{\color{myblue}{\large TECHNICAL SKILLS}\xfilll[0pt]{0.5pt}}
+\vspace{-10pt}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{p{4cm} p{12.9cm}}
+    \textbf{Languages} & Python, C++, Go, TypeScript \\
+\end{tabular}
+\section*{\color{myblue}{\large POSITIONS OF RESPONSIBILITY}\xfilll[0pt]{0.5pt}}
+\vspace{-8pt}
+
+\begin{localsize}{11}
+{\bf \noindent Overall Coordinator} $\vert$\ \it\small{Computer Society} \vspace{-7pt}
+\hfill{\small\it(2023 - 2024)}
+\rule{\linewidth}{0.4pt}
+\end{localsize}
+\vspace{-11pt}
+\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.80 mm, leftmargin=*]
+    \item Led a 40-member team organizing technical events.
+\end{itemize}
+\section*{\color{myblue}{\large COURSES UNDERTAKEN}\xfilll[0pt]{0.5pt}}
+\vspace{-8pt}
+\begin{tabular}{p{4cm} p{12.9cm}}
+    \textbf{Core Computer Science} & Data Structures, Algorithms, Operating Systems \\
+\end{tabular}
+\section*{\color{myblue}{\large SCHOLASTIC ACHIEVEMENTS}\xfilll[0pt]{0.5pt}}
+\vspace{-8pt}
+\begin{itemize}[label=\textcolor{myblue}{\textbullet},itemsep = -0.75 mm, leftmargin=*]
+    \item All India Rank 42 in JEE Advanced \hfill{\small(2021)}
+\end{itemize}
+\end{document}

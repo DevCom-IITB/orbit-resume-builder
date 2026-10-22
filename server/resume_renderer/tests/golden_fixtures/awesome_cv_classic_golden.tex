@@ -1,0 +1,150 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[a4paper,left=1.4cm,right=1.4cm,top=0.8cm,bottom=1.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[default]{sourcesanspro}
+\usepackage{anyfontsize}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage[pdftex,colorlinks=false,pdfborder={0 0 0}]{hyperref}
+
+%%%%%%%%%% COLOURS %%%%%%%%%%
+\definecolor{awesome}{HTML}{DC3522}
+\definecolor{darktext}{HTML}{414141}
+\definecolor{graytext}{HTML}{5D5D5D}
+\definecolor{rulegray}{HTML}{BBBBBB}
+
+%%%%%%%%%% PAGE %%%%%%%%%%
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{3em}
+\hyphenpenalty=10000
+
+%%%%%%%%%% HEADER: \cvheader{first}{last}{position}{extra}{contact} %%%%%%%%%%
+\newcommand{\cvsep}{\quad\textbar\quad}
+\newcommand{\cvheader}[5]{%
+  \begin{center}
+    {\fontsize{28}{32}\selectfont {\color{graytext}#1}\ {\bfseries\color{darktext}#2}}\par\vspace{1ex}
+    {\color{awesome}\small #3}\par\vspace{0.6ex}
+    {\color{graytext}\small #4}\par\vspace{0.4ex}
+    {\color{graytext}\small #5}\par
+  \end{center}\vspace{-1ex}}
+
+%%%%%%%%%% SECTION TITLE: first 3 letters in accent colour %%%%%%%%%%
+\def\cvsecfirst#1#2#3{{\color{awesome}#1#2#3}}
+\newcommand{\cvsection}[1]{%
+  \par\vspace{1.4ex}\noindent
+  {\Large\bfseries\color{darktext}\cvsecfirst #1}\par
+  \vspace{-1.1ex}\noindent{\color{rulegray}\rule{\linewidth}{0.4pt}}\par\vspace{0.4ex}}
+
+%%%%%%%%%% BULLETS %%%%%%%%%%
+\newlist{cvitems}{itemize}{1}
+\setlist[cvitems]{label=\textcolor{awesome}{\textbullet},leftmargin=1.2em,
+  itemsep=0pt,topsep=2pt,parsep=0pt,partopsep=0pt}
+\newcommand{\cvsummary}[1]{\par\noindent{\small\itshape #1}\par\vspace{1pt}}
+
+%%%%%%%%%% ENTRIES: \cventry{role}{org}{location}{date}{description} %%%%%%%%%%
+\newenvironment{cventries}{\par}{\par}
+\newcommand{\cventry}[5]{%
+  \par\vspace{1.2ex}\noindent
+  {\bfseries\color{darktext}#1}\hfill{\small\itshape\color{graytext}#4}\par
+  \vspace{-0.3ex}\noindent
+  {\small\color{awesome}#2}\hfill{\small\itshape\color{graytext}#3}\par
+  #5}
+
+%%%%%%%%%% HONORS: \cvhonor{award}{event}{location}{date} %%%%%%%%%%
+\newlength{\cvhonordatewidth}\setlength{\cvhonordatewidth}{2.4em}
+\newenvironment{cvhonors}{\par}{\par}
+\newcommand{\cvhonor}[4]{%
+  \par\vspace{0.5ex}\noindent
+  \ifx\relax#4\relax\else
+    \hangindent=\dimexpr\cvhonordatewidth+0.6em\relax\hangafter=1\relax
+    \makebox[\cvhonordatewidth][l]{\small\color{graytext}#4}\hspace{0.6em}%
+  \fi
+  \ifx\relax#1\relax\else{\bfseries #1}\ifx\relax#2\relax\else,\ \fi\fi
+  #2%
+  \ifx\relax#3\relax\else\hfill{\small\itshape\color{graytext}#3}\fi
+  \par}
+
+%%%%%%%%%% SKILLS: \cvskill{category}{items} %%%%%%%%%%
+\newenvironment{cvskills}
+  {\par\vspace{0.6ex}\noindent
+   \begin{tabular}{@{}>{\raggedleft\arraybackslash}p{0.2\linewidth}@{\hspace{1em}}>{\raggedright\arraybackslash}p{0.76\linewidth}@{}}}
+  {\end{tabular}\par}
+\newcommand{\cvskill}[2]{{\bfseries #1} & #2\\[0.5ex]}
+
+\begin{document}
+\parindent=0em
+
+\cvheader{Jane}{Doe}{B.Tech. \enskip$\cdot$\enskip Computer Science}{210050001 \cvsep IIT Bombay}{\href{mailto:jane@example.com}{jane@example.com} \cvsep +91 9876543210}
+\cvsection{Education}
+\begin{cventries}
+\cventry
+  {B.Tech. in Computer Science}
+  {IIT Bombay}
+  {IIT Bombay}
+  {2021 - 2025}
+  {
+    \begin{cvitems}
+      \item {CPI/Score: 9.8/10}
+      \item {Dean's List}
+    \end{cvitems}
+  }
+\end{cventries}
+\cvsection{Professional Experience}
+\begin{cventries}
+\cventry
+  {Software Engineering Intern}
+  {Google}
+  {Mountain View, CA}
+  {May 2024 - Aug 2024}
+  {
+    \cvsummary{Core infrastructure team.}
+    \begin{cvitems}
+      \item {Reduced backend latency by 25\% through async processing.}
+    \end{cvitems}
+  }
+\end{cventries}
+\cvsection{Key Projects}
+\begin{cventries}
+\cventry
+  {Resume Builder Engine}
+  {Personal Project}
+  {}
+  {Jan 2025 - Mar 2025}
+  {
+    \cvsummary{Full-stack resume compiler.}
+    \begin{cvitems}
+      \item {Implemented Awesome-CV renderer with dynamic accent colours.}
+    \end{cvitems}
+  }
+\end{cventries}
+\cvsection{Technical Skills}
+\begin{cvskills}
+  \cvskill{Languages}{Python, C++, Go, TypeScript}
+\end{cvskills}
+\cvsection{Positions of Responsibility}
+\begin{cventries}
+\cventry
+  {Overall Coordinator}
+  {Computer Society}
+  {}
+  {2023 - 2024}
+  {
+    \begin{cvitems}
+      \item {Led a 40-member team organizing technical events.}
+    \end{cvitems}
+  }
+\end{cventries}
+\cvsection{Courses Undertaken}
+\begin{cvskills}
+  \cvskill{Core Computer Science}{Data Structures, Algorithms, Operating Systems}
+\end{cvskills}
+\cvsection{Scholastic Achievements}
+\begin{cvhonors}
+  \cvhonor{}{All India Rank 42 in JEE Advanced}{}{2021}
+\end{cvhonors}
+
+\end{document}

@@ -1,6 +1,12 @@
+import hashlib
 import os
+import re
 import tarfile
+import uuid
 from io import BytesIO
+
+from django.conf import settings
+from django.core.cache import cache
 
 try:
     import docker
@@ -77,6 +83,10 @@ if _cache_client is not None:
             cache_volume = _cache_client.volumes.create(LATEX_CACHE_VOLUME)
         except Exception:
             cache_volume = None
+
+# PDF compile cache settings (configurable via Django settings)
+_COMPILE_CACHE_TTL = getattr(settings, "STYLE_CACHE_TTL_SECONDS", 3600)  # 1 hour
+_COMPILE_CACHE_MAX_BYTES = getattr(settings, "STYLE_CACHE_MAX_BYTES", 10 * 1024 * 1024)  # 10 MB
 
 
 TEMPLATE = r"""
@@ -174,13 +184,36 @@ TEMPLATE = r"""
 \longtrue
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{document}
+__SPACING_SETUP__\begin{document}
 \parindent=0em
 
 __CONTENT__
 
 \end{document}
 """
+
+
+_PLACEHOLDER_PATTERN = None
+_PLACEHOLDER_KEYS: frozenset = frozenset()
+
+
+def fill_placeholders(preamble: str, values: dict) -> str:
+    """
+    Replace ``__KEY__`` placeholders in *preamble* using a single-pass regex
+    substitution. A one-pass approach prevents double-substitution: user text
+    containing ``__X__`` inside a replacement value is never re-expanded.
+
+    ``values`` keys must include the surrounding underscores (e.g. ``"__CONTENT__"``).
+    """
+    global _PLACEHOLDER_PATTERN, _PLACEHOLDER_KEYS
+
+    current_keys = frozenset(values.keys())
+    if _PLACEHOLDER_PATTERN is None or current_keys != _PLACEHOLDER_KEYS:
+        pattern = "|".join(re.escape(k) for k in sorted(values.keys()))
+        _PLACEHOLDER_PATTERN = re.compile(pattern)
+        _PLACEHOLDER_KEYS = current_keys
+
+    return _PLACEHOLDER_PATTERN.sub(lambda m: values[m.group(0)], preamble)
 
 
 def assemble_resume_latex(resume) -> str:
@@ -194,6 +227,7 @@ def assemble_resume_latex(resume) -> str:
         return resume.cached_latex
 
     from resume_renderer.schemas.converter_registry import get_converter
+    from resume_renderer.services.styling import FONTS, build_spacing_setup, resolve_style
 
     converter_set_key = resume.visual_theme.converter_set_key
     config_override = resume.config_override or {}
@@ -233,10 +267,34 @@ def assemble_resume_latex(resume) -> str:
 
         sections_latex.append(section_latex)
 
-    #preamble = (resume.visual_theme.latex_preamble or "").strip() or TEMPLATE
-    full_latex = resume.visual_theme.latex_preamble.replace(
-    "__CONTENT__", "\n".join(sections_latex)
-)
+    # Resolve style (never crashes — falls back to defaults for old/invalid data)
+    style = resolve_style(resume)
+    font_setup = FONTS[style["font"]]
+    accent_hex = style["accent"].lstrip("#").upper()  # 6 uppercase hex digits, no leading '#'
+    spacing_setup = build_spacing_setup(style.get("line_spacing", "1.00"), style.get("word_spacing", "1.00"))
+
+    preamble = resume.visual_theme.latex_preamble
+    if preamble.count("__SPACING_SETUP__") != 1:
+        raise RuntimeError(
+            f"Preamble for theme '{resume.visual_theme.key}' must contain '__SPACING_SETUP__' exactly once, "
+            f"found {preamble.count('__SPACING_SETUP__')}."
+        )
+
+    values = {
+        "__CONTENT__": "\n".join(sections_latex),
+        "__FONT_SETUP__": font_setup,
+        "__ACCENT_HEX__": accent_hex,
+        "__SPACING_SETUP__": spacing_setup,
+    }
+    full_latex = fill_placeholders(preamble, values)
+
+    # Safety net: no unfilled __PLACEHOLDER__ must remain
+    leftover = re.search(r"__[A-Z0-9_]+__", full_latex)
+    if leftover:
+        raise RuntimeError(
+            f"Unfilled LaTeX placeholder '{leftover.group()}' remains in the final document. "
+            "Ensure seed_templates has been run and IITB_PREAMBLE contains all required placeholders."
+        )
 
     resume.cached_latex = full_latex
     resume.latex_cache_valid = True
@@ -274,13 +332,29 @@ def _get_latex_container():
 
 
 def compile_latex(latex: str) -> bytes:
-    """Compile LaTeX into PDF bytes using a persistent Dockerized TeX Live container."""
+    """Compile LaTeX into PDF bytes using a persistent Dockerized TeX Live container.
+
+    Results are cached by SHA-256 of the latex string to avoid redundant compiles
+    when the same document is requested multiple times (e.g. rapid style toggling).
+    Each compile job runs in an isolated per-job subdirectory inside the container
+    so concurrent requests cannot interfere with each other.
+    """
     if _get_docker_client() is None:
         raise RuntimeError(
             "Docker client is not available. Start Docker Desktop and try again."
         )
 
+    # -- Cache lookup --------------------------------------------------------
+    latex_hash = hashlib.sha256(latex.encode("utf-8")).hexdigest()
+    cache_key = f"pdf_compile_{latex_hash}"
+    cached_pdf = cache.get(cache_key)
+    if cached_pdf is not None:
+        return cached_pdf
+
+    # -- Compile in Docker with per-job workdir isolation --------------------
     container = _get_latex_container()
+    job_id = uuid.uuid4().hex
+    workdir = f"/usr/src/tex/{job_id}"
 
     try:
         encoded = latex.encode("utf-8")
@@ -303,17 +377,30 @@ def compile_latex(latex: str) -> bytes:
                     tar.addfile(tarinfo=logo_info, fileobj=BytesIO(logo_data))
 
         tar_buffer.seek(0)
-        container.put_archive("/usr/src/tex", tar_buffer.read())
+        # Create isolated job directory and place files in it
+        container.exec_run(cmd=f"mkdir -p {workdir}")
+        container.put_archive(workdir, tar_buffer.read())
 
         exit_code, out = container.exec_run(
-            cmd="pdflatex -interaction=nonstopmode -output-directory=/usr/src/tex main.tex",
-            workdir="/usr/src/tex",
+            cmd=(
+                f"timeout 30 pdflatex -interaction=nonstopmode "
+                f"-output-directory={workdir} {workdir}/main.tex"
+            ),
+            workdir=workdir,
         )
         if exit_code != 0:
             logs = out.decode("utf-8", errors="replace")
-            raise RuntimeError(f"Compilation failed with exit code {exit_code}: {logs}")
+            if exit_code == 124:
+                raise RuntimeError(
+                    "LaTeX compilation timed out after 30 seconds. "
+                    "The document may be too complex or contain an infinite loop."
+                )
+            raise RuntimeError(
+                f"LaTeX compilation failed (exit code {exit_code}).\n"
+                f"Log excerpt:\n{logs[-3000:]}"
+            )
 
-        bits, _ = container.get_archive("/usr/src/tex/main.pdf")
+        bits, _ = container.get_archive(f"{workdir}/main.pdf")
 
         pdf_tar = BytesIO()
         for chunk in bits:
@@ -324,12 +411,21 @@ def compile_latex(latex: str) -> bytes:
             pdf_file = tar.extractfile("main.pdf")
             if pdf_file is None:
                 raise RuntimeError("PDF file not found in the container.")
-            return pdf_file.read()
+            pdf_bytes = pdf_file.read()
+
+        # Store in compile cache (skip if unusually large)
+        if len(pdf_bytes) <= _COMPILE_CACHE_MAX_BYTES:
+            cache.set(cache_key, pdf_bytes, _COMPILE_CACHE_TTL)
+
+        return pdf_bytes
+
     except RuntimeError:
-        # If compilation failed, the container is still healthy — keep it.
         raise
-    except Exception as e:
-        # On unexpected errors, reset the global so the next call gets a fresh container.
-        global _latex_container
-        _latex_container = None
-        raise RuntimeError(f"Unexpected docker error: {str(e)}")
+    except Exception as exc:
+        raise RuntimeError(f"Unexpected docker error: {str(exc)}") from exc
+    finally:
+        # Always clean up the per-job workdir, even on failure
+        try:
+            container.exec_run(cmd=f"rm -rf {workdir}")
+        except Exception:
+            pass
