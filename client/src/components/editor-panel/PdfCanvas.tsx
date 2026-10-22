@@ -30,6 +30,16 @@ const EmptyText = styled.p`
     font-family: monospace;
 `
 
+const Overlay = styled.div`
+    position: absolute;
+    inset: 0;
+    background-color: rgba(255, 255, 255, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+`
+
 interface PdfCanvasProps {
     url: string | null
     isLoading: boolean
@@ -43,7 +53,7 @@ export default function PdfCanvas({
     fitMode,
     zoom,
 }: PdfCanvasProps) {
-    if (isLoading) {
+    if (!url && isLoading) {
         return (
             <CanvasWrapper>
                 <Skeleton />
@@ -62,7 +72,7 @@ export default function PdfCanvas({
         }
 
         return (
-            <CanvasWrapper>
+            <CanvasWrapper style={{ position: 'relative' }}>
                 <iframe
                     key={`${fitMode}-${zoom}`}
                     src={`${url}${fragment}`}
@@ -71,6 +81,11 @@ export default function PdfCanvas({
                     style={{ border: 'none' }}
                     title="Resume PDF"
                 />
+                {isLoading && (
+                    <Overlay>
+                        <Skeleton style={{ width: '80%', height: '90%' }} />
+                    </Overlay>
+                )}
             </CanvasWrapper>
         )
     }

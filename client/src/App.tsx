@@ -61,6 +61,16 @@ function App() {
         setResume((prev) => (prev ? { ...prev, title } : prev))
     }
 
+    const handlePdfUpdate = (newPdfUrl: string, newLatexCode: string) => {
+        if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+        setPdfUrl(newPdfUrl)
+        setLatexCode(newLatexCode)
+    }
+
+    const handleResumeUpdate = (updatedResume: Resume) => {
+        setResume(updatedResume)
+    }
+
     const handleRenderRequest = async () => {
         if (!resumeId) return
         setRenderStatus('loading')
@@ -136,6 +146,9 @@ function App() {
                         resume={resume}
                         onTitleSave={handleTitleSave}
                         onRenderRequest={handleRenderRequest}
+                        onPdfUpdate={handlePdfUpdate}
+                        onResumeUpdate={handleResumeUpdate}
+                        onRenderStatusChange={setRenderStatus}
                     />
                 </div>
             )}
