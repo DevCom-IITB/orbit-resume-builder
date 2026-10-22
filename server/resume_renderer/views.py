@@ -20,6 +20,7 @@ from .schemas.converters.convert_technical_skills import convert_technical_skill
 from .serializers import LatexRenderSerializer
 from .services import renderer
 from rest_framework.permissions import IsAuthenticated
+from utils.token_dec import ReachTokenAuthentication
 
 import jsonschema
 from resume_renderer.JSONSchema.jsonschema import (
@@ -34,6 +35,7 @@ from resume_renderer.services.prompts import build_resume_prompt
 class LatexRenderView(APIView):
     """Render resume data into a PDF."""
 
+    authentication_classes = [ReachTokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -85,7 +87,10 @@ class LatexRenderView(APIView):
         config = RenderConfig(**config_data)
 
         try:
-            header_latex = convert_header(header) if config.use_header else ""
+            # The editor may not send a header at all; skip it rather than fail.
+            header_latex = (
+                convert_header(header) if config.use_header and header else ""
+            )
             education_latex = convert_education(education)
             experience_latex = convert_experience(experience)
             key_projects_latex = convert_key_project(key_projects)
@@ -106,6 +111,9 @@ class LatexRenderView(APIView):
                 ]
             )
             pdf_bytes = renderer.compile_latex(latex)
+        except ValueError as e:
+            # Converters raise ValueError for missing keys / malformed entries.
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except RuntimeError as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR

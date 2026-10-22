@@ -33,11 +33,10 @@ function App() {
     return (
         <div className="editor-page">
             <div className="editor-pane">
-                <EditorPanel
-                    onDataChange={(compiledData) =>
-                        setMasterResumeData(compiledData)
-                    }
-                />
+                {/* Pass the stable state setter: an inline arrow would change
+                    identity every render and retrigger EditorPanel's effect
+                    in an infinite loop. */}
+                <EditorPanel onDataChange={setMasterResumeData} />
             </div>
 
             <div className="viewer-pane">

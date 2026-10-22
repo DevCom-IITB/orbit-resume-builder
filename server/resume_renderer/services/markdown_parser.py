@@ -10,7 +10,14 @@ class MarkdownParser:
         # Precompile regex patterns for performance
         self.bold_pattern = re.compile(r"\*\*(.*?)\*\*")
         self.italic_pattern = re.compile(r"\*(.*?)\*")
-        self.underline_pattern = re.compile(r"_(.*?)_")
+        # Input is usually already LaTeX-escaped, so `_` arrives as `\_`.
+        # Only treat `_..._` (or `\_...\_`) as underline when it stands alone
+        # as a word, so snake_case / URLs like `my\_cool\_repo` are untouched.
+        self.underline_pattern = re.compile(
+            r"(?:(?<!\w)\\_|(?<![\w\\])_)"  # opening: `\_` or bare `_`
+            r"(?=\S)(.+?)(?<=\S)"  # non-empty content, no edge spaces
+            r"(?:\\_|(?<!\\)_)(?!\w)"  # closing: `\_` or bare `_`
+        )
 
     def parse(self, text: str) -> str:
         r"""Parse markdown syntax into LaTeX commands.

@@ -54,15 +54,17 @@ export async function generateSectionData(
     try {
         // Axios handles stringifying the body and parsing the JSON response automatically.
         // We dynamically inject the sectionName directly into the URL path.
+        // Trailing slash is required: Django cannot APPEND_SLASH-redirect a POST.
         const response = await APIInstance.post(
-            `/api/resume-renderer/${sectionName}`,
+            `/api/resume-renderer/${sectionName}/`,
             {
-                input: rawInputText,
+                user_input: rawInputText,
             }
         )
 
-        // response.data contains the already-parsed JSON from your backend
-        return response.data
+        // Backend wraps the result as { success, section_type, data }.
+        // Only `data` (the section JSON) is useful to callers.
+        return response.data.data
     } catch (error) {
         console.error(`[API Error - ${sectionName}]:`, error)
         throw error
@@ -82,23 +84,17 @@ export async function generatePdfData(
     resumeData: Record<string, unknown>
 ): Promise<string> {
     try {
-        // We pass a third argument to override specific configurations just for THIS request
-        const response = await APIInstance.post(
+        // Backend responds with JSON: { latex, pdf: <base64-encoded PDF> }
+        const response = await APIInstance.post<{ latex: string; pdf: string }>(
             '/api/resume-renderer/render/',
-            resumeData,
-            {
-                headers: {
-                    // Tell the backend we expect the file, not standard JSON
-                    Accept: 'application/pdf',
-                },
-
-                // CRITICAL: Tell Axios to leave the bytes as a raw binary Blob
-                responseType: 'blob',
-            }
+            resumeData
         )
 
-        // Axios automatically extracts the Blob because of the responseType above
-        const pdfBlob = response.data
+        // Decode the base64 string back into raw PDF bytes
+        const pdfBytes = Uint8Array.from(atob(response.data.pdf), (c) =>
+            c.charCodeAt(0)
+        )
+        const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' })
 
         // Convert the binary Blob into a secure, temporary local URL for the iframe
         return URL.createObjectURL(pdfBlob)

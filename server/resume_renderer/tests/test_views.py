@@ -240,3 +240,99 @@ def test_render_rejects_invalid_courses_shape(api_client, user):
 
     assert response.status_code == 400
     assert "courses" in str(response.data).lower()
+
+
+def test_render_without_header_skips_it(api_client, user, monkeypatch):
+    # The editor has no header section, so renders arrive with no "header" key.
+    api_client.force_authenticate(user=user)
+    seen = {}
+
+    def fake_compile(latex):
+        seen["latex"] = latex
+        return b"%PDF-1.4"
+
+    monkeypatch.setattr("resume_renderer.services.renderer.compile_latex", fake_compile)
+
+    payload = {"scholastic_achievements": ["Ranked 1st in a contest"]}
+    response = api_client.post(
+        "/api/resume-renderer/render/",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    assert "SCHOLASTIC ACHIEVEMENTS" in seen["latex"]
+    assert "\\begin{center}" not in seen["latex"]
+
+
+def test_render_converter_error_returns_400(api_client, user, monkeypatch):
+    api_client.force_authenticate(user=user)
+    monkeypatch.setattr(
+        "resume_renderer.services.renderer.compile_latex", lambda _latex: b""
+    )
+
+    # Passes the serializer (bullets are valid) but lacks keys the converter needs.
+    payload = {"experience": [{"bullets": ["did stuff"]}]}
+    response = api_client.post(
+        "/api/resume-renderer/render/",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    assert "Missing key" in response.data["error"]
+
+
+class _DummyResp:
+    def __init__(self, status_code, data):
+        self.status_code = status_code
+        self._data = data
+
+    def json(self):
+        return self._data
+
+
+def test_render_accepts_reach_bearer_token(api_client, db, monkeypatch):
+    monkeypatch.setattr(
+        "utils.token_dec.requests.get",
+        lambda *a, **kw: _DummyResp(200, {"user": "reachuser"}),
+    )
+    monkeypatch.setattr(
+        "resume_renderer.services.renderer.compile_latex", lambda _latex: b"%PDF"
+    )
+    api_client.credentials(HTTP_AUTHORIZATION="Bearer some-token")
+
+    response = api_client.post(
+        "/api/resume-renderer/render/",
+        data=json.dumps({"scholastic_achievements": ["x"]}),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    assert get_user_model().objects.filter(username="reachuser").exists()
+
+
+def test_render_rejects_bad_reach_token_with_401(api_client, db, monkeypatch):
+    monkeypatch.setattr(
+        "utils.token_dec.requests.get",
+        lambda *a, **kw: _DummyResp(401, {"detail": "bad"}),
+    )
+    api_client.credentials(HTTP_AUTHORIZATION="Bearer bad-token")
+
+    response = api_client.post(
+        "/api/resume-renderer/render/",
+        data=json.dumps({}),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 401
+
+
+def test_render_without_token_returns_401(api_client, db):
+    response = api_client.post(
+        "/api/resume-renderer/render/",
+        data=json.dumps({}),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 401

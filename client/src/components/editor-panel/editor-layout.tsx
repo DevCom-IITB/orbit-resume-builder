@@ -58,8 +58,9 @@ const compileMasterPayload = (sections: Section[]) => {
             payload[payloadKey] = []
         }
 
-        // 4. Push the data into the master payload
-        payload[payloadKey].push(...sectionData)
+        // 4. Push the data into the master payload. Each item's API result is
+        // itself an array of entries, so flatten one level.
+        payload[payloadKey].push(...sectionData.flat())
     })
 
     return payload

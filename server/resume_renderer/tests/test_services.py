@@ -1,4 +1,5 @@
 from resume_renderer.services.markdown_parser import MARKDOWN_PARSER
+from resume_renderer.services.json_sanitizer import sanitize_text
 from resume_renderer.services import renderer
 
 
@@ -41,3 +42,19 @@ def test_ensure_image_exists_force_rebuild_removes_image(monkeypatch):
 
     assert fake_client.images.remove_called is True
     assert fake_client.images.get_called is True
+
+
+def test_markdown_underline_ignores_underscores_inside_words():
+    # Regression: escaped snake_case / URLs used to become broken \underline{...}
+    escaped = sanitize_text("github.com/my_cool_repo and foo_bar_baz")
+    assert MARKDOWN_PARSER.parse(escaped) == escaped
+
+
+def test_markdown_underline_works_on_escaped_text():
+    escaped = sanitize_text("This is a _underline_ text.")
+    assert MARKDOWN_PARSER.parse(escaped) == "This is a \\underline{underline} text."
+
+
+def test_markdown_underline_needs_word_boundary_on_both_sides():
+    escaped = sanitize_text("my_cool_ repo")
+    assert MARKDOWN_PARSER.parse(escaped) == escaped

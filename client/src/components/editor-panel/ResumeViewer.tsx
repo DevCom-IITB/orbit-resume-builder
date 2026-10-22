@@ -84,7 +84,11 @@ export default function ResumeViewer({ aggregatedData }: ResumeViewerProps) {
     // Generation Logic
     const handleGeneratePdf = async () => {
         // Prevent empty API calls
-        if (Object.keys(aggregatedData).length === 0) {
+        // Every section key is always present, so check for actual entries
+        const hasContent = Object.values(aggregatedData).some(
+            (value) => Array.isArray(value) && value.length > 0
+        )
+        if (!hasContent) {
             alert('Please save at least one section before generating the PDF.')
             return
         }
