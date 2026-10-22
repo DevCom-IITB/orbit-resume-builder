@@ -29,6 +29,19 @@ export interface VisualTheme {
   compatibleFamilies: string[]
 }
 
+export interface FontOption {
+  key: string
+  label: string
+}
+
+export interface TemplateSectionManifest {
+  key: string
+  displayName: string
+  isDefault: boolean
+  isRequired: boolean
+  defaultOrder: number
+}
+
 export interface ResumeTemplate {
   key: string
   displayName: string
@@ -37,12 +50,96 @@ export interface ResumeTemplate {
   maxPages: number | null
   templateConfig: Record<string, any>
   availableThemes: VisualTheme[]
+  defaultThemeKey?: string
+  fonts?: FontOption[]
+  fontDefault?: string
+  accents?: string[]
+  accentDefault?: string
+  lineSpacings?: string[]
+  lineSpacingDefault?: string
+  wordSpacings?: string[]
+  wordSpacingDefault?: string
+  sections?: TemplateSectionManifest[]
+}
+
+export interface StyleState {
+  font: string
+  accent: string
+  lineSpacing?: string
+  wordSpacing?: string
+  line_spacing?: string
+  word_spacing?: string
+}
+
+export interface StyleOptions {
+  fonts: FontOption[]
+  fontDefault: string
+  accents: string[]
+  accentDefault: string
+  lineSpacings?: string[]
+  lineSpacingDefault?: string
+  wordSpacings?: string[]
+  wordSpacingDefault?: string
+}
+
+export interface GetStyleResponse {
+  style: StyleState
+  options: StyleOptions
+}
+
+export interface PatchStyleResponse {
+  changed: boolean
+  style: StyleState
+  pdf?: string
+  latex?: string
+  pages?: number
+  pageCount?: number
+}
+
+export interface SwitchPlan {
+  willHide: string[]
+  willAddEmpty: string[]
+  willRestore: string[]
+  styleReset: string[]
+  unchanged: string[]
+}
+
+export interface SwitchPlanResponse {
+  dryRun: true
+  plan: SwitchPlan
+}
+
+export interface SwitchTemplateSuccessResponse {
+  changed: boolean
+  template: { key: string; displayName: string }
+  themeKey: string
+  sections: Array<{
+    key: string
+    displayName: string
+    order: number
+    isVisible: boolean
+    hasData: boolean
+  }>
+  style: StyleState
+  options: StyleOptions
+  warnings: string[]
+  pdf?: string
+  latex?: string
+  pages?: number
+  pageCount?: number
 }
 
 export interface Resume {
   id: string
   title: string
-  template: { key: string; displayName: string }
+  template: {
+    key: string
+    displayName: string
+    fontDefault?: string
+    accentDefault?: string
+    lineSpacingDefault?: string
+    wordSpacingDefault?: string
+  }
   visualTheme: { key: string; displayName: string }
   pages: number
   configOverride: Record<string, any>
