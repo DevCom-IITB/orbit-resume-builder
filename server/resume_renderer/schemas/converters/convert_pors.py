@@ -29,19 +29,21 @@ def convert_pors(positions: list) -> str:
             if not isinstance(bullets, list):
                 raise ValueError("'bullets' must be a list.")
 
-            dur_part = rf"\hfill{{\it\small({duration})}}" if duration else ""
+            org_part = rf" $\vert$\ \it\small{{{organization}}}" if organization else ""
+            dur_part = rf"\hfill{{\small\it({duration})}}" if duration else ""
 
             entry = rf"""
 \begin{{localsize}}{{11}}
-\bf \noindent{{{role}}} $\vert$ \it\small{{{organization}}} {dur_part}\vspace{{-7pt}}
+{{\bf \noindent {role}}}{org_part} \vspace{{-7pt}}
+{dur_part}
 \rule{{\linewidth}}{{0.4pt}}
-\vspace{{-11pt}}
-\end{{localsize}}"""
+\end{{localsize}}
+\vspace{{-11pt}}"""
 
             if summary:
                 entry += rf"""
-\\{{\it {summary}}}
-\vspace{{-7pt}}"""
+\\{{\it {summary}}}\\
+\vspace{{-18pt}}"""
 
             entry += "\n" + r"\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.80 mm, leftmargin=*]"
             for bullet in bullets:
