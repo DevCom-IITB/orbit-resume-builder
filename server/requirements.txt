@@ -15,6 +15,7 @@ pywin32==311; platform_system == "Windows"
 pymupdf>=1.28.0
 pytesseract>=0.3.13
 Pillow>=12.3.0
+google-genai>=1.0.0
 chromadb>=1.5.9
 sentence-transformers>=5.6.0
 rank-bm25>=0.2.2

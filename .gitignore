@@ -13,6 +13,7 @@ pip-wheel-metadata/
 *.log
 *.pdf
 *.tex
+!server/resume_renderer/tests/golden_fixtures/*.tex
 *.zip
 *.tar.gz
 .coverage
@@ -46,6 +47,8 @@ node_modules
 dist
 dist-ssr
 *.local
+.vite
+.vite-temp
 
 # Editor directories and files
 .vscode/*
