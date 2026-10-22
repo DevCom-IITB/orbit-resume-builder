@@ -237,6 +237,10 @@ def assemble_resume_latex(resume) -> str:
     full_latex = resume.visual_theme.latex_preamble.replace(
     "__CONTENT__", "\n".join(sections_latex)
 )
+    # Seeded theme preambles don't contain the marker, which made every cache
+    # lookup above miss. Stamp it so cached LaTeX is actually reused.
+    if cache_marker not in full_latex:
+        full_latex = f"{cache_marker}\n{full_latex}"
 
     resume.cached_latex = full_latex
     resume.latex_cache_valid = True

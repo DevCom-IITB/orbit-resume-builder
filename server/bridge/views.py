@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -11,7 +12,6 @@ from django.views.decorators.csrf import csrf_exempt
 REACH_VERIFY = os.getenv(
     "REACH_VERIFY_URL", "http://127.0.0.1:8000/api/sso/accounts/verify/"
 )
-SERVICE_KEY = os.getenv("RB_SERVICE_KEY", "dev-resume-key-1")
 
 
 @csrf_exempt
@@ -29,7 +29,10 @@ def verify_reach(request):
     try:
         resp = requests.get(
             REACH_VERIFY,
-            headers={"Authorization": f"Bearer {token}", "X-Service-Key": SERVICE_KEY},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Service-Key": settings.RB_SERVICE_KEY,
+            },
             timeout=5,
         )
     except Exception:
