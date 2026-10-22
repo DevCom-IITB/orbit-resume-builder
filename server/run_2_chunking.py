@@ -64,7 +64,7 @@ def main():
             for idx, chunk in enumerate(chunks):
                 chunk_count += 1
                 print(f"  * Chunk #{chunk_count} | Title: {chunk['entry_title']}")
-                print(f"    Content:")
+                print("    Content:")
                 print(chunk['content'])
                 print("-" * 50)
                 
