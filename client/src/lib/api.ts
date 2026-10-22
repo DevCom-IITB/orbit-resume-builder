@@ -1,10 +1,16 @@
 import axios from 'axios'
 import type {
+    FontOption,
+    GetStyleResponse,
+    PatchStyleResponse,
     Resume,
     ResumeListItem,
     ResumeSection,
     ResumeTemplate,
     SectionEntry,
+    SwitchPlanResponse,
+    SwitchTemplateSuccessResponse,
+    TemplateSectionManifest,
     VisualTheme,
 } from '../types/resume'
 import type { Repo } from '../types/editor-panel/repos'
@@ -66,7 +72,14 @@ function mapResume(raw: any): Resume {
     return {
         id: raw.id,
         title: raw.title,
-        template: { key: raw.template.key, displayName: raw.template.display_name },
+        template: {
+            key: raw.template.key,
+            displayName: raw.template.display_name,
+            fontDefault: raw.template.font_default,
+            accentDefault: raw.template.accent_default,
+            lineSpacingDefault: raw.template.line_spacing_default,
+            wordSpacingDefault: raw.template.word_spacing_default,
+        },
         visualTheme: { key: raw.visual_theme.key, displayName: raw.visual_theme.display_name },
         pages: raw.pages,
         configOverride: raw.config_override ?? {},
@@ -101,6 +114,25 @@ function mapTemplate(raw: any): ResumeTemplate {
             key: t.key,
             displayName: t.display_name,
             compatibleFamilies: t.compatible_families ?? [],
+        })),
+        defaultThemeKey: raw.default_theme_key,
+        fonts: (raw.fonts ?? []).map((f: any): FontOption => ({
+            key: f.key,
+            label: f.label,
+        })),
+        fontDefault: raw.font_default,
+        accents: raw.accents ?? [],
+        accentDefault: raw.accent_default,
+        lineSpacings: raw.line_spacings ?? [],
+        lineSpacingDefault: raw.line_spacing_default,
+        wordSpacings: raw.word_spacings ?? [],
+        wordSpacingDefault: raw.word_spacing_default,
+        sections: (raw.sections ?? []).map((s: any): TemplateSectionManifest => ({
+            key: s.key,
+            displayName: s.display_name,
+            isDefault: s.is_default,
+            isRequired: s.is_required,
+            defaultOrder: s.default_order,
         })),
     }
 }
@@ -276,6 +308,153 @@ export async function generateEntry(
     return mapEntry(res.data)
 }
 
+export function base64ToPdfBlobUrl(pdfBase64: string): string {
+    const binaryString = atob(pdfBase64)
+    const byteArray = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+        byteArray[i] = binaryString.charCodeAt(i)
+    }
+    const pdfBlob = new Blob([byteArray], { type: 'application/pdf' })
+    return URL.createObjectURL(pdfBlob)
+}
+
+export async function getStyle(resumeId: string): Promise<GetStyleResponse> {
+    const res = await APIInstance.get(`/api/resumes/${resumeId}/style/`)
+    const styleData = res.data.style || {}
+    return {
+        style: {
+            font: styleData.font,
+            accent: styleData.accent,
+            lineSpacing: styleData.line_spacing ?? '1.00',
+            wordSpacing: styleData.word_spacing ?? '1.00',
+            line_spacing: styleData.line_spacing,
+            word_spacing: styleData.word_spacing,
+        },
+        options: {
+            fonts: (res.data.options?.fonts ?? []).map((f: any) => ({
+                key: f.key,
+                label: f.label,
+            })),
+            fontDefault: res.data.options?.font_default ?? 'lmodern',
+            accents: res.data.options?.accents ?? [],
+            accentDefault: res.data.options?.accent_default ?? '#4B41C8',
+            lineSpacings: res.data.options?.line_spacings ?? [],
+            lineSpacingDefault: res.data.options?.line_spacing_default ?? '1.00',
+            wordSpacings: res.data.options?.word_spacings ?? [],
+            wordSpacingDefault: res.data.options?.word_spacing_default ?? '1.00',
+        },
+    }
+}
+
+export async function patchStyle(
+    resumeId: string,
+    patch: {
+        font?: string
+        accent?: string
+        lineSpacing?: string
+        wordSpacing?: string
+        line_spacing?: string
+        word_spacing?: string
+    },
+    signal?: AbortSignal
+): Promise<PatchStyleResponse> {
+    const body: Record<string, any> = {}
+    if (patch.font !== undefined) body.font = patch.font
+    if (patch.accent !== undefined) body.accent = patch.accent
+    if (patch.lineSpacing !== undefined) body.line_spacing = patch.lineSpacing
+    else if (patch.line_spacing !== undefined) body.line_spacing = patch.line_spacing
+    if (patch.wordSpacing !== undefined) body.word_spacing = patch.wordSpacing
+    else if (patch.word_spacing !== undefined) body.word_spacing = patch.word_spacing
+
+    const res = await APIInstance.patch(`/api/resumes/${resumeId}/style/`, body, { signal })
+    const data = res.data
+    return {
+        changed: data.changed,
+        style: {
+            font: data.style?.font,
+            accent: data.style?.accent,
+            lineSpacing: data.style?.line_spacing ?? '1.00',
+            wordSpacing: data.style?.word_spacing ?? '1.00',
+            line_spacing: data.style?.line_spacing,
+            word_spacing: data.style?.word_spacing,
+        },
+        pdf: data.pdf,
+        latex: data.latex,
+        pages: data.pages ?? data.page_count,
+        pageCount: data.page_count ?? data.pages,
+    }
+}
+
+export async function switchTemplate(
+    resumeId: string,
+    payload: { templateKey: string; themeKey?: string; dryRun?: boolean },
+    signal?: AbortSignal
+): Promise<SwitchPlanResponse | SwitchTemplateSuccessResponse> {
+    const body: Record<string, any> = {
+        template_key: payload.templateKey,
+        dry_run: Boolean(payload.dryRun),
+    }
+    if (payload.themeKey) {
+        body.theme_key = payload.themeKey
+    }
+    const res = await APIInstance.post(`/api/resumes/${resumeId}/template/`, body, { signal })
+    const data = res.data
+    if (data.dry_run) {
+        return {
+            dryRun: true,
+            plan: {
+                willHide: data.plan?.will_hide ?? [],
+                willAddEmpty: data.plan?.will_add_empty ?? [],
+                willRestore: data.plan?.will_restore ?? [],
+                styleReset: data.plan?.style_reset ?? [],
+                unchanged: data.plan?.unchanged ?? [],
+            },
+        }
+    }
+
+    return {
+        changed: data.changed,
+        template: {
+            key: data.template?.key,
+            displayName: data.template?.display_name,
+        },
+        themeKey: data.theme_key,
+        sections: (data.sections ?? []).map((s: any) => ({
+            key: s.key,
+            displayName: s.display_name,
+            order: s.order,
+            isVisible: s.is_visible,
+            hasData: s.has_data,
+        })),
+        style: {
+            font: data.style?.font,
+            accent: data.style?.accent,
+            lineSpacing: data.style?.line_spacing ?? '1.00',
+            wordSpacing: data.style?.word_spacing ?? '1.00',
+            line_spacing: data.style?.line_spacing,
+            word_spacing: data.style?.word_spacing,
+        },
+        options: {
+            fonts: (data.options?.fonts ?? []).map((f: any) => ({
+                key: f.key,
+                label: f.label,
+            })),
+            fontDefault: data.options?.font_default ?? 'lmodern',
+            accents: data.options?.accents ?? [],
+            accentDefault: data.options?.accent_default ?? '#4B41C8',
+            lineSpacings: data.options?.line_spacings ?? [],
+            lineSpacingDefault: data.options?.line_spacing_default ?? '1.00',
+            wordSpacings: data.options?.word_spacings ?? [],
+            wordSpacingDefault: data.options?.word_spacing_default ?? '1.00',
+        },
+        warnings: data.warnings ?? [],
+        pdf: data.pdf,
+        latex: data.latex,
+        pages: data.pages ?? data.page_count,
+        pageCount: data.page_count ?? data.pages,
+    }
+}
+
 export interface RenderedResumeResponse {
     pdfUrl: string
     latexCode: string
@@ -290,14 +469,7 @@ export async function renderResume(resumeId: string): Promise<RenderedResumeResp
     if (typeof pdfBase64 !== 'string') throw new Error('PDF payload missing or invalid')
     if (typeof latexCode !== 'string') throw new Error('LaTeX payload missing or invalid')
 
-    const binaryString = atob(pdfBase64)
-    const byteArray = new Uint8Array(binaryString.length)
-    for (let i = 0; i < binaryString.length; i++) {
-        byteArray[i] = binaryString.charCodeAt(i)
-    }
-    const pdfBlob = new Blob([byteArray], { type: 'application/pdf' })
-    const pdfUrl = URL.createObjectURL(pdfBlob)
-
+    const pdfUrl = base64ToPdfBlobUrl(pdfBase64)
     return { pdfUrl, latexCode }
 }
 
