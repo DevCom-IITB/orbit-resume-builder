@@ -1,7 +1,13 @@
 from django.urls import path
-from .views import *
-from .views import LatexRenderView
-from .views import refine_resume_section
+from .views import (
+    GitHubCallbackAPIView,
+    GitHubConnectAPIView,
+    GitHubImportProjectsAPIView,
+    GitHubRepositoriesAPIView,
+    GitHubStatusAPIView,
+    LatexRenderView,
+    refine_resume_section,
+)
 
 urlpatterns = [
     path("render/", LatexRenderView.as_view(), name="latex-render"),

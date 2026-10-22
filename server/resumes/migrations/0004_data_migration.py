@@ -137,9 +137,15 @@ def migrate_forward(apps, schema_editor):
     for resume in Resume.objects.filter(template__isnull=True):
         header_style = getattr(resume, "header_type", "SHORT")
         config_override = {"header_style": "long" if header_style == "LONG" else "short"}
+        # `meta` is dropped in 0005; keep its contents rather than losing them.
+        legacy_meta = getattr(resume, "meta", None)
+        if legacy_meta:
+            config_override["legacy_meta"] = legacy_meta
         resume.template = iitb_template
         resume.visual_theme = iitb_theme
         resume.config_override = config_override
+        # `resume_type` is dropped in 0005; carry the page count over.
+        resume.pages = 2 if getattr(resume, "resume_type", "ONE") == "TWO" else 1
         resume.save()
 
         # Create header section + empty entry (user fills in later)
@@ -158,52 +164,60 @@ def migrate_forward(apps, schema_editor):
                 generation_status="pending",
             )
 
-    # 7. Migrate existing Sections
-    seen_type_per_resume = {}  # track unique_together constraint
-    for section in Section.objects.filter(section_type__isnull=True):
+    # 7. Migrate existing Sections.
+    # Every legacy section must end up with a section_type or be deleted:
+    # 0005 makes section_type NOT NULL, so a leftover NULL aborts the migration.
+    kept_sections = {}  # (resume_id, new_key) -> Section; one per type (unique_together)
+    legacy_sections = Section.objects.filter(section_type__isnull=True).order_by(
+        "resume_id", "order"
+    )
+    for section in legacy_sections:
         legacy_key = getattr(section, "section_type_legacy", None)
         new_key = LEGACY_KEY_MAP.get(legacy_key)
+        content = getattr(section, "content", None) or []
+        items = content if isinstance(content, list) else [content]
+
         if not new_key:
-            # "OTHER" or unknown — skip
+            # "OTHER" or unknown: no matching section type. Keep the content on
+            # the resume (config_override is a free-form JSON field) and drop
+            # the section row.
+            if items:
+                resume = section.resume
+                override = dict(resume.config_override or {})
+                override.setdefault("legacy_other_sections", []).append(
+                    {"legacy_key": legacy_key, "content": items}
+                )
+                resume.config_override = override
+                resume.save(update_fields=["config_override"])
+            section.delete()
             continue
 
-        resume_id = section.resume_id
-        if resume_id not in seen_type_per_resume:
-            seen_type_per_resume[resume_id] = set()
-
-        if new_key in seen_type_per_resume[resume_id]:
-            # Duplicate section type for this resume — skip
-            continue
-
-        seen_type_per_resume[resume_id].add(new_key)
-        stdef = stdef_map[new_key]
-        section.section_type = stdef
-        section.is_visible = True
-        section.save()
+        target = kept_sections.get((section.resume_id, new_key))
+        if target is None:
+            # First section of this type on the resume: convert it in place.
+            section.section_type = stdef_map[new_key]
+            section.is_visible = True
+            section.save()
+            kept_sections[(section.resume_id, new_key)] = section
+            target = section
+            start_order = 0
+        else:
+            # Duplicate type on the same resume: merge its items into the
+            # first one, after the entries already there.
+            start_order = SectionEntry.objects.filter(section=target).count()
 
         # Migrate content array → SectionEntry rows
-        content = getattr(section, "content", None) or []
-        if isinstance(content, list):
-            for idx, item in enumerate(content):
-                SectionEntry.objects.create(
-                    section=section,
-                    order=idx,
-                    raw_input="",
-                    content=item,
-                    generation_status="done",
-                )
-        elif content:
+        for idx, item in enumerate(items):
             SectionEntry.objects.create(
-                section=section,
-                order=0,
+                section=target,
+                order=start_order + idx,
                 raw_input="",
-                content=content,
+                content=item,
                 generation_status="done",
             )
 
-
-def migrate_backward(apps, schema_editor):
-    pass  # not reversible
+        if target is not section:
+            section.delete()
 
 
 class Migration(migrations.Migration):
@@ -213,5 +227,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(migrate_forward, migrate_backward),
+        # No reverse: 0005 drops the legacy columns, so the old data can't be
+        # rebuilt. Without reverse_code Django raises IrreversibleError instead
+        # of silently "succeeding" and leaving orphaned rows.
+        migrations.RunPython(migrate_forward),
     ]

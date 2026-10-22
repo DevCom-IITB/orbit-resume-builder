@@ -10,10 +10,13 @@ import './editor-layout.css'
 import { Pencil, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { Resume, SectionEntry } from '../../types/resume'
-import type { LocalSection, LocalEntry } from '../../types/editor-panel/local-state'
+import type {
+    LocalSection,
+    LocalEntry,
+} from '../../types/editor-panel/local-state'
 import { toLocalSection } from '../../types/editor-panel/local-state'
 import { updateSection, addEntry } from '../../lib/api'
-import type { Project} from '../../types/editor-panel/repos'
+import type { Project } from '../../types/editor-panel/repos'
 
 // Maps section_type key → short label used in "Experience 1", "Project 2" etc.
 const ITEM_LABELS: Record<string, string> = {
@@ -116,9 +119,7 @@ const EditorPanel = ({
                 return {
                     ...s,
                     entries: s.entries.map((e) =>
-                        e.id === updated.id
-                            ? { ...e, ...updated }
-                            : e
+                        e.id === updated.id ? { ...e, ...updated } : e
                     ),
                 }
             })
@@ -149,13 +150,13 @@ const EditorPanel = ({
 
     // const handleImportRepos = (sectionKey: string, importedRepos: Project[]) => {
     //     console.log(importedRepos)
-    
+
     //     // need to process the repos to match the sectionType
-    //     // assume processedRepos is the const which contains 
-    //     // the data after processing to match datatpye of Section 
+    //     // assume processedRepos is the const which contains
+    //     // the data after processing to match datatpye of Section
     //     const processedRepos = importedRepos.map(projectToLocalEntry)
-        
-    //     setSections(prev => 
+
+    //     setSections(prev =>
     //         prev.map(section => {
     //             if(section.sectionType.key !== sectionKey) return section;
 
@@ -168,11 +169,14 @@ const EditorPanel = ({
     //                 ]
     //             }
     //         })
-            
+
     //     )
     // }
 
-    const handleImportRepos = async (sectionKey: string, importedRepos: Project[]) => {
+    const handleImportRepos = async (
+        sectionKey: string,
+        importedRepos: Project[]
+    ) => {
         const section = sections.find((s) => s.sectionType.key === sectionKey)
 
         if (!section) {
@@ -200,9 +204,9 @@ const EditorPanel = ({
                 prev.map((s) =>
                     s.id === section.id
                         ? {
-                            ...s,
-                            entries: [...s.entries, ...createdEntries],
-                        }
+                              ...s,
+                              entries: [...s.entries, ...createdEntries],
+                          }
                         : s
                 )
             )
@@ -269,9 +273,13 @@ const EditorPanel = ({
                             <ResumeSection
                                 key={section.id}
                                 section={section}
-                                isSectionReorderEnabled={isSectionReorderEnabled}
+                                isSectionReorderEnabled={
+                                    isSectionReorderEnabled
+                                }
                                 resumeId={resume.id}
-                                itemLabel={getItemLabel(section.sectionType.key)}
+                                itemLabel={getItemLabel(
+                                    section.sectionType.key
+                                )}
                                 onSectionCollapse={handleSectionCollapse}
                                 onEntriesChanged={handleEntriesChanged}
                                 onEntryUpdated={handleEntryUpdated}

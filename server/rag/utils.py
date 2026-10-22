@@ -1,6 +1,5 @@
 import io
 import re
-import uuid
 import fitz
 import pytesseract
 from PIL import Image
@@ -374,7 +373,7 @@ def chunk_section_content(section_key: str, section_text: str) -> list[dict]:
         # Check if we should start a new entry
         if not is_bullet and len(current_entry_lines) > 0:
             # We can only start a new entry if the current entry has already collected some bullet points
-            has_bullets = any(l.strip().startswith(bullet_markers) or re.match(bullet_regex, l.strip()) for l in current_entry_lines)
+            has_bullets = any(line.strip().startswith(bullet_markers) or re.match(bullet_regex, line.strip()) for line in current_entry_lines)
             
             if has_bullets:
                 is_new = False

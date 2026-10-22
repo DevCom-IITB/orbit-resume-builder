@@ -71,7 +71,9 @@ function Home() {
             navigate(`/editor/${resume.id}`)
         } catch (err) {
             console.error('[Home] Failed to create resume:', err)
-            setError('Could not create resume. Check that the backend is running.')
+            setError(
+                'Could not create resume. Check that the backend is running.'
+            )
             setShowModal(true)
         } finally {
             setCreating(false)

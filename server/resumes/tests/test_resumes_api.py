@@ -2,6 +2,10 @@ import json
 import pytest
 from rest_framework.test import APIClient
 
+# Template and theme created by migration 0004 (and refreshed by seed_templates).
+TEMPLATE_KEY = "iitb-general"
+THEME_KEY = "iitb-classic"
+
 
 class DummyResp:
     def __init__(self, status, data):
@@ -12,37 +16,43 @@ class DummyResp:
         return self._data
 
 
-@pytest.mark.django_db
-def test_create_and_list_resume(monkeypatch):
-    # Mock REACH verify to accept token and return username
-    def fake_get(url, headers=None, timeout=None):
-        return DummyResp(200, {"user": "testuser", "id": 123, "role": "student"})
+def _client_for(monkeypatch, username):
+    """APIClient whose Bearer token REACH (mocked) verifies as `username`."""
 
-    monkeypatch.setattr("server.utils.token_dec.requests.get", fake_get)
+    def fake_get(url, headers=None, timeout=None):
+        return DummyResp(200, {"user": username, "id": 1, "role": "student"})
+
+    monkeypatch.setattr("utils.token_dec.requests.get", fake_get)
 
     client = APIClient()
-    token = "fake-token"
-    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer token-for-{username}")
+    return client
 
+
+def _create(client, title, **extra):
     payload = {
-        "title": "My Resume",
-        "resume_type": "ONE",
-        "header_type": "SHORT",
-        "sections": [
-            {
-                "section_type": "EXPERIENCE",
-                "order": 0,
-                "content": [{"title": "Intern", "bullets": ["did stuff"]}],
-            }
-        ],
+        "title": title,
+        "template_key": TEMPLATE_KEY,
+        "visual_theme_key": THEME_KEY,
+        **extra,
     }
-
-    resp = client.post(
+    return client.post(
         "/api/resumes/", data=json.dumps(payload), content_type="application/json"
     )
+
+
+@pytest.mark.django_db
+def test_create_and_list_resume(monkeypatch):
+    client = _client_for(monkeypatch, "testuser")
+
+    resp = _create(client, "My Resume")
     assert resp.status_code == 201
     data = resp.json()
     assert data["title"] == "My Resume"
+    assert data["template"]["key"] == TEMPLATE_KEY
+    # Default sections come from the template manifest.
+    section_keys = {s["section_type"]["key"] for s in data["sections"]}
+    assert {"header", "education"} <= section_keys
 
     # list
     resp2 = client.get("/api/resumes/")
@@ -53,42 +63,19 @@ def test_create_and_list_resume(monkeypatch):
 
 @pytest.mark.django_db
 def test_patch_creates_version_and_delete(monkeypatch):
-    def fake_get(url, headers=None, timeout=None):
-        return DummyResp(200, {"user": "testuser2", "id": 234, "role": "student"})
+    client = _client_for(monkeypatch, "testuser2")
 
-    monkeypatch.setattr("server.utils.token_dec.requests.get", fake_get)
-
-    client = APIClient()
-    token = "fake-token-2"
-    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
-
-    payload = {
-        "title": "Resume to update",
-        "resume_type": "ONE",
-        "header_type": "SHORT",
-    }
-    resp = client.post(
-        "/api/resumes/", data=json.dumps(payload), content_type="application/json"
-    )
+    resp = _create(client, "Resume to update")
     assert resp.status_code == 201
     rid = resp.json()["id"]
 
-    # Patch: add a section
-    patch_payload = {
-        "sections": [
-            {
-                "section_type": "EXPERIENCE",
-                "order": 0,
-                "content": [{"title": "Job", "bullets": ["x"]}],
-            }
-        ]
-    }
     resp2 = client.patch(
         f"/api/resumes/{rid}/",
-        data=json.dumps(patch_payload),
+        data=json.dumps({"title": "Updated title"}),
         content_type="application/json",
     )
     assert resp2.status_code == 200
+    assert resp2.json()["title"] == "Updated title"
     # versions should have one entry
     detail = client.get(f"/api/resumes/{rid}/").json()
     assert len(detail.get("versions", [])) == 1
@@ -104,25 +91,13 @@ def test_patch_creates_version_and_delete(monkeypatch):
 
 @pytest.mark.django_db
 def test_pin_toggle_and_list_order(monkeypatch):
-    def fake_get(url, headers=None, timeout=None):
-        return DummyResp(200, {"user": "pinner", "id": 345, "role": "student"})
+    client = _client_for(monkeypatch, "pinner")
 
-    monkeypatch.setattr("server.utils.token_dec.requests.get", fake_get)
-
-    client = APIClient()
-    client.credentials(HTTP_AUTHORIZATION="Bearer fake-token-pin")
-
-    payload = {"title": "Resume A", "resume_type": "ONE", "header_type": "SHORT"}
-    resp_a = client.post(
-        "/api/resumes/", data=json.dumps(payload), content_type="application/json"
-    )
+    resp_a = _create(client, "Resume A")
     assert resp_a.status_code == 201
     id_a = resp_a.json()["id"]
 
-    payload_b = {"title": "Resume B", "resume_type": "TWO", "header_type": "LONG"}
-    resp_b = client.post(
-        "/api/resumes/", data=json.dumps(payload_b), content_type="application/json"
-    )
+    resp_b = _create(client, "Resume B", pages=2)
     assert resp_b.status_code == 201
     id_b = resp_b.json()["id"]
 
@@ -143,41 +118,23 @@ def test_pin_toggle_and_list_order(monkeypatch):
 
 @pytest.mark.django_db
 def test_duplicate_creates_copy_with_sections(monkeypatch):
-    def fake_get(url, headers=None, timeout=None):
-        return DummyResp(200, {"user": "duplicator", "id": 456, "role": "student"})
+    client = _client_for(monkeypatch, "duplicator")
 
-    monkeypatch.setattr("server.utils.token_dec.requests.get", fake_get)
-
-    client = APIClient()
-    client.credentials(HTTP_AUTHORIZATION="Bearer fake-token-dup")
-
-    payload = {
-        "title": "Original Resume",
-        "resume_type": "ONE",
-        "header_type": "SHORT",
-        "sections": [
-            {
-                "section_type": "EXPERIENCE",
-                "order": 0,
-                "content": [{"title": "Intern", "bullets": ["did stuff"]}],
-            }
-        ],
-    }
-    resp = client.post(
-        "/api/resumes/", data=json.dumps(payload), content_type="application/json"
-    )
+    resp = _create(client, "Original Resume")
     assert resp.status_code == 201
-    source_id = resp.json()["id"]
+    source = resp.json()
 
-    resp_dup = client.post(f"/api/resumes/{source_id}/duplicate/")
+    resp_dup = client.post(f"/api/resumes/{source['id']}/duplicate/")
     assert resp_dup.status_code == 201
     dup = resp_dup.json()
     assert dup["title"] == "Original Resume (Copy)"
     assert dup["is_pinned"] is False
-    assert dup["id"] != source_id
-    assert len(dup["sections"]) == 1
-    assert dup["sections"][0]["section_type"] == "EXPERIENCE"
+    assert dup["id"] != source["id"]
 
-    source = client.get(f"/api/resumes/{source_id}/").json()
-    assert source["title"] == "Original Resume"
-    assert len(source["sections"]) == 1
+    def section_keys(resume):
+        return sorted(s["section_type"]["key"] for s in resume["sections"])
+
+    assert section_keys(dup) == section_keys(source)
+    assert {s["id"] for s in dup["sections"]}.isdisjoint(
+        {s["id"] for s in source["sections"]}
+    )

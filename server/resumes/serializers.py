@@ -116,6 +116,14 @@ class ResumeDetailSerializer(serializers.ModelSerializer):
         return {"key": obj.visual_theme.key, "display_name": obj.visual_theme.display_name}
 
 
+class ResumeSnapshotSerializer(ResumeDetailSerializer):
+    """What a Version stores. Leaves out `versions`: including it nested every
+    earlier snapshot inside each new one, growing storage exponentially."""
+
+    class Meta(ResumeDetailSerializer.Meta):
+        fields = [f for f in ResumeDetailSerializer.Meta.fields if f != "versions"]
+
+
 class ResumeCreateSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=255)
     template_key = serializers.CharField(max_length=64)
@@ -222,8 +230,14 @@ class ResumePatchSerializer(serializers.ModelSerializer):
                 )
         return data
 
+    # Fields that change the rendered LaTeX; editing any of them drops the cache.
+    RENDER_AFFECTING_FIELDS = ("visual_theme", "pages", "config_override")
+
     def update(self, instance, validated_data):
-        if "visual_theme" in validated_data and validated_data["visual_theme"] != instance.visual_theme:
+        if any(
+            field in validated_data and validated_data[field] != getattr(instance, field)
+            for field in self.RENDER_AFFECTING_FIELDS
+        ):
             instance.latex_cache_valid = False
         for attr, val in validated_data.items():
             setattr(instance, attr, val)

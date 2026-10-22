@@ -37,7 +37,68 @@ export const GithubAPIInstance = axios.create({
 // RESPONSE MAPPING HELPERS
 // ============================================================================
 
-function mapEntry(raw: any): SectionEntry {
+// Raw (snake_case) shapes returned by the Django API.
+interface RawKeyName {
+    key: string
+    display_name: string
+}
+
+interface RawVisualTheme extends RawKeyName {
+    compatible_families?: string[]
+}
+
+interface RawEntry {
+    id: string
+    order: number
+    raw_input: string
+    content: unknown
+    generation_status: SectionEntry['generationStatus']
+}
+
+interface RawSection {
+    id: string
+    section_type: RawKeyName & {
+        allow_multiple_entries: boolean
+        entry_hint_text: string
+    }
+    order: number
+    is_visible: boolean
+    entries?: RawEntry[]
+}
+
+interface RawResumeListItem {
+    id: string
+    title: string
+    template: RawKeyName
+    visual_theme: RawKeyName
+    is_pinned: boolean
+    created_at: string
+    updated_at: string
+}
+
+interface RawResume extends RawResumeListItem {
+    pages: number
+    config_override?: Record<string, unknown>
+    sections?: RawSection[]
+}
+
+interface RawTemplate extends RawKeyName {
+    family: string
+    domain: string
+    max_pages: number | null
+    template_config?: Record<string, unknown>
+    available_themes?: RawVisualTheme[]
+}
+
+function mapTheme(t: RawVisualTheme): VisualTheme {
+    return {
+        key: t.key,
+        displayName: t.display_name,
+        compatibleFamilies: t.compatible_families ?? [],
+    }
+}
+
+function mapEntry(raw: RawEntry): SectionEntry {
     return {
         id: raw.id,
         order: raw.order,
@@ -47,7 +108,7 @@ function mapEntry(raw: any): SectionEntry {
     }
 }
 
-function mapSection(raw: any): ResumeSection {
+function mapSection(raw: RawSection): ResumeSection {
     return {
         id: raw.id,
         sectionType: {
@@ -62,12 +123,18 @@ function mapSection(raw: any): ResumeSection {
     }
 }
 
-function mapResume(raw: any): Resume {
+function mapResume(raw: RawResume): Resume {
     return {
         id: raw.id,
         title: raw.title,
-        template: { key: raw.template.key, displayName: raw.template.display_name },
-        visualTheme: { key: raw.visual_theme.key, displayName: raw.visual_theme.display_name },
+        template: {
+            key: raw.template.key,
+            displayName: raw.template.display_name,
+        },
+        visualTheme: {
+            key: raw.visual_theme.key,
+            displayName: raw.visual_theme.display_name,
+        },
         pages: raw.pages,
         configOverride: raw.config_override ?? {},
         isPinned: raw.is_pinned,
@@ -77,19 +144,25 @@ function mapResume(raw: any): Resume {
     }
 }
 
-function mapListItem(raw: any): ResumeListItem {
+function mapListItem(raw: RawResumeListItem): ResumeListItem {
     return {
         id: raw.id,
         title: raw.title,
-        template: { key: raw.template.key, displayName: raw.template.display_name },
-        visualTheme: { key: raw.visual_theme.key, displayName: raw.visual_theme.display_name },
+        template: {
+            key: raw.template.key,
+            displayName: raw.template.display_name,
+        },
+        visualTheme: {
+            key: raw.visual_theme.key,
+            displayName: raw.visual_theme.display_name,
+        },
         isPinned: raw.is_pinned,
         createdAt: raw.created_at,
         updatedAt: raw.updated_at,
     }
 }
 
-function mapTemplate(raw: any): ResumeTemplate {
+function mapTemplate(raw: RawTemplate): ResumeTemplate {
     return {
         key: raw.key,
         displayName: raw.display_name,
@@ -97,11 +170,7 @@ function mapTemplate(raw: any): ResumeTemplate {
         domain: raw.domain,
         maxPages: raw.max_pages,
         templateConfig: raw.template_config ?? {},
-        availableThemes: (raw.available_themes ?? []).map((t: any): VisualTheme => ({
-            key: t.key,
-            displayName: t.display_name,
-            compatibleFamilies: t.compatible_families ?? [],
-        })),
+        availableThemes: (raw.available_themes ?? []).map(mapTheme),
     }
 }
 
@@ -111,24 +180,23 @@ function mapTemplate(raw: any): ResumeTemplate {
 
 export async function listTemplates(): Promise<ResumeTemplate[]> {
     const res = await APIInstance.get('/api/resumes/templates/')
-    return res.data.map(mapTemplate)
+    return (res.data as RawTemplate[]).map(mapTemplate)
 }
 
 export async function listThemes(family?: string): Promise<VisualTheme[]> {
     const params = family ? { family } : {}
     const res = await APIInstance.get('/api/resumes/themes/', { params })
-    return res.data.map((t: any): VisualTheme => ({
-        key: t.key,
-        displayName: t.display_name,
-        compatibleFamilies: t.compatible_families ?? [],
-    }))
+    return (res.data as RawVisualTheme[]).map(mapTheme)
 }
 
 // ============================================================================
 // RESUME CRUD
 // ============================================================================
 
-export async function listResumes(): Promise<{ count: number; results: ResumeListItem[] }> {
+export async function listResumes(): Promise<{
+    count: number
+    results: ResumeListItem[]
+}> {
     const res = await APIInstance.get('/api/resumes/')
     return {
         count: res.data.count ?? 0,
@@ -146,10 +214,12 @@ export interface CreateResumePayload {
     templateKey: string
     visualThemeKey: string
     pages?: number
-    configOverride?: Record<string, any>
+    configOverride?: Record<string, unknown>
 }
 
-export async function createResume(payload: CreateResumePayload): Promise<Resume> {
+export async function createResume(
+    payload: CreateResumePayload
+): Promise<Resume> {
     const res = await APIInstance.post('/api/resumes/', {
         title: payload.title,
         template_key: payload.templateKey,
@@ -164,16 +234,21 @@ export interface PatchResumePayload {
     title?: string
     visualThemeKey?: string
     pages?: number
-    configOverride?: Record<string, any>
+    configOverride?: Record<string, unknown>
     isPinned?: boolean
 }
 
-export async function patchResume(id: string, payload: PatchResumePayload): Promise<Resume> {
-    const body: Record<string, any> = {}
+export async function patchResume(
+    id: string,
+    payload: PatchResumePayload
+): Promise<Resume> {
+    const body: Record<string, unknown> = {}
     if (payload.title !== undefined) body.title = payload.title
-    if (payload.visualThemeKey !== undefined) body.visual_theme_key = payload.visualThemeKey
+    if (payload.visualThemeKey !== undefined)
+        body.visual_theme_key = payload.visualThemeKey
     if (payload.pages !== undefined) body.pages = payload.pages
-    if (payload.configOverride !== undefined) body.config_override = payload.configOverride
+    if (payload.configOverride !== undefined)
+        body.config_override = payload.configOverride
     if (payload.isPinned !== undefined) body.is_pinned = payload.isPinned
     const res = await APIInstance.patch(`/api/resumes/${id}/`, body)
     return mapResume(res.data)
@@ -192,7 +267,10 @@ export async function duplicateResume(id: string): Promise<Resume> {
 // SECTIONS
 // ============================================================================
 
-export async function addSection(resumeId: string, sectionTypeKey: string): Promise<ResumeSection> {
+export async function addSection(
+    resumeId: string,
+    sectionTypeKey: string
+): Promise<ResumeSection> {
     const res = await APIInstance.post(`/api/resumes/${resumeId}/sections/`, {
         section_type_key: sectionTypeKey,
     })
@@ -204,7 +282,7 @@ export async function updateSection(
     sectionId: string,
     payload: { order?: number; isVisible?: boolean }
 ): Promise<ResumeSection> {
-    const body: Record<string, any> = {}
+    const body: Record<string, unknown> = {}
     if (payload.order !== undefined) body.order = payload.order
     if (payload.isVisible !== undefined) body.is_visible = payload.isVisible
     const res = await APIInstance.patch(
@@ -214,7 +292,10 @@ export async function updateSection(
     return mapSection(res.data)
 }
 
-export async function deleteSection(resumeId: string, sectionId: string): Promise<void> {
+export async function deleteSection(
+    resumeId: string,
+    sectionId: string
+): Promise<void> {
     await APIInstance.delete(`/api/resumes/${resumeId}/sections/${sectionId}/`)
 }
 
@@ -238,9 +319,9 @@ export async function updateEntry(
     resumeId: string,
     sectionId: string,
     entryId: string,
-    payload: { rawInput?: string; content?: any; order?: number }
+    payload: { rawInput?: string; content?: unknown; order?: number }
 ): Promise<SectionEntry> {
-    const body: Record<string, any> = {}
+    const body: Record<string, unknown> = {}
     if (payload.rawInput !== undefined) body.raw_input = payload.rawInput
     if (payload.content !== undefined) body.content = payload.content
     if (payload.order !== undefined) body.order = payload.order
@@ -281,14 +362,18 @@ export interface RenderedResumeResponse {
     latexCode: string
 }
 
-export async function renderResume(resumeId: string): Promise<RenderedResumeResponse> {
+export async function renderResume(
+    resumeId: string
+): Promise<RenderedResumeResponse> {
     const res = await APIInstance.post(`/api/resumes/${resumeId}/render/`)
 
     const pdfBase64 = res.data?.pdf
     const latexCode = res.data?.latex
 
-    if (typeof pdfBase64 !== 'string') throw new Error('PDF payload missing or invalid')
-    if (typeof latexCode !== 'string') throw new Error('LaTeX payload missing or invalid')
+    if (typeof pdfBase64 !== 'string')
+        throw new Error('PDF payload missing or invalid')
+    if (typeof latexCode !== 'string')
+        throw new Error('LaTeX payload missing or invalid')
 
     const binaryString = atob(pdfBase64)
     const byteArray = new Uint8Array(binaryString.length)
@@ -301,22 +386,21 @@ export async function renderResume(resumeId: string): Promise<RenderedResumeResp
     return { pdfUrl, latexCode }
 }
 
-export async function getGithubAuthorizationUrl(redirectTo: string): Promise<string> {
-    const res = await APIInstance.get(
-        "/api/resume-renderer/github/connect/",
-        {
-            params: {
-                redirect_to: redirectTo,
-            },
-        }
-    )
+export async function getGithubAuthorizationUrl(
+    redirectTo: string
+): Promise<string> {
+    const res = await APIInstance.get('/api/resume-renderer/github/connect/', {
+        params: {
+            redirect_to: redirectTo,
+        },
+    })
 
     return res.data.authorization_url
 }
 
 export async function getGithubStatus(): Promise<boolean> {
     const res = await GithubAPIInstance.get(
-        "/api/resume-renderer/github/status/"
+        '/api/resume-renderer/github/status/'
     )
 
     return res.data.connected
@@ -324,7 +408,7 @@ export async function getGithubStatus(): Promise<boolean> {
 
 export async function getGithubRepositories() {
     const res = await GithubAPIInstance.get(
-        "/api/resume-renderer/github/repositories/"
+        '/api/resume-renderer/github/repositories/'
     )
 
     return res.data.data
@@ -332,7 +416,7 @@ export async function getGithubRepositories() {
 
 export async function importGithubProjects(repositories: Repo[]) {
     const res = await GithubAPIInstance.post(
-        "/api/resume-renderer/github/import-projects/",
+        '/api/resume-renderer/github/import-projects/',
         {
             repositories,
         }

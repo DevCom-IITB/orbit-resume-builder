@@ -104,3 +104,7 @@ class GeminiLLMClient:
                 return text[start : end + 1].strip()
 
         return text
+
+# Provider-agnostic name used by the views and line fitter. Point this at a
+# different client class to switch LLM backends.
+LLMClient = GeminiLLMClient

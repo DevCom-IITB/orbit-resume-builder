@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from resume_renderer.services.line_fitter import fit_bullets_in_content
-from resume_renderer.services.llm_client import GeminiLLMClient, LLMClientError
+from resume_renderer.services.llm_client import LLMClient, LLMClientError
 from resume_renderer.services.prompts import build_resume_prompt
 from resume_renderer.services.renderer import assemble_resume_latex, compile_latex
 from utils.token_dec import token_required
@@ -19,10 +19,10 @@ from .serializers import (
     ResumeDetailSerializer,
     ResumeListSerializer,
     ResumePatchSerializer,
+    ResumeSnapshotSerializer,
     ResumeTemplateSerializer,
     SectionEntrySerializer,
     SectionSerializer,
-    VersionSerializer,
     VisualThemeSerializer,
 )
 from rag.retrieval.filtering import SectionKey
@@ -63,11 +63,13 @@ class TemplateListView(APIView):
 class VisualThemeListView(APIView):
     @token_required
     def get(self, request):
-        qs = VisualTheme.objects.all()
+        themes = list(VisualTheme.objects.all())
         family = request.GET.get("family")
         if family:
-            qs = qs.filter(compatible_families__contains=family)
-        return Response(VisualThemeSerializer(qs, many=True).data)
+            # JSONField `__contains` isn't supported on SQLite, so filter in
+            # Python (the theme table is tiny).
+            themes = [t for t in themes if family in (t.compatible_families or [])]
+        return Response(VisualThemeSerializer(themes, many=True).data)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -112,11 +114,13 @@ class ResumeDetail(APIView):
         serializer = ResumePatchSerializer(resume, data=request.data, partial=True)
         if serializer.is_valid():
             updated = serializer.save()
-            Version.objects.create(
-                resume=updated,
-                snapshot=ResumeDetailSerializer(updated).data,
-                created_by=request.user,
-            )
+            # Pin toggles aren't content edits, so they don't get a version.
+            if set(serializer.validated_data) - {"is_pinned"}:
+                Version.objects.create(
+                    resume=updated,
+                    snapshot=ResumeSnapshotSerializer(updated).data,
+                    created_by=request.user,
+                )
             return Response(ResumeDetailSerializer(updated).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -259,6 +263,8 @@ class SectionDetail(APIView):
             section.order = int(request.data["order"])
         if "is_visible" in request.data:
             section.is_visible = bool(request.data["is_visible"])
+        if "order" in request.data or "is_visible" in request.data:
+            # Both change the rendered document, so drop the cached LaTeX.
             resume.latex_cache_valid = False
             resume.save(update_fields=["latex_cache_valid"])
         section.save()
@@ -336,10 +342,12 @@ class EntryDetail(APIView):
             entry.raw_input = request.data["raw_input"]
         if "content" in request.data:
             entry.content = request.data["content"]
-            resume.latex_cache_valid = False
-            resume.save(update_fields=["latex_cache_valid"])
         if "order" in request.data:
             entry.order = int(request.data["order"])
+        if "content" in request.data or "order" in request.data:
+            # Both change the rendered document, so drop the cached LaTeX.
+            resume.latex_cache_valid = False
+            resume.save(update_fields=["latex_cache_valid"])
 
         entry.save()
         return Response(SectionEntrySerializer(entry).data)

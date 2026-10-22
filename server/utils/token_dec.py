@@ -9,7 +9,6 @@ from django.conf import settings
 REACH_VERIFY = os.getenv(
     "REACH_VERIFY_URL", "http://127.0.0.1:8000/api/sso/accounts/verify/"
 )
-SERVICE_KEY = os.getenv("RB_SERVICE_KEY", "dev-resume-key-1")
 
 
 def token_required(view_func):
@@ -47,7 +46,7 @@ def token_required(view_func):
                 REACH_VERIFY,
                 headers={
                     "Authorization": f"Bearer {token}",
-                    "X-Service-Key": SERVICE_KEY,
+                    "X-Service-Key": settings.RB_SERVICE_KEY,
                 },
                 timeout=5,
             )

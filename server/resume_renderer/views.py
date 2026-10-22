@@ -1,7 +1,6 @@
 import base64
-
-import base64
-import json
+import hmac
+import secrets
 import traceback
 
 from django.http import HttpResponse
@@ -37,7 +36,7 @@ from resume_renderer.JSONSchema.jsonschema import (
     get_supported_section_types,
 )
 from resume_renderer.serializers import ResumeSectionRefineSerializer
-from resume_renderer.services.llm_client import GeminiLLMClient, LLMClientError
+from resume_renderer.services.llm_client import LLMClient, LLMClientError
 from resume_renderer.services.prompts import build_resume_prompt
 
 import requests
@@ -138,6 +137,8 @@ class LatexRenderView(APIView):
                     technical_latex,
                 ]
             )
+            # Converters only emit body fragments; pdflatex needs a full document.
+            latex = renderer.TEMPLATE.replace("__CONTENT__", latex)
             pdf_bytes = renderer.compile_latex(latex)
         except RuntimeError as e:
             return Response(
@@ -153,6 +154,7 @@ class LatexRenderView(APIView):
 
 
 @api_view(["POST"])
+@token_required
 def refine_resume_section(request, section_type):
     """
     Refine rough user input into resume-ready JSON using the LLM.
@@ -205,7 +207,7 @@ def refine_resume_section(request, section_type):
     try:
         prompt = build_resume_prompt(section_type, user_input)
 
-        llm_client = GeminiLLMClient()
+        llm_client = LLMClient()
         llm_output = llm_client.generate_json(prompt)
 
         schema = get_schema(section_type)
@@ -251,29 +253,34 @@ def refine_resume_section(request, section_type):
         )
 
 
+GITHUB_STATE_SESSION_KEY = "github_oauth_state"
+
+
+def _github_not_configured():
+    return Response(
+        {"success": False, "error": "GitHub integration is not configured."},
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
+
+
 class GitHubConnectAPIView(APIView):
     """
     Returns the GitHub OAuth authorization URL.
     """
 
     def get(self, request):
-        redirect_to = request.query_params.get(
-            "redirect_to",
-            "/",
-        )
+        if not settings.GITHUB_ENABLED:
+            return _github_not_configured()
 
-        state = base64.urlsafe_b64encode(
-            json.dumps(
-                {
-                    "redirect_to": redirect_to,
-                }
-            ).encode()
-        ).decode()
+        # Random per-attempt state bound to this session; verified in the
+        # callback so an attacker can't link their GitHub token to a victim.
+        state = secrets.token_urlsafe(32)
+        request.session[GITHUB_STATE_SESSION_KEY] = state
 
         params = {
             "client_id": settings.GITHUB_CLIENT_ID,
             "redirect_uri": settings.GITHUB_REDIRECT_URI,
-            "scope": "repo read:user",
+            "scope": settings.GITHUB_OAUTH_SCOPE,
             "state": state,
         }
 
@@ -292,8 +299,18 @@ class GitHubCallbackAPIView(APIView):
     """
 
     def get(self, request):
+        if not settings.GITHUB_ENABLED:
+            return _github_not_configured()
+
+        expected_state = request.session.pop(GITHUB_STATE_SESSION_KEY, None)
+        received_state = request.query_params.get("state") or ""
+        if not expected_state or not hmac.compare_digest(expected_state, received_state):
+            return Response(
+                {"error": "Invalid OAuth state."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         code = request.query_params.get("code")
-        state = request.query_params.get("state")
 
         if not code:
             return Response(
@@ -301,23 +318,27 @@ class GitHubCallbackAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        response = requests.post(
-            "https://github.com/login/oauth/access_token",
-            headers={
-                "Accept": "application/json",
-            },
-            data={
-                "client_id": settings.GITHUB_CLIENT_ID,
-                "client_secret": settings.GITHUB_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": settings.GITHUB_REDIRECT_URI,
-            },
-            timeout=10,
-        )
-
-        response.raise_for_status()
-
-        token = response.json().get("access_token")
+        try:
+            response = requests.post(
+                "https://github.com/login/oauth/access_token",
+                headers={
+                    "Accept": "application/json",
+                },
+                data={
+                    "client_id": settings.GITHUB_CLIENT_ID,
+                    "client_secret": settings.GITHUB_CLIENT_SECRET,
+                    "code": code,
+                    "redirect_uri": settings.GITHUB_REDIRECT_URI,
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            token = response.json().get("access_token")
+        except (requests.RequestException, ValueError):
+            return Response(
+                {"error": "Could not reach GitHub to complete sign-in."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
         if token is None:
             return Response(
@@ -328,16 +349,8 @@ class GitHubCallbackAPIView(APIView):
         request.session["github_access_token"] = token
         request.session.modified = True
 
-        if state:
-            try:
-                decoded_state = json.loads(
-                    base64.urlsafe_b64decode(state).decode()
-                )
-            except Exception:
-                pass
-
         return HttpResponse(
-            f"""
+            """
             <!DOCTYPE html>
             <html>
                 <head>

@@ -13,7 +13,6 @@ Requires in .env:
 import functools
 import os
 import chromadb
-from django.conf import settings
 from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file
 

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import EditorApp from '../App'
+import { isFromReach } from '../auth/reachMessaging'
 import Home from './pages/Home'
 
 function App() {
@@ -8,6 +9,7 @@ function App() {
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
+            if (!isFromReach(event)) return
             if (event.data && event.data.type === 'NAVIGATE_HOME') {
                 navigate('/home')
             }

@@ -7,7 +7,6 @@ rerank -> structured JSON context for the prompt builder.
 This is the single entry point the prompt builder should call.
 """
 
-import os
 from typing import Any, Dict, List, Optional
 
 from sentence_transformers import SentenceTransformer,CrossEncoder

@@ -1,9 +1,20 @@
 import { useState } from 'react'
 import SectionItem from './section-item'
-import type { LocalSection, LocalEntry } from '../../types/editor-panel/local-state'
+import type {
+    LocalSection,
+    LocalEntry,
+} from '../../types/editor-panel/local-state'
 import { toLocalEntry } from '../../types/editor-panel/local-state'
 import type { SectionEntry } from '../../types/resume'
-import { addEntry, deleteEntry, updateEntry, getGithubAuthorizationUrl, getGithubStatus, getGithubRepositories, importGithubProjects } from '../../lib/api'
+import {
+    addEntry,
+    deleteEntry,
+    updateEntry,
+    getGithubAuthorizationUrl,
+    getGithubStatus,
+    getGithubRepositories,
+    importGithubProjects,
+} from '../../lib/api'
 import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import {
     SortableContext,
@@ -25,7 +36,7 @@ interface ResumeSectionProps {
     onSectionCollapse: (sectionId: string) => void
     onEntriesChanged: (sectionId: string, entries: LocalEntry[]) => void
     onEntryUpdated: (sectionId: string, entry: SectionEntry) => void
-    onRenderRequest: () => void,
+    onRenderRequest: () => void
     onImportRepos: (sectionKey: string, importedRepos: Project[]) => void
 }
 
@@ -38,14 +49,16 @@ const ResumeSection = ({
     onEntriesChanged,
     onEntryUpdated,
     onRenderRequest,
-    onImportRepos
+    onImportRepos,
 }: ResumeSectionProps) => {
     const [isReorderEnabled, setReorderEnabled] = useState(false)
     const [showProjectModal, setShowProjectModal] = useState(false)
     const [showGithubModal, setShowGithubModal] = useState(false)
     const [githubRepos, setGithubRepos] = useState<Repo[]>([])
     const [showGithubAuthModal, setShowGithubAuthModal] = useState(false)
-    const [githubAuthStatus, setGithubAuthStatus] = useState<'auth' | 'fetch' | 'error'>('auth')
+    const [githubAuthStatus, setGithubAuthStatus] = useState<
+        'auth' | 'fetch' | 'error'
+    >('auth')
     const [isImportingProjects, setIsImportingProjects] = useState(false)
 
     const { attributes, listeners, setNodeRef, transform, transition } =
@@ -57,7 +70,10 @@ const ResumeSection = ({
     const handleEntryAdd = async () => {
         try {
             const newEntry = await addEntry(resumeId, section.id)
-            const localEntry: LocalEntry = { ...toLocalEntry(newEntry), isCollapsed: false }
+            const localEntry: LocalEntry = {
+                ...toLocalEntry(newEntry),
+                isCollapsed: false,
+            }
             onEntriesChanged(section.id, [...section.entries, localEntry])
         } catch (err) {
             console.error('[ResumeSection] addEntry failed:', err)
@@ -118,8 +134,8 @@ const ResumeSection = ({
         try {
             const connected = await getGithubStatus()
 
-            if(connected){
-                setGithubAuthStatus("fetch")
+            if (connected) {
+                setGithubAuthStatus('fetch')
                 setShowGithubAuthModal(true)
 
                 const repos = await getGithubRepositories()
@@ -132,20 +148,20 @@ const ResumeSection = ({
                 )
 
                 setShowGithubAuthModal(false)
-                setGithubAuthStatus("fetch")
+                setGithubAuthStatus('fetch')
                 setShowGithubModal(true)
 
                 return
             }
 
             const redirectTo = window.location.pathname + window.location.search
-            
+
             const authorizationUrl = await getGithubAuthorizationUrl(redirectTo)
-            
+
             const popup = window.open(
                 authorizationUrl,
-                "github-oauth",
-                "popup,width=700,height=800,left=300,top=100"
+                'github-oauth',
+                'popup,width=700,height=800,left=300,top=100'
             )
 
             setGithubAuthStatus('auth')
@@ -156,7 +172,7 @@ const ResumeSection = ({
                     clearInterval(timer)
 
                     const connected = await getGithubStatus()
-                    
+
                     if (!connected) {
                         setGithubAuthStatus('error')
 
@@ -164,7 +180,7 @@ const ResumeSection = ({
                             setShowGithubAuthModal(false)
                         }, 2000)
                         return
-                    }else{
+                    } else {
                         setShowGithubModal(true)
                     }
 
@@ -189,17 +205,17 @@ const ResumeSection = ({
                 }
             }, 500)
         } catch (error) {
-            console.error("Failed to start GitHub OAuth:", error)
+            console.error('Failed to start GitHub OAuth:', error)
         }
     }
 
     const handleClearAllImports = () => {
         setGithubRepos(
             githubRepos.map((repo) => {
-                return({
+                return {
                     ...repo,
-                    selected: false
-                })
+                    selected: false,
+                }
             })
         )
     }
@@ -210,18 +226,17 @@ const ResumeSection = ({
         const selectedRepos = githubRepos.filter((repo) => repo.selected)
 
         const importedProjects = await importGithubProjects(selectedRepos)
-        
 
         setIsImportingProjects(false)
         setShowGithubModal(false)
 
-        onImportRepos("key_projects", importedProjects)
+        onImportRepos('key_projects', importedProjects)
     }
 
     const handleAuthModalClose = (status: string) => {
-        if(status === 'cancel'){
+        if (status === 'cancel') {
             setShowGithubAuthModal(false)
-        }else if(status === 'authenticated'){
+        } else if (status === 'authenticated') {
             setShowGithubAuthModal(false)
             setShowGithubModal(true)
         }
@@ -366,10 +381,13 @@ const ResumeSection = ({
                             <button
                                 className="add-section-item-button"
                                 onClick={() => {
-                                    if(section.sectionType.key === "key_projects"){
+                                    if (
+                                        section.sectionType.key ===
+                                        'key_projects'
+                                    ) {
                                         setShowProjectModal(true)
-                                        return;
-                                    }else{
+                                        return
+                                    } else {
                                         handleEntryAdd()
                                     }
                                 }}
@@ -385,8 +403,8 @@ const ResumeSection = ({
                 onClose={() => setShowProjectModal(false)}
                 onGithub={handleGithubImport}
                 onManual={() => {
-                    setShowProjectModal(false);
-                    handleEntryAdd();
+                    setShowProjectModal(false)
+                    handleEntryAdd()
                 }}
             />
             <GithubModal
@@ -397,17 +415,21 @@ const ResumeSection = ({
                 }}
                 repos={githubRepos}
                 onRepoToggle={(id) => {
-                    setGithubRepos((prev) => prev.map((repo) => repo.id === id ? {
-                                    ...repo,
-                                    selected: !repo.selected,
-                                } : repo
+                    setGithubRepos((prev) =>
+                        prev.map((repo) =>
+                            repo.id === id
+                                ? {
+                                      ...repo,
+                                      selected: !repo.selected,
+                                  }
+                                : repo
                         )
-                    );
+                    )
                 }}
                 onImport={handleImportedRepoMap}
                 onClear={handleClearAllImports}
             />
-            <GithubAuthModal 
+            <GithubAuthModal
                 open={showGithubAuthModal}
                 authStatus={githubAuthStatus}
                 onClose={handleAuthModalClose}
