@@ -20,6 +20,7 @@ from .serializers import (
     ResumeListSerializer,
     ResumePatchSerializer,
     ResumeTemplateSerializer,
+    ResumeTemplateSwitchSerializer,
     SectionEntrySerializer,
     SectionSerializer,
     VersionSerializer,
@@ -55,7 +56,9 @@ def _get_entry_or_404(section, entry_id):
 class TemplateListView(APIView):
     @token_required
     def get(self, request):
-        templates = ResumeTemplate.objects.filter(is_active=True).prefetch_related("available_themes")
+        templates = ResumeTemplate.objects.filter(is_active=True).prefetch_related(
+            "available_themes", "section_manifest__section_type"
+        )
         return Response(ResumeTemplateSerializer(templates, many=True).data)
 
 
@@ -183,6 +186,230 @@ class RenderResumeView(APIView):
             return Response({"pdf": pdf_b64, "latex": latex})
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def _rollback_style(resume, pre_style: dict) -> None:
+    """Revert resume.config_override["style"] to pre_style after a compile failure."""
+    from django.db import transaction
+
+    with transaction.atomic():
+        locked = Resume.objects.select_for_update().get(pk=resume.pk)
+        config = {**(locked.config_override or {}), "style": pre_style}
+        locked.config_override = config
+        locked.latex_cache_valid = False
+        locked.save(update_fields=["config_override", "latex_cache_valid", "updated_at"])
+
+    resume.config_override = locked.config_override
+    resume.latex_cache_valid = False
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ResumeStyleView(APIView):
+    @token_required
+    def get(self, request, resume_id):
+        resume = _get_resume_or_404(resume_id, request.user)
+        if not resume:
+            return Response({"error": "not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        from resume_renderer.services.styling import get_style_options, resolve_style
+
+        return Response({
+            "style": resolve_style(resume),
+            "options": get_style_options(resume.template),
+        })
+
+    @token_required
+    def patch(self, request, resume_id):
+        resume = _get_resume_or_404(resume_id, request.user)
+        if not resume:
+            return Response({"error": "not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        from rest_framework import serializers as drf_serializers
+        from resume_renderer.services.styling import (
+            apply_style,
+            resolve_style,
+            validate_style_patch,
+        )
+
+        try:
+            patch = validate_style_patch(dict(request.data), resume.template)
+        except drf_serializers.ValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+
+        pre_style = resolve_style(resume)
+        changed = apply_style(resume, patch)
+
+        if not changed:
+            return Response({
+                "changed": False,
+                "style": resolve_style(resume),
+            })
+
+        # Re-assemble and compile with the new style
+        try:
+            latex = assemble_resume_latex(resume)
+            pdf_bytes = compile_latex(latex)
+        except Exception as exc:
+            _rollback_style(resume, pre_style)
+            log_excerpt = str(exc)[-2000:]
+            return Response(
+                {
+                    "error": (
+                        "LaTeX compilation failed after style change. "
+                        "The style has been rolled back to its previous value.\n"
+                        f"{log_excerpt}"
+                    )
+                },
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        pdf_b64 = base64.b64encode(pdf_bytes).decode("utf-8")
+        response_data = {
+            "changed": True,
+            "style": resolve_style(resume),
+            "pdf": pdf_b64,
+            "latex": latex,
+        }
+
+        # Optionally include page count via pymupdf
+        try:
+            import fitz  # pymupdf
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            response_data["page_count"] = doc.page_count
+            response_data["pages"] = doc.page_count
+        except Exception:
+            pass  # skip silently if unavailable or parse error
+
+        return Response(response_data)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ResumeTemplateSwitchView(APIView):
+    @token_required
+    def post(self, request, resume_id):
+        resume = _get_resume_or_404(resume_id, request.user)
+        if not resume:
+            return Response({"error": "not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ResumeTemplateSwitchSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        template_key = serializer.validated_data["template_key"]
+        theme_key = serializer.validated_data.get("theme_key")
+        dry_run = serializer.validated_data.get("dry_run", False)
+
+        template = ResumeTemplate.objects.filter(key=template_key, is_active=True).first()
+        if not template:
+            return Response(
+                {"error": f"Template '{template_key}' does not exist or is inactive."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if theme_key:
+            theme = VisualTheme.objects.filter(key=theme_key).first()
+            if not theme:
+                return Response(
+                    {"error": f"Theme '{theme_key}' does not exist."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            theme = template.available_themes.first()
+            if not theme:
+                return Response(
+                    {"error": f"Template '{template.key}' has no available themes."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if not template.available_themes.filter(pk=theme.pk).exists():
+            return Response(
+                {"error": f"Theme '{theme.key}' is not available for template '{template.key}'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if template.family not in (theme.compatible_families or []):
+            return Response(
+                {"error": f"Theme '{theme.key}' is not compatible with template family '{template.family}'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from resume_renderer.schemas.converter_registry import get_converter
+
+        manifest_tsts = template.section_manifest.select_related("section_type").all()
+        for tst in manifest_tsts:
+            try:
+                get_converter(theme.converter_set_key, tst.section_type.key)
+            except KeyError:
+                return Response(
+                    {"error": f"Theme '{theme.key}' lacks a converter for section '{tst.section_type.key}'."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        from .services.template_switch import apply_switch, plan_switch, section_has_content
+
+        plan = plan_switch(resume, template, theme)
+
+        if plan.is_noop:
+            if dry_run:
+                return Response({
+                    "dry_run": True,
+                    "plan": {
+                        "will_hide": [],
+                        "will_add_empty": [],
+                        "will_restore": [],
+                        "style_reset": [],
+                        "unchanged": [s.section_type.key for s in resume.sections.all()],
+                    },
+                })
+            from resume_renderer.services.styling import get_style_options, resolve_style
+
+            return Response({
+                "changed": False,
+                "template": {"key": template.key, "display_name": template.display_name},
+                "theme_key": theme.key,
+                "sections": [
+                    {
+                        "key": s.section_type.key,
+                        "display_name": s.section_type.display_name,
+                        "order": s.order,
+                        "is_visible": s.is_visible,
+                        "has_data": section_has_content(s),
+                    }
+                    for s in resume.sections.select_related("section_type").prefetch_related("entries").order_by("order")
+                ],
+                "style": resolve_style(resume),
+                "options": get_style_options(template),
+                "warnings": [],
+            })
+
+        if dry_run:
+            return Response({
+                "dry_run": True,
+                "plan": {
+                    "will_hide": plan.will_hide,
+                    "will_add_empty": plan.will_add_empty,
+                    "will_restore": plan.will_restore,
+                    "style_reset": plan.style_reset,
+                    "unchanged": plan.unchanged,
+                },
+            })
+
+        try:
+            result = apply_switch(resume, plan)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as exc:
+            resume.refresh_from_db()
+            log_excerpt = str(exc)[-2000:]
+            return Response(
+                {
+                    "error": (
+                        "LaTeX compilation failed after template switch. "
+                        "The switch has been rolled back to its previous state.\n"
+                        f"{log_excerpt}"
+                    )
+                },
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -429,7 +656,7 @@ class GenerateEntryView(APIView):
             entry.last_sent_prompt = prompt
             entry.save(update_fields=["last_sent_prompt"])
 
-            llm = LLMClient()
+            llm = GeminiLLMClient()
             raw_output = llm.generate_json(prompt)
 
             # Validate against schema

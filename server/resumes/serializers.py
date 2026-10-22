@@ -26,6 +26,16 @@ class SectionTypeDefinitionSerializer(serializers.ModelSerializer):
 
 class ResumeTemplateSerializer(serializers.ModelSerializer):
     available_themes = VisualThemeSerializer(many=True, read_only=True)
+    default_theme_key = serializers.SerializerMethodField()
+    fonts = serializers.SerializerMethodField()
+    font_default = serializers.SerializerMethodField()
+    accents = serializers.SerializerMethodField()
+    accent_default = serializers.SerializerMethodField()
+    line_spacings = serializers.SerializerMethodField()
+    line_spacing_default = serializers.SerializerMethodField()
+    word_spacings = serializers.SerializerMethodField()
+    word_spacing_default = serializers.SerializerMethodField()
+    sections = serializers.SerializerMethodField()
 
     class Meta:
         model = ResumeTemplate
@@ -37,6 +47,63 @@ class ResumeTemplateSerializer(serializers.ModelSerializer):
             "max_pages",
             "template_config",
             "available_themes",
+            "default_theme_key",
+            "fonts",
+            "font_default",
+            "accents",
+            "accent_default",
+            "line_spacings",
+            "line_spacing_default",
+            "word_spacings",
+            "word_spacing_default",
+            "sections",
+        ]
+
+    def _get_opts(self, obj):
+        if not hasattr(obj, "_cached_style_opts"):
+            from resume_renderer.services.styling import get_style_options
+            obj._cached_style_opts = get_style_options(obj)
+        return obj._cached_style_opts
+
+    def get_default_theme_key(self, obj):
+        first_theme = obj.available_themes.first()
+        return first_theme.key if first_theme else None
+
+    def get_fonts(self, obj):
+        return self._get_opts(obj)["fonts"]
+
+    def get_font_default(self, obj):
+        return self._get_opts(obj)["font_default"]
+
+    def get_accents(self, obj):
+        return self._get_opts(obj)["accents"]
+
+    def get_accent_default(self, obj):
+        return self._get_opts(obj)["accent_default"]
+
+    def get_line_spacings(self, obj):
+        return self._get_opts(obj)["line_spacings"]
+
+    def get_line_spacing_default(self, obj):
+        return self._get_opts(obj)["line_spacing_default"]
+
+    def get_word_spacings(self, obj):
+        return self._get_opts(obj)["word_spacings"]
+
+    def get_word_spacing_default(self, obj):
+        return self._get_opts(obj)["word_spacing_default"]
+
+    def get_sections(self, obj):
+        manifest = obj.section_manifest.select_related("section_type").order_by("default_order")
+        return [
+            {
+                "key": tst.section_type.key,
+                "display_name": tst.section_type.display_name,
+                "is_default": tst.is_default,
+                "is_required": tst.is_required,
+                "default_order": tst.default_order,
+            }
+            for tst in manifest
         ]
 
 
@@ -89,6 +156,7 @@ class ResumeListSerializer(serializers.ModelSerializer):
 
 class ResumeDetailSerializer(serializers.ModelSerializer):
     template = serializers.SerializerMethodField()
+    template_key = serializers.SerializerMethodField()
     visual_theme = serializers.SerializerMethodField()
     sections = SectionSerializer(many=True, read_only=True)
     versions = VersionSerializer(many=True, read_only=True)
@@ -99,6 +167,7 @@ class ResumeDetailSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "template",
+            "template_key",
             "visual_theme",
             "pages",
             "config_override",
@@ -110,9 +179,30 @@ class ResumeDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_template(self, obj):
-        return {"key": obj.template.key, "display_name": obj.template.display_name}
+        from resume_renderer.services.styling import get_style_options
+        if not obj.template:
+            return {
+                "key": "iitb-general",
+                "display_name": "IIT Bombay",
+                "font_default": "lmodern",
+                "accent_default": "#4B41C8",
+            }
+        opts = get_style_options(obj.template)
+        return {
+            "key": obj.template.key,
+            "display_name": obj.template.display_name,
+            "font_default": opts["font_default"],
+            "accent_default": opts["accent_default"],
+        }
+
+    def get_template_key(self, obj):
+        if not obj.template:
+            return "iitb-general"
+        return obj.template.key
 
     def get_visual_theme(self, obj):
+        if not obj.visual_theme:
+            return {"key": "iitb-classic", "display_name": "Classic (IIT Bombay)"}
         return {"key": obj.visual_theme.key, "display_name": obj.visual_theme.display_name}
 
 
@@ -229,3 +319,28 @@ class ResumePatchSerializer(serializers.ModelSerializer):
             setattr(instance, attr, val)
         instance.save()
         return instance
+
+
+class StylePatchSerializer(serializers.Serializer):
+    """Lightweight schema hint for the style PATCH endpoint.
+    Real validation (whitelist check, WCAG, allowed spacing) is performed in styling.validate_style_patch.
+    """
+    font = serializers.CharField(max_length=32, required=False)
+    accent = serializers.CharField(max_length=7, required=False)
+    line_spacing = serializers.CharField(max_length=16, required=False)
+    word_spacing = serializers.CharField(max_length=16, required=False)
+
+    def validate(self, data):
+        if not data:
+            raise serializers.ValidationError(
+                "Provide at least one of 'font', 'accent', 'line_spacing', or 'word_spacing'."
+            )
+        return data
+
+
+class ResumeTemplateSwitchSerializer(serializers.Serializer):
+    template_key = serializers.CharField(max_length=64)
+    theme_key = serializers.CharField(max_length=64, required=False, allow_null=True)
+    dry_run = serializers.BooleanField(default=False)
+
+
