@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import ResumeSection from './resume-section'
+import TemplateStyleBar from './TemplateStyleBar'
 import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import {
     SortableContext,
@@ -46,12 +47,18 @@ interface EditorPanelProps {
     resume: Resume
     onTitleSave: (title: string) => Promise<void>
     onRenderRequest: () => void
+    onPdfUpdate?: (pdfBlobUrl: string, latex: string) => void
+    onResumeUpdate?: (updatedResume: Resume) => void
+    onRenderStatusChange?: (status: 'idle' | 'loading' | 'success' | 'error') => void
 }
 
 const EditorPanel = ({
     resume,
     onTitleSave,
     onRenderRequest,
+    onPdfUpdate = () => {},
+    onResumeUpdate = () => {},
+    onRenderStatusChange = () => {},
 }: EditorPanelProps) => {
     const navigate = useNavigate()
     const [sections, setSections] = useState<LocalSection[]>(() =>
@@ -65,10 +72,10 @@ const EditorPanel = ({
         setFileName(resume.title)
     }, [resume.title])
 
-    // Re-initialize sections only when switching to a different resume
+    // Re-initialize sections when switching resume or when template changes
     useEffect(() => {
         setSections(resume.sections.map(toLocalSection))
-    }, [resume.id]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [resume.id, resume.template.key, resume.updatedAt, resume.sections])
 
     const handleFileNameBlur = async () => {
         const trimmed = fileName.trim()
@@ -225,6 +232,16 @@ const EditorPanel = ({
                     <span>Back to Resumes</span>
                 </button>
             </div>
+
+            <TemplateStyleBar
+                resume={resume}
+                onPdfUpdate={onPdfUpdate}
+                onResumeUpdate={onResumeUpdate}
+                onSectionsChange={(newSections) =>
+                    setSections(newSections.map(toLocalSection))
+                }
+                onRenderStatusChange={onRenderStatusChange}
+            />
 
             <div className="resume-header">
                 <textarea
