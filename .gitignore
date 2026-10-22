@@ -57,3 +57,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# notes
+out.md
+notes/*
