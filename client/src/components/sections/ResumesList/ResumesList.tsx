@@ -155,13 +155,11 @@ function ResumesList({
         }
 
         document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
+        return () =>
+            document.removeEventListener('mousedown', handleClickOutside)
     }, [openMenuId])
 
-    const handleMenuAction = (
-        e: React.MouseEvent,
-        action: () => void
-    ) => {
+    const handleMenuAction = (e: React.MouseEvent, action: () => void) => {
         e.stopPropagation()
         action()
         setOpenMenuId(null)
@@ -280,19 +278,14 @@ function ResumesList({
                                     onClick={(e) => {
                                         e.stopPropagation()
                                         setOpenMenuId((current) =>
-                                            current === item.id
-                                                ? null
-                                                : item.id
+                                            current === item.id ? null : item.id
                                         )
                                     }}
                                 >
                                     <MenuDotsIcon />
                                 </button>
                                 {openMenuId === item.id && (
-                                    <div
-                                        className="resumes__menu"
-                                        role="menu"
-                                    >
+                                    <div className="resumes__menu" role="menu">
                                         <button
                                             type="button"
                                             className="resumes__menu-item"

@@ -1,5 +1,5 @@
-import { createPortal } from "react-dom";
-import githubLogo from '../../../assets/githubLogo.png';
+import { createPortal } from 'react-dom'
+import githubLogo from '../../../assets/githubLogo.png'
 import './GithubAuthModal.css'
 
 interface GithubAuthModalProps {
@@ -8,25 +8,29 @@ interface GithubAuthModalProps {
     authStatus: 'auth' | 'fetch' | 'error'
 }
 
-const GithubAuthModal = ({open, onClose, authStatus}: GithubAuthModalProps) => {
+const GithubAuthModal = ({
+    open,
+    onClose,
+    authStatus,
+}: GithubAuthModalProps) => {
+    if (!open) return null
 
-    if(!open) return null;
-    
     const modalContent = {
         auth: {
-            title: "Connecting to GitHub",
-            description: "Finish signing in from the GitHub popup. This window will close automatically afterwards.",
-            loadingText: "Waiting for GitHub...",
+            title: 'Connecting to GitHub',
+            description:
+                'Finish signing in from the GitHub popup. This window will close automatically afterwards.',
+            loadingText: 'Waiting for GitHub...',
         },
         fetch: {
-            title: "Authentication Successful",
+            title: 'Authentication Successful',
             description: "You're connected! Fetching your repositories.",
-            loadingText: "Loading repositories...",
+            loadingText: 'Loading repositories...',
         },
         error: {
-            title: "Authentication Failed",
-            description: "GitHub authentication was cancelled or unsuccessful.",
-            loadingText: "Closing...",
+            title: 'Authentication Failed',
+            description: 'GitHub authentication was cancelled or unsuccessful.',
+            loadingText: 'Closing...',
         },
     }
 
@@ -51,20 +55,14 @@ const GithubAuthModal = ({open, onClose, authStatus}: GithubAuthModalProps) => {
                     />
                 </div>
 
-                <h2 className="github-auth-title">
-                    {content.title}
-                </h2>
+                <h2 className="github-auth-title">{content.title}</h2>
 
-                <p className="github-auth-description">
-                    {content.description}
-                </p>
+                <p className="github-auth-description">{content.description}</p>
 
                 <div className="github-auth-loading">
                     <span className="github-auth-spinner" />
 
-                    <span>
-                        {content.loadingText}
-                    </span>
+                    <span>{content.loadingText}</span>
                 </div>
 
                 <button
@@ -79,7 +77,7 @@ const GithubAuthModal = ({open, onClose, authStatus}: GithubAuthModalProps) => {
             </div>
         </div>,
         document.body
-    );
-};
+    )
+}
 
-export default GithubAuthModal;
+export default GithubAuthModal

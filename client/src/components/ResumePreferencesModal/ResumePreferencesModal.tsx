@@ -5,7 +5,6 @@ import ResumePreview from './ResumePreview'
 
 // ── Animations ──────────────────────────────────────────────────────────────
 
-const fadeIn = keyframes`from { opacity: 0; } to { opacity: 1; }`
 const slideUp = keyframes`
   from { opacity: 0; transform: scale(0.96) translateY(10px); }
   to   { opacity: 1; transform: scale(1)    translateY(0);    }
