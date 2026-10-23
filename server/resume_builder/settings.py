@@ -16,9 +16,9 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
 # Leave empty unless you explicitly want to enable it.
 DEV_AUTH_USERNAME = env("DEV_AUTH_USERNAME", default="")
 
-GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID")
-GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET")
-GITHUB_REDIRECT_URI = env("GITHUB_REDIRECT_URI")
+GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
+GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET", default="")
+GITHUB_REDIRECT_URI = env("GITHUB_REDIRECT_URI", default="")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -100,3 +100,15 @@ CORS_ALLOW_CREDENTIALS = True
 # Allow Reach (localhost:3000) to embed Orbit in an iframe during local dev.
 if DEBUG:
     X_FRAME_OPTIONS = "ALLOWALL"
+
+# =========================
+# Redis & LLM Rate Limiting / Security Configuration
+# =========================
+REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
+ORBIT_LLM_USER_30MIN_LIMIT = env.int("ORBIT_LLM_USER_30MIN_LIMIT", default=20)
+ORBIT_LLM_USER_30MIN_WINDOW_SECONDS = env.int("ORBIT_LLM_USER_30MIN_WINDOW_SECONDS", default=1800)
+ORBIT_LLM_USER_DAILY_LIMIT = env.int("ORBIT_LLM_USER_DAILY_LIMIT", default=100)
+ORBIT_LLM_USER_DAILY_WINDOW_SECONDS = env.int("ORBIT_LLM_USER_DAILY_WINDOW_SECONDS", default=86400)
+ORBIT_ABUSE_FIRST_BLOCK_SECONDS = env.int("ORBIT_ABUSE_FIRST_BLOCK_SECONDS", default=600)
+ORBIT_ABUSE_SECOND_BLOCK_SECONDS = env.int("ORBIT_ABUSE_SECOND_BLOCK_SECONDS", default=3600)
+ORBIT_ABUSE_THIRD_BLOCK_SECONDS = env.int("ORBIT_ABUSE_THIRD_BLOCK_SECONDS", default=86400)

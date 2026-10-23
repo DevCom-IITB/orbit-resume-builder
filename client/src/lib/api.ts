@@ -265,15 +265,52 @@ export async function deleteEntry(
 // GENERATION & RENDERING
 // ============================================================================
 
+export interface LLMGenerationErrorPayload {
+    status: number
+    error: string
+    limitType?: '30_minute' | 'daily'
+    message: string
+    retryAfter?: number
+    resetAt?: string
+    blockedUntil?: string
+    details?: string
+}
+
+export class LLMGenerationError extends Error {
+    payload: LLMGenerationErrorPayload
+    constructor(payload: LLMGenerationErrorPayload) {
+        super(payload.message || 'LLM generation failed')
+        this.name = 'LLMGenerationError'
+        this.payload = payload
+    }
+}
+
 export async function generateEntry(
     resumeId: string,
     sectionId: string,
     entryId: string
 ): Promise<SectionEntry> {
-    const res = await APIInstance.post(
-        `/api/resumes/${resumeId}/sections/${sectionId}/entries/${entryId}/generate/`
-    )
-    return mapEntry(res.data)
+    try {
+        const res = await APIInstance.post(
+            `/api/resumes/${resumeId}/sections/${sectionId}/entries/${entryId}/generate/`
+        )
+        return mapEntry(res.data)
+    } catch (err: unknown) {
+        if (axios.isAxiosError(err) && err.response) {
+            const data = (err.response.data as Record<string, unknown>) || {}
+            throw new LLMGenerationError({
+                status: err.response.status,
+                error: (data.error as string) || 'unknown_error',
+                limitType: data.limit_type as '30_minute' | 'daily' | undefined,
+                message: (data.message as string) || err.message,
+                retryAfter: data.retry_after as number | undefined,
+                resetAt: data.reset_at as string | undefined,
+                blockedUntil: data.blocked_until as string | undefined,
+                details: data.details as string | undefined,
+            })
+        }
+        throw err
+    }
 }
 
 export interface RenderedResumeResponse {

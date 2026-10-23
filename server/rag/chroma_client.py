@@ -17,8 +17,17 @@ from django.conf import settings
 from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file
 
-Chroma_db_path=os.getenv("CHROMA_DB_PATH")
-Chroma_collection_name=os.getenv("CHROMA_COLLECTION_NAME")
+Chroma_db_path = os.getenv("CHROMA_DB_PATH")
+Chroma_collection_name = os.getenv("CHROMA_COLLECTION_NAME")
+
+if Chroma_db_path:
+    Chroma_db_path = Chroma_db_path.strip()
+if Chroma_collection_name:
+    Chroma_collection_name = Chroma_collection_name.strip()
+
+# Ensure path is absolute (relative paths can fail with 'os error 3' in Rust SQLite bindings on Windows)
+if Chroma_db_path and not os.path.isabs(Chroma_db_path):
+    Chroma_db_path = os.path.abspath(os.path.join(settings.BASE_DIR, Chroma_db_path))
 
 @functools.lru_cache(maxsize=1)
 def get_resume_collection():

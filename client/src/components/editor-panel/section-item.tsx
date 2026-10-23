@@ -2,7 +2,12 @@ import { useState } from 'react'
 import GeneratedTextArea from './generated-textarea'
 import ItemTextArea from './item-textarea'
 import type { LocalEntry } from '../../types/editor-panel/local-state'
-import { generateEntry as apiGenerateEntry, updateEntry } from '../../lib/api'
+import {
+    generateEntry as apiGenerateEntry,
+    updateEntry,
+    type LLMGenerationErrorPayload,
+} from '../../lib/api'
+import { GenerationFeedbackModal } from './GenerationFeedbackModal'
 import { useSortable } from '@dnd-kit/sortable'
 import { Trash2, GripHorizontal, Plus, Minus } from 'lucide-react'
 
@@ -33,6 +38,7 @@ const SectionItem = ({
 }: SectionItemProps) => {
     const [isGenerating, setIsGenerating] = useState(false)
     const [generateError, setGenerateError] = useState(false)
+    const [feedback, setFeedback] = useState<LLMGenerationErrorPayload | null>(null)
     const [lastGeneratedInput, setLastGeneratedInput] = useState(
         entry.generationStatus === 'done' && entry.content != null
             ? entry.rawInput
@@ -65,12 +71,50 @@ const SectionItem = ({
             })
             const updated = await apiGenerateEntry(resumeId, sectionId, entry.id)
             setLastGeneratedInput(textVal)
+            setFeedback(null)
             onEntryUpdated(updated)
             // Generating new content auto-refreshes the PDF preview.
             onRenderRequest()
-        } catch (err) {
+        } catch (err: unknown) {
             console.error('[SectionItem] Generation failed:', err)
             setGenerateError(true)
+            const errorObj = err as {
+                payload?: LLMGenerationErrorPayload
+                response?: {
+                    status?: number
+                    data?: {
+                        error?: string
+                        limit_type?: '30_minute' | 'daily'
+                        message?: string
+                        retry_after?: number
+                        reset_at?: string
+                        blocked_until?: string
+                        details?: string
+                    }
+                }
+                message?: string
+            }
+            if (errorObj?.payload) {
+                setFeedback(errorObj.payload)
+            } else if (errorObj?.response?.data) {
+                const resData = errorObj.response.data
+                setFeedback({
+                    status: errorObj.response.status || 500,
+                    error: resData.error || 'generation_failed',
+                    limitType: resData.limit_type,
+                    message: resData.message || 'Generation failed. Please try again.',
+                    retryAfter: resData.retry_after,
+                    resetAt: resData.reset_at,
+                    blockedUntil: resData.blocked_until,
+                    details: resData.details,
+                })
+            } else {
+                setFeedback({
+                    status: 500,
+                    error: 'network_or_unknown',
+                    message: 'Could not connect to the generation service. Please check your network and try again.',
+                })
+            }
         } finally {
             setIsGenerating(false)
         }
@@ -202,6 +246,18 @@ const SectionItem = ({
                     />
                 )}
             </div>
+
+            <GenerationFeedbackModal
+                feedback={feedback}
+                onClose={() => setFeedback(null)}
+                onRetry={() => {
+                    setFeedback(null)
+                    void handleGenerateClick(entry.rawInput)
+                }}
+                onEditInput={() => {
+                    setFeedback(null)
+                }}
+            />
         </div>
     )
 }

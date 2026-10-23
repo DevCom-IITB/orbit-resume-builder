@@ -37,8 +37,17 @@ from resume_renderer.JSONSchema.jsonschema import (
     get_supported_section_types,
 )
 from resume_renderer.serializers import ResumeSectionRefineSerializer
-from resume_renderer.services.llm_client import GeminiLLMClient, LLMClientError
+from resume_renderer.services.llm_client import GeminiLLMClient ,LLMClient, LLMClientError
+from resume_renderer.services.llm_rate_limiter import rate_limiter
 from resume_renderer.services.prompts import build_resume_prompt
+from resume_renderer.services.security import (
+    check_user_restriction,
+    detect_prompt_injection,
+    get_client_ip,
+    log_security_event,
+    record_user_violation,
+    validate_and_classify_llm_output,
+)
 
 import requests
 from django.conf import settings
@@ -201,15 +210,116 @@ def refine_resume_section(request, section_type):
         )
 
     user_input = serializer.validated_data["user_input"]
+    ldap_id = getattr(request.user, "username", "anonymous")
+    ip_address = get_client_ip(request)
+
+    # 1. Check account restriction
+    restriction = check_user_restriction(ldap_id)
+    if restriction is not None:
+        blocked_str = restriction.blocked_until.isoformat() if restriction.blocked_until else ""
+        return Response(
+            {
+                "success": False,
+                "error": "account_restricted",
+                "message": "AI generation is temporarily restricted for this account.",
+                "blocked_until": blocked_str,
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # 2. Check prompt injection signal
+    if detect_prompt_injection(user_input):
+        record_user_violation(
+            ldap_id=ldap_id,
+            event_type="PROMPT_INJECTION_SIGNAL",
+            severity="high",
+            section_type=section_type,
+            endpoint=request.path,
+            ip_address=ip_address,
+            metadata={"input_snippet": user_input[:200]},
+        )
+
+    # 3. Rate limiting check & acquire
+    rate_res = rate_limiter.check_and_acquire(ldap_id)
+    if not rate_res.is_allowed:
+        ev_type = (
+            "LLM_DAILY_LIMIT_EXCEEDED"
+            if rate_res.limit_type == "daily"
+            else "LLM_RATE_LIMIT_EXCEEDED"
+        )
+        log_security_event(
+            ldap_id=ldap_id,
+            event_type=ev_type,
+            severity="warning",
+            section_type=section_type,
+            endpoint=request.path,
+            ip_address=ip_address,
+            metadata={
+                "limit_type": rate_res.limit_type,
+                "retry_after": rate_res.retry_after,
+                "current_count": rate_res.current_count,
+            },
+        )
+        return Response(
+            {
+                "success": False,
+                "error": "llm_rate_limit_exceeded",
+                "limit_type": rate_res.limit_type,
+                "message": rate_res.message,
+                "retry_after": rate_res.retry_after,
+                "reset_at": rate_res.reset_at.isoformat() if rate_res.reset_at else None,
+            },
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
 
     try:
         prompt = build_resume_prompt(section_type, user_input)
 
-        llm_client = GeminiLLMClient()
+        llm_client = LLMClient()
         llm_output = llm_client.generate_json(prompt)
 
         schema = get_schema(section_type)
-        jsonschema.validate(instance=llm_output, schema=schema)
+        is_valid, is_empty, err_msg = validate_and_classify_llm_output(
+            llm_output, schema, section_type
+        )
+
+        if not is_valid:
+            log_security_event(
+                ldap_id=ldap_id,
+                event_type="INVALID_LLM_JSON",
+                severity="warning",
+                section_type=section_type,
+                endpoint=request.path,
+                ip_address=ip_address,
+                metadata={"error": err_msg},
+            )
+            return Response(
+                {
+                    "success": False,
+                    "error": "invalid_llm_json",
+                    "details": err_msg,
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        if is_empty:
+            record_user_violation(
+                ldap_id=ldap_id,
+                event_type="OFF_TOPIC_INPUT",
+                severity="info",
+                section_type=section_type,
+                endpoint=request.path,
+                ip_address=ip_address,
+                metadata={"input_snippet": user_input[:200]},
+            )
+            return Response(
+                {
+                    "success": False,
+                    "error": "invalid_resume_content",
+                    "message": "The input does not appear to contain content relevant to this resume section.",
+                },
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
 
         return Response(
             {
@@ -220,21 +330,21 @@ def refine_resume_section(request, section_type):
             status=status.HTTP_200_OK,
         )
 
-    except jsonschema.ValidationError as error:
-        return Response(
-            {
-                "success": False,
-                "error": "LLM output did not match the expected JSON schema.",
-                "details": error.message,
-            },
-            status=status.HTTP_502_BAD_GATEWAY,
-        )
-
     except LLMClientError as error:
+        log_security_event(
+            ldap_id=ldap_id,
+            event_type="LLM_PROVIDER_ERROR",
+            severity="warning",
+            section_type=section_type,
+            endpoint=request.path,
+            ip_address=ip_address,
+            metadata={"error": str(error)},
+        )
         return Response(
             {
                 "success": False,
-                "error": "LLM generation failed.",
+                "error": "llm_provider_error",
+                "message": "The AI service could not complete this request. Please try again later.",
                 "details": str(error),
             },
             status=status.HTTP_502_BAD_GATEWAY,
