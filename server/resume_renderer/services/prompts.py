@@ -463,3 +463,89 @@ User input:
 
 Return only valid JSON matching the expected schema.
 """
+
+
+RESUME_IMPORT_INSTRUCTIONS = """
+TASK: FULL RESUME IMPORT AND STRUCTURE CONVERSION
+
+You are provided with an existing resume in either plain text or LaTeX format.
+Your job is to parse, extract, and convert the entire resume content into the structured JSON object matching the schema below.
+
+Extraction Guidelines:
+1. "header":
+   - Extract name, roll number, department, degree, institution (default "Indian Institute of Technology Bombay" if not mentioned), gender, email, phone.
+   - If a field is not found, leave it as an empty string "".
+
+2. "education":
+   - Extract each degree/schooling entry into an object with "examination", "university", "institute", "year", "cpi", and optional "note".
+   - If not found, return [].
+
+3. "scholastic_achievements":
+   - Extract academic ranks, scholarships, olympiads, awards, or competitive achievements into objects with "text" and optional "year".
+   - If not found, return [].
+
+4. "courses":
+   - Extract relevant courses grouped by category, e.g. {"category": "Computer Science", "courses": ["Data Structures", "Algorithms"], "note": ""}.
+   - If not found, return [].
+
+5. "professional_experience":
+   - Extract internships, jobs, or work experiences into objects with "title", "organization", "location", "timeline", "summary", and "bullets" (list of strings).
+   - If not found, return [].
+
+6. "key_projects":
+   - Extract academic, personal, or research projects into objects with "title", "organization" (e.g. guide or course, or "Self-Project"), "summary", "timeline", and "bullets" (list of strings).
+   - If not found, return [].
+
+7. "positions_of_responsibility":
+   - Extract leadership, club, festival, or department roles into objects with "role", "organization", "duration", "summary", and "bullets" (list of strings).
+   - If not found, return [].
+
+8. "technical_skills":
+   - Group technical skills by category, e.g. {"category": "Programming Languages", "skills": ["Python", "C++"]}, {"category": "Tools & Frameworks", "skills": ["Django", "React"]}.
+   - If not found, return [].
+
+Formatting & LaTeX Handling Rules:
+- If the input contains LaTeX syntax (e.g., \\begin{itemize}, \\textbf{...}, \\item, \\href, etc.), strip the LaTeX commands and extract only the underlying text content.
+- Do NOT output raw LaTeX tags in the JSON values.
+- Adhere to the line-length rules for all bullet points in professional_experience, key_projects, and positions_of_responsibility (either 80-95 chars for 1 line, or 160-190 chars for 2 lines).
+- Do not invent any facts, dates, scores, or achievements not present in the input.
+- Output ONLY valid JSON matching the expected schema.
+"""
+
+
+def build_resume_import_prompt(user_input: str) -> str:
+    """
+    Build a stateless prompt to convert a full resume (plain text or LaTeX)
+    into structured JSON matching the Resume Builder schemas.
+    """
+    from resume_renderer.JSONSchema.jsonschema import RESUME_SECTION_SCHEMAS
+
+    full_schema = {
+        "type": "object",
+        "properties": {
+            "header": RESUME_SECTION_SCHEMAS["header"],
+            "education": RESUME_SECTION_SCHEMAS["education"],
+            "scholastic_achievements": RESUME_SECTION_SCHEMAS["scholastic_achievements"],
+            "courses": RESUME_SECTION_SCHEMAS["courses"],
+            "professional_experience": RESUME_SECTION_SCHEMAS["professional_experience"],
+            "key_projects": RESUME_SECTION_SCHEMAS["key_projects"],
+            "positions_of_responsibility": RESUME_SECTION_SCHEMAS["positions_of_responsibility"],
+            "technical_skills": RESUME_SECTION_SCHEMAS["technical_skills"],
+        },
+    }
+
+    schema_text = json.dumps(full_schema, indent=2)
+
+    return f"""
+{BASE_SYSTEM_PROMPT}
+
+{RESUME_IMPORT_INSTRUCTIONS}
+
+Expected JSON schema:
+{schema_text}
+
+User input resume content (plain text or LaTeX):
+{user_input}
+
+Return only valid JSON matching the expected schema.
+"""

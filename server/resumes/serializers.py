@@ -122,6 +122,7 @@ class ResumeCreateSerializer(serializers.Serializer):
     visual_theme_key = serializers.CharField(max_length=64)
     pages = serializers.IntegerField(default=1, min_value=1, max_value=2)
     config_override = serializers.JSONField(default=dict)
+    import_content = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate_title(self, value):
         if not value.strip():
@@ -157,6 +158,7 @@ class ResumeCreateSerializer(serializers.Serializer):
         owner = self.context["request"].user
         template = validated_data["template"]
         visual_theme = validated_data["visual_theme"]
+        parsed_data = validated_data.get("_parsed_data")
 
         resume = Resume.objects.create(
             owner=owner,
@@ -167,25 +169,94 @@ class ResumeCreateSerializer(serializers.Serializer):
             config_override=validated_data["config_override"],
         )
 
-        # Auto-create default sections from the template manifest
-        for tst in TemplateSectionType.objects.filter(
-            template=template, is_default=True
-        ).order_by("default_order"):
-            section = Section.objects.create(
-                resume=resume,
-                section_type=tst.section_type,
-                order=tst.default_order,
-                is_visible=True,
-            )
-            # Create one empty entry for singleton sections (header)
-            if not tst.section_type.allow_multiple_entries:
-                SectionEntry.objects.create(
-                    section=section,
-                    order=0,
-                    raw_input="",
-                    content=None,
-                    generation_status="pending",
+        if parsed_data and isinstance(parsed_data, dict):
+            # Populate sections and entries from imported structured JSON
+            for tst in TemplateSectionType.objects.filter(template=template).order_by("default_order"):
+                st_key = tst.section_type.key
+                items = parsed_data.get(st_key)
+                has_content = False
+                if not tst.section_type.allow_multiple_entries:
+                    has_content = isinstance(items, dict) and any(items.values())
+                else:
+                    has_content = isinstance(items, list) and len(items) > 0
+
+                # Only include non-default sections if they have imported content
+                if not tst.is_default and not has_content:
+                    continue
+
+                section = Section.objects.create(
+                    resume=resume,
+                    section_type=tst.section_type,
+                    order=tst.default_order,
+                    is_visible=True,
                 )
+
+                if not tst.section_type.allow_multiple_entries:
+                    if has_content and isinstance(items, dict):
+                        raw_input = f"{items.get('name', '')} ({items.get('degree', '')})".strip()
+                        SectionEntry.objects.create(
+                            section=section,
+                            order=0,
+                            raw_input=raw_input,
+                            content=items,
+                            generation_status="done",
+                        )
+                    else:
+                        SectionEntry.objects.create(
+                            section=section,
+                            order=0,
+                            raw_input="",
+                            content=None,
+                            generation_status="pending",
+                        )
+                else:
+                    if has_content and isinstance(items, list):
+                        for idx, item in enumerate(items):
+                            if not isinstance(item, dict):
+                                continue
+                            raw_input = ""
+                            if "title" in item:
+                                org = item.get("organization", "")
+                                raw_input = f"{item['title']} - {org}" if org else item["title"]
+                            elif "role" in item:
+                                org = item.get("organization", "")
+                                raw_input = f"{item['role']} - {org}" if org else item["role"]
+                            elif "examination" in item:
+                                inst = item.get("institute", "")
+                                raw_input = f"{item['examination']} ({inst})" if inst else item["examination"]
+                            elif "category" in item:
+                                skills = item.get("skills") or item.get("courses") or []
+                                raw_input = f"{item['category']}: {', '.join(skills)}"
+                            elif "text" in item:
+                                raw_input = item["text"]
+
+                            SectionEntry.objects.create(
+                                section=section,
+                                order=idx,
+                                raw_input=raw_input,
+                                content=item,
+                                generation_status="done",
+                            )
+        else:
+            # Auto-create default sections from the template manifest (blank resume)
+            for tst in TemplateSectionType.objects.filter(
+                template=template, is_default=True
+            ).order_by("default_order"):
+                section = Section.objects.create(
+                    resume=resume,
+                    section_type=tst.section_type,
+                    order=tst.default_order,
+                    is_visible=True,
+                )
+                # Create one empty entry for singleton sections (header)
+                if not tst.section_type.allow_multiple_entries:
+                    SectionEntry.objects.create(
+                        section=section,
+                        order=0,
+                        raw_input="",
+                        content=None,
+                        generation_status="pending",
+                    )
 
         return resume
 

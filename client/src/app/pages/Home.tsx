@@ -57,6 +57,7 @@ function Home() {
         visualThemeKey: string
         pages: number
         configOverride: Record<string, unknown>
+        importContent?: string
     }) => {
         setCreating(true)
         setError(null)
@@ -67,12 +68,21 @@ function Home() {
                 visualThemeKey: prefs.visualThemeKey,
                 pages: prefs.pages,
                 configOverride: prefs.configOverride,
+                importContent: prefs.importContent,
             })
             navigate(`/editor/${resume.id}`)
-        } catch (err) {
+        } catch (err: any) {
             console.error('[Home] Failed to create resume:', err)
-            setError('Could not create resume. Check that the backend is running.')
+            if (err?.response?.data) {
+                console.error('[Home] Actual backend error details:', err.response.data)
+            }
+            const backendMsg =
+                err?.response?.data?.message ||
+                err?.response?.data?.error ||
+                'Could not create resume. Check that the backend is running.'
+            setError(backendMsg)
             setShowModal(true)
+            throw err
         } finally {
             setCreating(false)
         }

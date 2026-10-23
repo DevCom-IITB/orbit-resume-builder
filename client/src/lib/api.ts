@@ -147,6 +147,7 @@ export interface CreateResumePayload {
     visualThemeKey: string
     pages?: number
     configOverride?: Record<string, any>
+    importContent?: string
 }
 
 export async function createResume(payload: CreateResumePayload): Promise<Resume> {
@@ -156,6 +157,7 @@ export async function createResume(payload: CreateResumePayload): Promise<Resume
         visual_theme_key: payload.visualThemeKey,
         pages: payload.pages ?? 1,
         config_override: payload.configOverride ?? {},
+        import_content: payload.importContent || undefined,
     })
     return mapResume(res.data)
 }

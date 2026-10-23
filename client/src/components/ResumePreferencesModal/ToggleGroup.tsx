@@ -9,9 +9,9 @@ const ToggleButton = styled.button<{ $active: boolean }>`
     padding: 6px 0;
     font-size: 12px;
     font-weight: 500;
-    border: 1px solid ${({ $active }) => ($active ? '#2563eb' : '#d1d5db')};
+    border: 1px solid ${({ $active }) => ($active ? '#2646f2' : '#d1d5db')};
     border-radius: 6px;
-    background: ${({ $active }) => ($active ? '#2563eb' : '#fff')};
+    background: ${({ $active }) => ($active ? '#2646f2' : '#fff')};
     color: ${({ $active }) => ($active ? '#fff' : '#374151')};
     cursor: pointer;
     font-family: inherit;

@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from resume_renderer.services.line_fitter import fit_bullets_in_content
 from resume_renderer.services.llm_client import LLMClient, LLMClientError
 from resume_renderer.services.llm_rate_limiter import rate_limiter
-from resume_renderer.services.prompts import build_resume_prompt
+from resume_renderer.services.prompts import build_resume_prompt, build_resume_import_prompt
 from resume_renderer.services.renderer import assemble_resume_latex, compile_latex
 from resume_renderer.services.security import (
     check_user_restriction,
@@ -94,13 +94,116 @@ class ResumeListCreate(APIView):
     @token_required
     def post(self, request):
         serializer = ResumeCreateSerializer(data=request.data, context={"request": request})
-        if serializer.is_valid():
-            resume = serializer.save()
-            return Response(
-                ResumeDetailSerializer(resume).data,
-                status=status.HTTP_201_CREATED,
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        import_content = serializer.validated_data.get("import_content", "").strip()
+
+        if import_content:
+            ldap_id = getattr(request.user, "username", "unknown")
+            ip_address = get_client_ip(request)
+
+            # 1. Check account restriction
+            restriction = check_user_restriction(ldap_id)
+            if restriction is not None:
+                blocked_str = restriction.blocked_until.isoformat() if restriction.blocked_until else ""
+                return Response(
+                    {
+                        "error": "account_restricted",
+                        "message": "AI generation is temporarily restricted for this account.",
+                        "blocked_until": blocked_str,
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            # 2. Check prompt injection
+            if detect_prompt_injection(import_content):
+                record_user_violation(
+                    ldap_id=ldap_id,
+                    event_type="PROMPT_INJECTION_SIGNAL",
+                    severity="high",
+                    endpoint=request.path,
+                    ip_address=ip_address,
+                    metadata={"input_snippet": import_content[:200]},
+                )
+                return Response(
+                    {
+                        "error": "invalid_resume_content",
+                        "message": "The input was flagged by security filters. Please check your content.",
+                    },
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+
+            # 3. Check rate limit
+            rate_res = rate_limiter.check_and_acquire(ldap_id)
+            if not rate_res.is_allowed:
+                ev_type = (
+                    "LLM_DAILY_LIMIT_EXCEEDED"
+                    if rate_res.limit_type == "daily"
+                    else "LLM_RATE_LIMIT_EXCEEDED"
+                )
+                log_security_event(
+                    ldap_id=ldap_id,
+                    event_type=ev_type,
+                    severity="warning",
+                    endpoint=request.path,
+                    ip_address=ip_address,
+                    metadata={
+                        "limit_type": rate_res.limit_type,
+                        "retry_after": rate_res.retry_after,
+                        "current_count": rate_res.current_count,
+                    },
+                )
+                print(
+                    f"[LLM Rate Limit] User '{ldap_id}' rate limit exceeded ({rate_res.limit_type}): {rate_res.message}",
+                    flush=True,
+                )
+                return Response(
+                    {
+                        "error": "llm_rate_limit_exceeded",
+                        "limit_type": rate_res.limit_type,
+                        "message": rate_res.message,
+                        "retry_after": rate_res.retry_after,
+                        "reset_at": rate_res.reset_at.isoformat() if rate_res.reset_at else None,
+                    },
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
+
+            # 4. Generate structured JSON via LLM
+            prompt = build_resume_import_prompt(import_content)
+            try:
+                llm = LLMClient()
+                parsed_data = llm.generate_json(prompt)
+                if not isinstance(parsed_data, dict):
+                    parsed_data = {}
+            except LLMClientError as exc:
+                print(
+                    f"[LLM Error] Resume import failed for user '{ldap_id}': {exc}",
+                    flush=True,
+                )
+                log_security_event(
+                    ldap_id=ldap_id,
+                    event_type="LLM_PROVIDER_ERROR",
+                    severity="warning",
+                    endpoint=request.path,
+                    ip_address=ip_address,
+                    metadata={"error": str(exc)},
+                )
+                return Response(
+                    {
+                        "error": "llm_provider_error",
+                        "message": f"Resume import failed: {str(exc)}",
+                    },
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
+
+            serializer.validated_data["_parsed_data"] = parsed_data
+
+        resume = serializer.save()
+        return Response(
+            ResumeDetailSerializer(resume).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
