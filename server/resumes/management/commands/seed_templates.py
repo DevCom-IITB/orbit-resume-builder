@@ -10,42 +10,49 @@ from resume_renderer.JSONSchema.jsonschema import get_schema
 from resume_renderer.services.prompts import SECTION_INSTRUCTIONS
 from resume_renderer.services.styling import validate_template_style_config
 
-IITB_PREAMBLE = r"""
-\documentclass[a4paper,10.9pt]{article}
+IITB_PREAMBLE = r"""\documentclass[a4paper,10.9pt]{article}
 \usepackage[a4paper, bottom = 0.4mm, left = 14.11mm, right = 14.11mm, top = 0.6in]{geometry}
+\usepackage[T1]{fontenc}
 __FONT_SETUP__
 \usepackage{graphicx}
-\usepackage[table, svgnames]{xcolor}
-\usepackage{wrapfig}
-\usepackage{comment}
-\usepackage{verbatim}
-\usepackage{microtype}
-\usepackage{colortbl}
-\usepackage{enumitem}
+\usepackage{amsmath}
 \usepackage{array}
+\usepackage{enumitem}
+\usepackage{microtype}
 \usepackage{tabularx}
+\usepackage{wrapfig}
+\usepackage{titlesec}
+\usepackage{comment}
 \usepackage{booktabs}
-\usepackage[pdftex,colorlinks=false,pdfborder={0 0 0}]{hyperref}
-\usepackage{hyphenat}
-\usepackage{anyfontsize}
-\usepackage{fontawesome}
+\usepackage{verbatim}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[colorlinks=false,pdfborder={0 0 0}]{hyperref}
+\usepackage{colortbl}
 \definecolor{myblue}{HTML}{__ACCENT_HEX__}
-\hyphenpenalty 10000
+\newcommand{\xfilll}[2][1ex]{
+\dimen0=#2\advance\dimen0 by #1
+\leaders\hrule height \dimen0 depth -#1\hfill}
+\titleformat{\section}{\scshape\raggedright}{}{0em}{}
+\renewcommand\labelitemi{\raisebox{0.4ex}{\tiny$\bullet$}}
+\renewcommand{\labelitemii}{$\cdot$}
 \pagenumbering{gobble}
-\setlength{\parindent}{0pt}
-\newcommand\xfilll[2][1ex]{
-  \dimen0=#2\advance\dimen0 by #1
-  \leaders\hrule height \dimen0 depth -#1\hfill
+
+\newenvironment{localsize}[1]
+{%
+  \let\orignewcommand\newcommand
+  \let\newcommand\renewcommand
+  \makeatletter
+  \input{bk#1.clo}%
+  \makeatother
+  \let\newcommand\orignewcommand
 }
-\newenvironment{localsize}[1]{
-  \begingroup
-  \fontsize{#1}{\baselineskip}\selectfont
-}{
-  \endgroup
+{%
 }
 __SPACING_SETUP__\begin{document}
 \parindent=0em
+
 __CONTENT__
+
 \end{document}
 """
 

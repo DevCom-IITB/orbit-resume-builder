@@ -230,7 +230,8 @@ def assemble_resume_latex(resume) -> str:
     from resume_renderer.services.styling import FONTS, build_spacing_setup, resolve_style
 
     converter_set_key = resume.visual_theme.converter_set_key
-    config_override = resume.config_override or {}
+    style = resolve_style(resume)
+    config_override = {**(resume.config_override or {}), "style": style}
     sections_latex = []
 
     for section in resume.sections.filter(is_visible=True).order_by("order").select_related("section_type"):

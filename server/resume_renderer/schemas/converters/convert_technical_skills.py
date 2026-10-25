@@ -6,9 +6,10 @@ Schema: list of {category, skills: [str]}
 
 from ...services.json_sanitizer import sanitize_text
 from ...services.markdown_parser import MARKDOWN_PARSER
+from .iitb_layout import TABLE_SECTION_END_GAP_PT, compute_gap
 
 
-def convert_technical_skills(skills_data: list) -> str:
+def convert_technical_skills(skills_data: list, config_override: dict = None) -> str:
     if not isinstance(skills_data, list):
         raise ValueError("Input must be a list of skill categories.")
     if not skills_data:
@@ -33,4 +34,7 @@ def convert_technical_skills(skills_data: list) -> str:
     ]
     parts.extend(rows)
     parts.append(r"\end{tabular}")
+    gap = compute_gap(TABLE_SECTION_END_GAP_PT, config_override)
+    if gap:
+        parts.append(gap)
     return "\n".join(parts)

@@ -97,14 +97,7 @@ def build_spacing_setup(line, word) -> str:
     blocks = []
     if line_d != Decimal("1.00"):
         line_str = f"{line_d:.2f}"
-        blocks.append(
-            f"\\linespread{{{line_str}}}\n"
-            "\\makeatletter\n"
-            "\\ifdefined\\localsize\n"
-            "\\renewenvironment{localsize}[1]{\\begingroup\\fontsize{#1}{\\f@baselineskip}\\selectfont}{\\endgroup}\n"
-            "\\fi\n"
-            "\\makeatother"
-        )
+        blocks.append(f"\\linespread{{{line_str}}}")
 
     if word_d != Decimal("1.00"):
         word_str = f"{word_d:.2f}"

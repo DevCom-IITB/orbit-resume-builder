@@ -33,35 +33,35 @@ def test_convert_header_formats_contacts():
     """Test that convert_header correctly formats contact information."""
     header = {
         "name": "Jane Doe",
-        "edu": "B.Tech",
-        "contact": {
-            "email": "jane@example.com",
-            "phone": "+1 555 000",
-            "linkedin": "jane-doe",
-            "github": "janedoe",
-        },
+        "degree": "B.Tech.",
+        "department": "Computer Science",
+        "roll_no": "210050001",
+        "institution": "IIT Bombay",
+        "gender": "Female",
+        "email": "jane@example.com",
+        "phone": "+91 9876543210",
     }
     latex = convert_header(header)
     assert "Jane Doe" in latex
     assert "mailto:jane@example.com" in latex
-    assert "linkedin.com/in/jane-doe" in latex
-    assert "github.com/janedoe" in latex
+    assert "+91 9876543210" in latex
 
 
 def test_convert_education_builds_table():
     """Test that convert_education builds a LaTeX table with the correct structure."""
     education = [
         {
-            "degree": "B.Tech",
-            "institution": "IIT",
-            "cpi": "9.1",
-            "year": "2021-2025",
+            "examination": "B.Tech. in Computer Science",
+            "institution": "IIT Bombay",
+            "university": "IIT Bombay",
+            "year": "2021 - 2025",
+            "cpi": "9.8/10",
         }
     ]
     latex = convert_education(education)
-    assert "Education" in latex
-    assert "B.Tech" in latex
-    assert "IIT" in latex
+    assert "\\textbf{Examination}" in latex
+    assert "B.Tech. in Computer Science" in latex
+    assert "IIT Bombay" in latex
 
 
 def test_convert_experience_includes_items():
@@ -76,7 +76,7 @@ def test_convert_experience_includes_items():
         }
     ]
     latex = convert_experience(experiences)
-    assert "Professional Experience" in latex
+    assert "PROFESSIONAL EXPERIENCE" in latex
     assert "\\begin{itemize}" in latex
     assert "Did work" in latex
     assert "Wrote tests" in latex
@@ -94,7 +94,7 @@ def test_convert_key_project_includes_items():
         }
     ]
     latex = convert_key_project(projects)
-    assert "Key Projects" in latex
+    assert "KEY PROJECTS" in latex
     assert "Built thing" in latex
 
 
@@ -109,14 +109,14 @@ def test_convert_pors_includes_items():
         }
     ]
     latex = convert_pors(pors)
-    assert "Positions of Responsibility" in latex
+    assert "POSITIONS OF RESPONSIBILITY" in latex
     assert "Shipped resume module" in latex
 
 
 def test_convert_scholastic_achievements_includes_items():
     achievements = ["Achieved 99 percentile", "Secured top rank"]
     latex = convert_scholastic_achievements(achievements)
-    assert "Scholastic Achievements" in latex
+    assert "SCHOLASTIC ACHIEVEMENTS" in latex
     assert "Achieved 99 percentile" in latex
     assert "\\begin{itemize}" in latex
 
@@ -130,7 +130,7 @@ def test_convert_courses_includes_note_row():
         }
     ]
     latex = convert_courses(courses)
-    assert "Relevant Courses Undertaken" in latex
+    assert "COURSES UNDERTAKEN" in latex
     assert "Data Structures, Algorithms" in latex
     assert "Ongoing in Autumn '26" in latex
 
@@ -141,6 +141,6 @@ def test_convert_technical_skills_includes_categories():
         {"category": "Development", "skills": ["Django", "ReactJS"]},
     ]
     latex = convert_technical_skills(skills)
-    assert "Technical Skills" in latex
+    assert "TECHNICAL SKILLS" in latex
     assert "Programming" in latex
     assert "Python, C++" in latex

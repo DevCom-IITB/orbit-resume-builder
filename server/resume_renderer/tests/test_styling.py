@@ -121,7 +121,8 @@ def test_build_spacing_setup_default_empty():
 def test_build_spacing_setup_line_only():
     out = build_spacing_setup("1.10", "1.00")
     assert r"\linespread{1.10}" in out
-    assert r"\renewenvironment{localsize}" in out
+    assert "localsize" not in out
+    assert "renewenvironment" not in out
     assert r"etoolbox" not in out
     assert r"\spaceskip" not in out
     assert out.endswith("\n")
@@ -139,7 +140,8 @@ def test_build_spacing_setup_word_only():
 def test_build_spacing_setup_both():
     out = build_spacing_setup("1.10", "1.15")
     assert r"\linespread{1.10}" in out
-    assert r"\renewenvironment{localsize}" in out
+    assert "localsize" not in out
+    assert "renewenvironment" not in out
     assert r"\usepackage{etoolbox}" in out
     assert r"\spaceskip=1.15\fontdimen2\font" in out
     assert out.endswith("\n")

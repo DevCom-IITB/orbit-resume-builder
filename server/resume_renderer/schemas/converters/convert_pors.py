@@ -6,9 +6,10 @@ Schema: role, organization, duration, summary, bullets
 
 from ...services.json_sanitizer import sanitize_text
 from ...services.markdown_parser import MARKDOWN_PARSER
+from .iitb_layout import ENTRY_GAP_PT, LIST_SECTION_END_GAP_PT, compute_gap
 
 
-def convert_pors(positions: list) -> str:
+def convert_pors(positions: list, config_override: dict = None) -> str:
     if not isinstance(positions, list):
         raise ValueError("Input must be a list of position entries.")
     if not positions:
@@ -19,15 +20,17 @@ def convert_pors(positions: list) -> str:
 \vspace{-8pt}"""
     ]
 
-    for pos in positions:
+    total = len(positions)
+    for idx, pos in enumerate(positions):
         try:
             role = MARKDOWN_PARSER.parse(sanitize_text(pos["role"]))
             organization = MARKDOWN_PARSER.parse(sanitize_text(pos["organization"]))
             duration = MARKDOWN_PARSER.parse(sanitize_text(pos.get("duration", "")))
             summary = MARKDOWN_PARSER.parse(sanitize_text(pos.get("summary", "")))
-            bullets = pos.get("bullets", [])
-            if not isinstance(bullets, list):
+            raw_bullets = pos.get("bullets", [])
+            if not isinstance(raw_bullets, list):
                 raise ValueError("'bullets' must be a list.")
+            bullets = [b for b in raw_bullets if isinstance(b, str) and b.strip()]
 
             org_part = rf" $\vert$\ \it\small{{{organization}}}" if organization else ""
             dur_part = rf"\hfill{{\small\it({duration})}}" if duration else ""
@@ -41,15 +44,27 @@ def convert_pors(positions: list) -> str:
 \vspace{{-11pt}}"""
 
             if summary:
-                entry += rf"""
+                if bullets:
+                    entry += rf"""
 \\{{\it {summary}}}\\
 \vspace{{-18pt}}"""
+                else:
+                    entry += rf"""
+\\{{\it {summary}}}"""
 
-            entry += "\n" + r"\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.80 mm, leftmargin=*]"
-            for bullet in bullets:
-                b = MARKDOWN_PARSER.parse(sanitize_text(bullet))
-                entry += f"\n    \\item {b}"
-            entry += "\n" + r"\end{itemize}"
+            if bullets:
+                entry += "\n" + r"\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.80 mm, leftmargin=*]"
+                for bullet in bullets:
+                    b = MARKDOWN_PARSER.parse(sanitize_text(bullet))
+                    entry += f"\n    \\item {b}"
+                entry += "\n" + r"\end{itemize}"
+
+            is_last = (idx == total - 1)
+            base_gap_pt = LIST_SECTION_END_GAP_PT if is_last else ENTRY_GAP_PT
+            gap = compute_gap(base_gap_pt, config_override)
+            if gap:
+                entry += "\n" + gap
+
             parts.append(entry)
         except KeyError as e:
             raise ValueError(f"Missing key in position data: {e}")

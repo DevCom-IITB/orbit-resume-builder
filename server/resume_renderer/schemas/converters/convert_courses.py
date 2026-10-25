@@ -6,9 +6,10 @@ Schema: list of {category, courses: [str], note?: str}
 
 from ...services.json_sanitizer import sanitize_text
 from ...services.markdown_parser import MARKDOWN_PARSER
+from .iitb_layout import TABLE_SECTION_END_GAP_PT, compute_gap
 
 
-def convert_courses(courses_data: list) -> str:
+def convert_courses(courses_data: list, config_override: dict = None) -> str:
     if not isinstance(courses_data, list):
         raise ValueError("Input must be a list of course categories.")
     if not courses_data:
@@ -36,4 +37,7 @@ def convert_courses(courses_data: list) -> str:
     ]
     parts.extend(rows)
     parts.append(r"\end{tabular}")
+    gap = compute_gap(TABLE_SECTION_END_GAP_PT, config_override)
+    if gap:
+        parts.append(gap)
     return "\n".join(parts)

@@ -7,9 +7,10 @@ Old schema (backward compat): list of strings
 
 from ...services.json_sanitizer import sanitize_text
 from ...services.markdown_parser import MARKDOWN_PARSER
+from .iitb_layout import SCHOLASTIC_END_GAP_PT, compute_gap
 
 
-def convert_scholastic_achievements(achievements: list) -> str:
+def convert_scholastic_achievements(achievements: list, config_override: dict = None) -> str:
     if not isinstance(achievements, list):
         raise ValueError("Input must be a list of achievements.")
     if not achievements:
@@ -37,4 +38,7 @@ def convert_scholastic_achievements(achievements: list) -> str:
             raise ValueError(f"Each achievement must be a string or dict, got: {type(ach)}")
 
     parts.append(r"\end{itemize}")
+    gap = compute_gap(SCHOLASTIC_END_GAP_PT, config_override)
+    if gap:
+        parts.append(gap)
     return "\n".join(parts)

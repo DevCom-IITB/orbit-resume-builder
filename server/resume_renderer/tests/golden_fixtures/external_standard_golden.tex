@@ -1,38 +1,44 @@
-
 \documentclass[a4paper,10.9pt]{article}
 \usepackage[a4paper, bottom = 0.4mm, left = 14.11mm, right = 14.11mm, top = 0.6in]{geometry}
+\usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{graphicx}
-\usepackage[table, svgnames]{xcolor}
-\usepackage{wrapfig}
-\usepackage{comment}
-\usepackage{verbatim}
-\usepackage{microtype}
-\usepackage{colortbl}
-\usepackage{enumitem}
+\usepackage{amsmath}
 \usepackage{array}
+\usepackage{enumitem}
+\usepackage{microtype}
 \usepackage{tabularx}
+\usepackage{wrapfig}
+\usepackage{titlesec}
+\usepackage{comment}
 \usepackage{booktabs}
-\usepackage[pdftex,colorlinks=false,pdfborder={0 0 0}]{hyperref}
-\usepackage{hyphenat}
-\usepackage{anyfontsize}
-\usepackage{fontawesome}
+\usepackage{verbatim}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[colorlinks=false,pdfborder={0 0 0}]{hyperref}
+\usepackage{colortbl}
 \definecolor{myblue}{HTML}{4B41C8}
-\hyphenpenalty 10000
+\newcommand{\xfilll}[2][1ex]{
+\dimen0=#2\advance\dimen0 by #1
+\leaders\hrule height \dimen0 depth -#1\hfill}
+\titleformat{\section}{\scshape\raggedright}{}{0em}{}
+\renewcommand\labelitemi{\raisebox{0.4ex}{\tiny$\bullet$}}
+\renewcommand{\labelitemii}{$\cdot$}
 \pagenumbering{gobble}
-\setlength{\parindent}{0pt}
-\newcommand\xfilll[2][1ex]{
-  \dimen0=#2\advance\dimen0 by #1
-  \leaders\hrule height \dimen0 depth -#1\hfill
+
+\newenvironment{localsize}[1]
+{%
+  \let\orignewcommand\newcommand
+  \let\newcommand\renewcommand
+  \makeatletter
+  \input{bk#1.clo}%
+  \makeatother
+  \let\newcommand\orignewcommand
 }
-\newenvironment{localsize}[1]{
-  \begingroup
-  \fontsize{#1}{\baselineskip}\selectfont
-}{
-  \endgroup
+{%
 }
 \begin{document}
 \parindent=0em
+
 
 \noindent
 \begin{minipage}{0.15\textwidth}
@@ -48,6 +54,8 @@
         \href{mailto:jane@example.com}{jane@example.com} & \textbf{+91 9876543210} \\
     \end{tabular}
 \end{minipage}
+
+\vspace{3pt}
 
 
 \noindent
@@ -77,6 +85,7 @@
 \begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.75 mm, leftmargin=*]
     \item Reduced backend latency by 25\% through async processing.
 \end{itemize}
+\vspace{-18pt}
 \section*{\color{myblue}{\large KEY PROJECTS}\xfilll[0pt]{0.5pt}}
 \vspace{-8pt}
 
@@ -91,12 +100,14 @@
 \begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.75 mm, leftmargin=*]
     \item Implemented Awesome-CV renderer with dynamic accent colours.
 \end{itemize}
+\vspace{-18pt}
 \section*{\color{myblue}{\large TECHNICAL SKILLS}\xfilll[0pt]{0.5pt}}
 \vspace{-10pt}
 \renewcommand{\arraystretch}{1.1}
 \begin{tabular}{p{4cm} p{12.9cm}}
     \textbf{Languages} & Python, C++, Go, TypeScript \\
 \end{tabular}
+\vspace{-12pt}
 \section*{\color{myblue}{\large POSITIONS OF RESPONSIBILITY}\xfilll[0pt]{0.5pt}}
 \vspace{-8pt}
 
@@ -109,14 +120,18 @@
 \begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.80 mm, leftmargin=*]
     \item Led a 40-member team organizing technical events.
 \end{itemize}
+\vspace{-18pt}
 \section*{\color{myblue}{\large COURSES UNDERTAKEN}\xfilll[0pt]{0.5pt}}
 \vspace{-8pt}
 \begin{tabular}{p{4cm} p{12.9cm}}
     \textbf{Core Computer Science} & Data Structures, Algorithms, Operating Systems \\
 \end{tabular}
+\vspace{-12pt}
 \section*{\color{myblue}{\large SCHOLASTIC ACHIEVEMENTS}\xfilll[0pt]{0.5pt}}
 \vspace{-8pt}
 \begin{itemize}[label=\textcolor{myblue}{\textbullet},itemsep = -0.75 mm, leftmargin=*]
     \item All India Rank 42 in JEE Advanced \hfill{\small(2021)}
 \end{itemize}
+\vspace{-20pt}
+
 \end{document}
