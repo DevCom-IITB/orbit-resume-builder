@@ -54,6 +54,40 @@ from django.conf import settings
 
 from urllib.parse import urlencode
 
+
+def _unpack_llm_response(llm_output):
+    """Return section content and grounded improvement guidance from the LLM response."""
+    if isinstance(llm_output, dict) and set(llm_output) == {
+        "generated_content",
+        "improvement_suggestion",
+        "example",
+    }:
+        suggestion = llm_output.get("improvement_suggestion")
+        example = llm_output.get("example")
+        suggestion_start = suggestion.strip().lower() if isinstance(suggestion, str) else ""
+        if (
+            not isinstance(suggestion, str)
+            or not suggestion.strip()
+            or "?" in suggestion
+            or suggestion_start.startswith(("what ", "how ", "can ", "could ", "would ", "why ", "which "))
+            or not isinstance(example, str)
+            or not example.strip()
+        ):
+            return None
+        return {
+            "generated_content": llm_output["generated_content"],
+            "improvement_suggestion": suggestion.strip(),
+            "example": example.strip(),
+        }
+
+    # Keep compatibility with callers and stored test doubles using the old schema-only response.
+    return {
+        "generated_content": llm_output,
+        "improvement_suggestion": "",
+        "example": "",
+    }
+
+
 @method_decorator(csrf_exempt, name="dispatch")
 class LatexRenderView(APIView):
     """Render resume data into a PDF."""
@@ -181,7 +215,9 @@ def refine_resume_section(request, section_type):
     {
         "success": true,
         "section_type": "professional_experience",
-        "data": [...]
+        "data": [...],
+        "improvement_suggestion": "Mention measurable impact such as time saved or users served.",
+        "example": "Reduced processing time by 40% for 1,000 records."
     }
     """
 
@@ -277,10 +313,20 @@ def refine_resume_section(request, section_type):
 
         llm_client = LLMClient()
         llm_output = llm_client.generate_json(prompt)
+        response_data = _unpack_llm_response(llm_output)
+        if response_data is None:
+            return Response(
+                {
+                    "success": False,
+                    "error": "invalid_llm_json",
+                    "details": "LLM response must include a non-question improvement_suggestion and a concrete example.",
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
         schema = get_schema(section_type)
         is_valid, is_empty, err_msg = validate_and_classify_llm_output(
-            llm_output, schema, section_type
+            response_data["generated_content"], schema, section_type
         )
 
         if not is_valid:
@@ -325,7 +371,9 @@ def refine_resume_section(request, section_type):
             {
                 "success": True,
                 "section_type": section_type,
-                "data": llm_output,
+                "data": response_data["generated_content"],
+                "improvement_suggestion": response_data["improvement_suggestion"],
+                "example": response_data["example"],
             },
             status=status.HTTP_200_OK,
         )

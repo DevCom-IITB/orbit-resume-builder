@@ -20,6 +20,7 @@ from resume_renderer.services.security import (
     record_user_violation,
     validate_and_classify_llm_output,
 )
+from resume_renderer.views import _unpack_llm_response
 from utils.token_dec import token_required
 
 from .models import Resume, ResumeTemplate, Section, SectionEntry, TemplateSectionType, Version, VisualTheme
@@ -601,7 +602,7 @@ class GenerateEntryView(APIView):
                         section_key=stdef.key,
                         chroma_collection=collection,
                         top_n=20,
-                        top_m=5,
+                        top_m=3,
                     )
                     retrieved_context = rag_result.get("retrieved_context")
                     if retrieved_context:
@@ -629,10 +630,22 @@ class GenerateEntryView(APIView):
 
             llm = LLMClient()
             raw_output = llm.generate_json(prompt)
+            response_data = _unpack_llm_response(raw_output)
+            if response_data is None:
+                entry.generation_status = "failed"
+                entry.save(update_fields=["generation_status"])
+                return Response(
+                    {
+                        "error": "invalid_llm_json",
+                        "message": "LLM response must include a non-question improvement_suggestion and a concrete example.",
+                    },
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
 
             # 5. Validate output against expected JSON schema and classify content
+            generated_content = response_data["generated_content"]
             is_valid, is_empty, err_msg = validate_and_classify_llm_output(
-                raw_output, stdef.json_schema, stdef.key
+                generated_content, stdef.json_schema, stdef.key
             )
 
             if not is_valid:
@@ -679,16 +692,34 @@ class GenerateEntryView(APIView):
                 )
 
             # Measure bullet widths and repair out-of-band ones (1 LLM retry).
-            raw_output = fit_bullets_in_content(raw_output, stdef.key, llm)
+            generated_content = fit_bullets_in_content(generated_content, stdef.key, llm)
 
-            entry.content = raw_output
+            entry.content = generated_content
+            entry.improvement_suggestion = response_data["improvement_suggestion"]
+            entry.improvement_example = response_data["example"]
             entry.generation_status = "done"
-            entry.save(update_fields=["content", "generation_status", "updated_at"])
+            entry.save(
+                update_fields=[
+                    "content",
+                    "improvement_suggestion",
+                    "improvement_example",
+                    "generation_status",
+                    "updated_at",
+                ]
+            )
 
             resume.latex_cache_valid = False
             resume.save(update_fields=["latex_cache_valid"])
 
-            return Response(SectionEntrySerializer(entry).data)
+            response = SectionEntrySerializer(entry).data
+            response.update(
+                {
+                    "generated_content": generated_content,
+                    "improvement_suggestion": response_data["improvement_suggestion"],
+                    "example": response_data["example"],
+                }
+            )
+            return Response(response)
 
         except LLMClientError as exc:
             log_security_event(

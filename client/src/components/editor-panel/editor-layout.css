@@ -161,7 +161,7 @@ body {
     background: transparent;
     font-size: clamp(1.75rem, 2.25vw, 2.6rem);
     font-weight: 700;
-    color: #111827;
+    color: #000000;
     inline-size: 100%;
     max-inline-size: 22ch;
     min-block-size: auto;
@@ -1183,6 +1183,40 @@ body {
 .gentext-output-card:has(.generated-textarea:not([readonly])) {
     background: #02011c;
     border: none;
+}
+
+.resume-improvement-card {
+    margin-top: 0.85rem;
+    padding: 0.15rem 0.15rem 0.1rem;
+    color: #111827;
+    font-size: 0.84rem;
+    line-height: 1.5;
+}
+
+.resume-improvement-title {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.3rem;
+    color: #2646f2;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.resume-improvement-icon {
+    width: 0.85rem;
+    height: 0.85rem;
+    stroke: #2646f2;
+}
+
+.resume-improvement-card p {
+    margin: 0;
+}
+
+.resume-improvement-example {
+    color: #000000;
 }
 
 .generated-textarea:not([readonly]) {

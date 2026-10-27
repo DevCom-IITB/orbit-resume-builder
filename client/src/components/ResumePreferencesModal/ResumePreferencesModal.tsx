@@ -44,6 +44,8 @@ const Modal = styled.div`
     -ms-overflow-style: none;
     &::-webkit-scrollbar {
         display: none;
+        width: 0 !important;
+        height: 0 !important;
     }
 `
 
@@ -163,6 +165,14 @@ const TextArea = styled.textarea`
     font-family: 'Fira Code', Menlo, Consolas, Monaco, monospace;
     line-height: 1.5;
     transition: border-color 0.15s;
+
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar {
+        display: none;
+        width: 0 !important;
+        height: 0 !important;
+    }
 
     &:focus {
         border-color: #2646f2;

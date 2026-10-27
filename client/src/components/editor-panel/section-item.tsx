@@ -9,7 +9,7 @@ import {
 } from '../../lib/api'
 import { GenerationFeedbackModal } from './GenerationFeedbackModal'
 import { useSortable } from '@dnd-kit/sortable'
-import { Trash2, GripHorizontal, Plus, Minus } from 'lucide-react'
+import { Lightbulb, Trash2, GripHorizontal, Plus, Minus } from 'lucide-react'
 
 interface SectionItemProps {
     entry: LocalEntry
@@ -235,6 +235,29 @@ const SectionItem = ({
                     {generateError && (
                         <div className="error-message">
                             Generation failed. Please try again.
+                        </div>
+                    )}
+                    {(entry.improvementSuggestion ||
+                        entry.improvementExample) && (
+                        <div className="resume-improvement-card">
+                            <div className="resume-improvement-title">
+                                <Lightbulb className="resume-improvement-icon" />
+                                Resume improvement suggestion
+                            </div>
+                            {entry.improvementSuggestion && (
+                                <p>
+                                    {entry.improvementSuggestion}
+                                    {entry.improvementExample && (
+                                        <>
+                                            <span className="resume-improvement-example">
+                                                {' '}
+                                                For example,{' '}
+                                                {entry.improvementExample}
+                                            </span>
+                                        </>
+                                    )}
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>

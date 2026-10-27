@@ -6,6 +6,8 @@ export interface SectionEntry {
   rawInput: string
   content: any | null
   generationStatus: GenerationStatus
+  improvementSuggestion?: string
+  improvementExample?: string
 }
 
 export interface SectionType {

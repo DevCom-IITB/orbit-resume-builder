@@ -109,6 +109,8 @@ class SectionEntry(models.Model):
     order = models.IntegerField(default=0)
     raw_input = models.TextField(blank=True, default="")
     content = models.JSONField(null=True, blank=True)
+    improvement_suggestion = models.TextField(blank=True, default="")
+    improvement_example = models.TextField(blank=True, default="")
     last_sent_prompt = models.TextField(blank=True, default="")
     generation_status = models.CharField(
         max_length=16,
@@ -228,4 +230,3 @@ class SecurityEvent(models.Model):
 
     def __str__(self):
         return f"[{self.severity.upper()}] {self.event_type} - {self.ldap_id} ({self.created_at})"
-

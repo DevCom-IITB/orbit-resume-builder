@@ -44,6 +44,8 @@ function mapEntry(raw: any): SectionEntry {
         rawInput: raw.raw_input,
         content: raw.content,
         generationStatus: raw.generation_status,
+        improvementSuggestion: raw.improvement_suggestion,
+        improvementExample: raw.improvement_example ?? raw.example,
     }
 }
 

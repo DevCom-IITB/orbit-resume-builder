@@ -43,7 +43,15 @@ class ResumeTemplateSerializer(serializers.ModelSerializer):
 class SectionEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = SectionEntry
-        fields = ["id", "order", "raw_input", "content", "generation_status"]
+        fields = [
+            "id",
+            "order",
+            "raw_input",
+            "content",
+            "improvement_suggestion",
+            "improvement_example",
+            "generation_status",
+        ]
         read_only_fields = ["id", "generation_status"]
 
 
