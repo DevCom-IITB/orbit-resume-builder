@@ -33,6 +33,7 @@ staticfiles/
 .env
 .eslintcache
 exclude/
+docs
 
 # Logs
 logs
