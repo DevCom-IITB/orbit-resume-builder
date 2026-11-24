@@ -11,6 +11,7 @@ config_override without hitting its TypeError fallback.
 
 import re
 
+from ...services.bullet_probe import annotate_bullet, annotate_summary
 from ...services.json_sanitizer import sanitize_text
 from ...services.markdown_parser import MARKDOWN_PARSER
 
@@ -44,14 +45,14 @@ def _as_list(value, name: str) -> list:
     return value
 
 
-def _items(bullets: list, summary=None) -> str:
+def _items(bullets: list, summary=None, config=None) -> str:
     """cvitems block. Returns '' when there is nothing to list
     (an empty itemize is a LaTeX error)."""
     parts = []
-    s = _t(summary)
+    s = annotate_summary(summary, _t(summary), config) if summary else ""
     if s:
         parts.append(rf"    \cvsummary{{{s}}}")
-    clean = [b for b in (_t(x) for x in bullets) if b]
+    clean = [annotate_bullet(x, _t(x), config) for x in bullets if _t(x)]
     if clean:
         parts.append(r"    \begin{cvitems}")
         # braces after \item: a bullet starting with '[' would be eaten as optional arg
@@ -80,7 +81,7 @@ def _wrap(section_title: str, env: str, rows: list, sep: str = "\n\n") -> str:
     )
 
 
-def _entries_section(section_title, data, label, title_key, org_key, date_key, loc_key=None) -> str:
+def _entries_section(section_title, data, label, title_key, org_key, date_key, loc_key=None, config=None) -> str:
     """Shared by experience / projects / PoR."""
     if not isinstance(data, list):
         raise ValueError(f"Input must be a list of {label} entries.")
@@ -91,7 +92,7 @@ def _entries_section(section_title, data, label, title_key, org_key, date_key, l
         title = _t(item.get(title_key))
         if not title:
             raise ValueError(f"Missing key in {label} data: '{title_key}'")
-        body = _items(_as_list(item.get("bullets"), "bullets"), item.get("summary"))
+        body = _items(_as_list(item.get("bullets"), "bullets"), item.get("summary"), config)
         entries.append(
             _entry(
                 title,
@@ -187,21 +188,21 @@ def convert_education(education: list, config=None) -> str:
 def convert_experience(experiences: list, config=None) -> str:
     return _entries_section(
         "Professional Experience", experiences, "experience",
-        title_key="title", org_key="organization", date_key="timeline", loc_key="location",
+        title_key="title", org_key="organization", date_key="timeline", loc_key="location", config=config,
     )
 
 
 def convert_key_project(projects: list, config=None) -> str:
     return _entries_section(
         "Key Projects", projects, "project",
-        title_key="title", org_key="organization", date_key="timeline",
+        title_key="title", org_key="organization", date_key="timeline", config=config,
     )
 
 
 def convert_pors(positions: list, config=None) -> str:
     return _entries_section(
         "Positions of Responsibility", positions, "position",
-        title_key="role", org_key="organization", date_key="duration",
+        title_key="role", org_key="organization", date_key="duration", config=config,
     )
 
 
@@ -211,7 +212,7 @@ def convert_scholastic_achievements(achievements: list, config=None) -> str:
     rows = []
     for ach in achievements:
         if isinstance(ach, str):
-            text, year = _t(ach), ""
+            text, year = annotate_bullet(ach, _t(ach), config), ""
         elif isinstance(ach, dict):
             text, year = _t(ach.get("text")), _t(ach.get("year"))
         else:

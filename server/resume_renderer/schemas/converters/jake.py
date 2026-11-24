@@ -14,6 +14,7 @@ config_override without hitting its TypeError fallback.
 
 import re
 
+from ...services.bullet_probe import annotate_bullet, annotate_summary
 from ...services.json_sanitizer import sanitize_text
 from ...services.markdown_parser import MARKDOWN_PARSER
 
@@ -46,15 +47,15 @@ def _as_list(value, name: str) -> list:
     return value
 
 
-def _item_list(bullets: list, summary=None) -> str:
+def _item_list(bullets: list, summary=None, config=None) -> str:
     r"""Nested bullet list (level 2, so \labelitemii small dots apply).
     Returns '' when empty: an empty itemize is a LaTeX error.
     summary becomes the first bullet, in italics."""
     items = []
-    s = _t(summary)
+    s = annotate_summary(summary, _t(summary), config) if summary else ""
     if s:
         items.append(rf"\textit{{{s}}}")
-    items.extend(b for b in (_t(x) for x in bullets) if b)
+    items.extend(annotate_bullet(x, _t(x), config) for x in bullets if _t(x))
     if not items:
         return ""
     body = "\n".join(rf"        \resumeItem{{{i}}}" for i in items)
@@ -195,7 +196,7 @@ def convert_experience(experiences: list, config=None) -> str:
             _t(e.get("timeline")),
             _t(e.get("organization")),
             _t(e.get("location")),
-            _item_list(_as_list(e.get("bullets"), "bullets"), e.get("summary")),
+            _item_list(_as_list(e.get("bullets"), "bullets"), e.get("summary"), config),
         )
 
     return _entries("Experience", experiences, "experience", build)
@@ -210,7 +211,7 @@ def convert_key_project(projects: list, config=None) -> str:
             title,
             _t(p.get("organization")),
             _t(p.get("timeline")),
-            _item_list(_as_list(p.get("bullets"), "bullets"), p.get("summary")),
+            _item_list(_as_list(p.get("bullets"), "bullets"), p.get("summary"), config),
         )
 
     return _entries("Projects", projects, "project", build)
@@ -226,7 +227,7 @@ def convert_pors(positions: list, config=None) -> str:
             _t(p.get("duration")),
             _t(p.get("organization")),
             "",
-            _item_list(_as_list(p.get("bullets"), "bullets"), p.get("summary")),
+            _item_list(_as_list(p.get("bullets"), "bullets"), p.get("summary"), config),
         )
 
     return _entries("Positions of Responsibility", positions, "position", build)
@@ -238,7 +239,7 @@ def convert_scholastic_achievements(achievements: list, config=None) -> str:
     rows = []
     for ach in achievements:
         if isinstance(ach, str):
-            text, year = _t(ach), ""
+            text, year = annotate_bullet(ach, _t(ach), config), ""
         elif isinstance(ach, dict):
             text, year = _t(ach.get("text")), _t(ach.get("year"))
         else:

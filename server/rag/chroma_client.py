@@ -17,8 +17,8 @@ from django.conf import settings
 from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file
 
-Chroma_db_path=os.getenv("CHROMA_DB_PATH")
-Chroma_collection_name=os.getenv("CHROMA_COLLECTION_NAME")
+Chroma_db_path = os.getenv("CHROMA_DB_PATH") or str(settings.BASE_DIR / "chroma_db")
+Chroma_collection_name = os.getenv("CHROMA_COLLECTION_NAME") or "resume_chunks"
 
 @functools.lru_cache(maxsize=1)
 def get_resume_collection():

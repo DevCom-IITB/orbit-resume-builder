@@ -45,44 +45,23 @@
   "technical_skills": [
     {
       "category": "Programming Languages",
-      "skills": [
-        "Python",
-        "C++",
-        "JavaScript",
-        "SQL"
-      ]
+      "skills": ["Python", "C++", "JavaScript", "SQL"]
     },
     {
       "category": "Web Development",
-      "skills": [
-        "React.js",
-        "Django",
-        "HTML",
-        "CSS",
-        "Tailwind CSS"
-      ]
+      "skills": ["React.js", "Django", "HTML", "CSS", "Tailwind CSS"]
     },
     {
       "category": "Databases",
-      "skills": [
-        "PostgreSQL"
-      ]
+      "skills": ["PostgreSQL"]
     },
     {
       "category": "Machine Learning",
-      "skills": [
-        "TensorFlow",
-        "PyTorch"
-      ]
+      "skills": ["TensorFlow", "PyTorch"]
     },
     {
       "category": "Tools & Frameworks",
-      "skills": [
-        "Git",
-        "GitHub",
-        "Docker",
-        "Figma"
-      ]
+      "skills": ["Git", "GitHub", "Docker", "Figma"]
     }
   ],
   "courses": [
@@ -97,10 +76,7 @@
     },
     {
       "category": "Mathematics & Statistics",
-      "courses": [
-        "Linear Algebra",
-        "Probability and Statistics"
-      ]
+      "courses": ["Linear Algebra", "Probability and Statistics"]
     }
   ],
   "positions_of_responsibility": [

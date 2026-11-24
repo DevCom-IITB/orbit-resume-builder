@@ -1,4 +1,5 @@
 import base64
+import logging
 
 import jsonschema as jsonschema_lib
 from django.utils.decorators import method_decorator
@@ -7,9 +8,18 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from resume_renderer.services.line_fitter import fit_bullets_in_content
+from resume_renderer.services.candidate_fitter import (
+    has_candidates,
+    select_best_candidates,
+)
+from resume_renderer.services.input_preprocessing import NARRATIVE_SECTIONS
+from resume_renderer.services.line_fitter import (
+    fit_bullets_in_content,
+    measure_generation_bullet_layout,
+)
 from resume_renderer.services.llm_client import GeminiLLMClient, LLMClientError
-from resume_renderer.services.prompts import build_resume_prompt
+from resume_renderer.services.lite_preprocessing import organize_input
+from resume_renderer.services.prompts import build_resume_prompt, get_candidate_schema
 from resume_renderer.services.renderer import assemble_resume_latex, compile_latex
 from utils.token_dec import token_required
 
@@ -23,10 +33,11 @@ from .serializers import (
     ResumeTemplateSwitchSerializer,
     SectionEntrySerializer,
     SectionSerializer,
-    VersionSerializer,
     VisualThemeSerializer,
 )
 from rag.retrieval.filtering import SectionKey
+
+logger = logging.getLogger(__name__)
 
 
 def _get_resume_or_404(resume_id, user):
@@ -163,6 +174,8 @@ class ResumeDuplicate(APIView):
                     raw_input=entry.raw_input,
                     content=entry.content,
                     generation_status=entry.generation_status,
+                    content_origin=entry.content_origin,
+                    fitting=entry.fitting,
                 )
 
         return Response(
@@ -186,6 +199,47 @@ class RenderResumeView(APIView):
             return Response({"pdf": pdf_b64, "latex": latex})
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class RefitPreviewView(APIView):
+    @token_required
+    def post(self, request, resume_id):
+        from .services.refit import preview_refit
+        resume = _get_resume_or_404(resume_id, request.user)
+        if not resume:
+            return Response({"error": "not found"}, status=404)
+        include = request.data.get("include_manual", False)
+        if type(include) is not bool:
+            return Response({"error": "include_manual must be a boolean."}, status=400)
+        try:
+            return Response(preview_refit(resume, request.user, include))
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=409)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class RefitApplyView(APIView):
+    @token_required
+    def post(self, request, resume_id):
+        from django.core import signing
+        from .services.refit import apply_refit
+        resume = _get_resume_or_404(resume_id, request.user)
+        if not resume:
+            return Response({"error": "not found"}, status=404)
+        token = request.data.get("token")
+        selected = request.data.get("selected_ids")
+        if (not isinstance(token, str) or not isinstance(selected, list)
+                or not all(isinstance(s, str) for s in selected) or len(selected) != len(set(selected))):
+            return Response({"error": "Provide token and unique selected_ids."}, status=400)
+        try:
+            return Response(apply_refit(resume, request.user, token, selected))
+        except signing.BadSignature:
+            return Response({"error": "Preview is invalid or expired. Preview again."}, status=409)
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=409)
+        except Exception:
+            return Response({"error": "PDF compilation failed; accepted changes were rolled back."}, status=422)
 
 
 def _rollback_style(resume, pre_style: dict) -> None:
@@ -563,6 +617,9 @@ class EntryDetail(APIView):
             entry.raw_input = request.data["raw_input"]
         if "content" in request.data:
             entry.content = request.data["content"]
+            entry.content_origin = "manual"
+            entry.fitting = {}
+            entry.generation_status = "done"
             resume.latex_cache_valid = False
             resume.save(update_fields=["latex_cache_valid"])
         if "order" in request.data:
@@ -618,6 +675,10 @@ class GenerateEntryView(APIView):
 
         stdef = section.section_type
 
+        fit_to_line = request.data.get("fit_to_line", True)
+        if type(fit_to_line) is not bool:
+            return Response({"error": "fit_to_line must be a boolean."}, status=400)
+
         # Mark as generating
         entry.generation_status = "generating"
         entry.save(update_fields=["generation_status"])
@@ -643,8 +704,27 @@ class GenerateEntryView(APIView):
                     retrieved_context = rag_result.get("retrieved_context")
                 except Exception as rag_exc:
                     # Don't crash generation if retrieval fails — proceed without context.
-                    print(f"[WARN] RAG retrieval failed: {rag_exc}")
+                    logger.warning(f"RAG retrieval failed: {rag_exc}")
                     retrieved_context = None
+
+            lite_context = organize_input(
+                entry.raw_input, stdef.key, cache_scope=f"{resume.id}:{entry.id}"
+            )
+            try:
+                layout_measurement = measure_generation_bullet_layout(
+                    resume, stdef.key, entry.id
+                )
+            except Exception:
+                # The first-generation prompt can still be useful without Docker;
+                # the normal post-generation fitter reports its own measurement status.
+                layout_measurement = None
+
+            use_candidates = fit_to_line and (stdef.key in NARRATIVE_SECTIONS)
+            gen_schema = (
+                get_candidate_schema(stdef.json_schema)
+                if use_candidates
+                else stdef.json_schema
+            )
 
             prompt = build_resume_prompt(
                 section_type=stdef.key,
@@ -652,22 +732,58 @@ class GenerateEntryView(APIView):
                 current_content=entry.content,
                 stdef=stdef,
                 retrieved_context=retrieved_context,
+                lite_context=lite_context,
+                layout_measurement=layout_measurement,
+                candidate_mode=use_candidates,
             )
             entry.last_sent_prompt = prompt
             entry.save(update_fields=["last_sent_prompt"])
 
             llm = GeminiLLMClient()
-            raw_output = llm.generate_json(prompt)
+            raw_output = llm.generate_json(prompt, response_schema=gen_schema)
 
-            # Validate against schema
+            # Validate against active generation schema
+            jsonschema_lib.validate(instance=raw_output, schema=gen_schema)
+
+            # --- Prior Generation Code (Preserved) ---
+            # # Experimental mode: keep generation to the main call (plus optional
+            # # Lite preprocessing) while candidate-based fitting is evaluated.
+            # fitting = {
+            #     "status": "disabled",
+            #     "bullets": [],
+            #     "reason": "Line optimization is temporarily disabled for experimentation.",
+            # }
+            # --- End Prior Code ---
+
+            if fit_to_line:
+                try:
+                    raw_output, fitting = fit_bullets_in_content(
+                        raw_output, stdef.key, llm, resume=resume, entry_id=entry.id
+                    )
+                except Exception as fit_exc:
+                    fitting = {
+                        "status": "partial",
+                        "bullets": [],
+                        "reason": "Line optimization encountered an issue; raw generated wording retained.",
+                        "error": {"message": str(fit_exc)},
+                    }
+            else:
+                if has_candidates(raw_output):
+                    raw_output, _ = select_best_candidates(raw_output, stdef.key)
+                fitting = {
+                    "status": "disabled",
+                    "bullets": [],
+                    "reason": "Line optimization skipped by request.",
+                }
+
+            # Final validation against canonical DB schema
             jsonschema_lib.validate(instance=raw_output, schema=stdef.json_schema)
 
-            # Measure bullet widths and repair out-of-band ones (1 LLM retry).
-            raw_output = fit_bullets_in_content(raw_output, stdef.key, llm)
-
             entry.content = raw_output
+            entry.content_origin = "ai"
+            entry.fitting = fitting
             entry.generation_status = "done"
-            entry.save(update_fields=["content", "generation_status", "updated_at"])
+            entry.save(update_fields=["content", "content_origin", "fitting", "generation_status", "updated_at"])
 
             resume.latex_cache_valid = False
             resume.save(update_fields=["latex_cache_valid"])

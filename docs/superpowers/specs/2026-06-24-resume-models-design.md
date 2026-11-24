@@ -43,6 +43,7 @@ Because these layers are independent, the same content JSON can be run through a
 **What it is:** The global registry of every section type that exists in the system. A section type is a named kind of content — "professional experience", "key projects", "header", etc.
 
 Every section type has:
+
 - A key that the LLM, converters, and frontend all use (eliminating translation mismatches)
 - The LLM instructions and JSON schema for generating content
 - Whether users can have multiple entries or just one
@@ -101,6 +102,7 @@ class SectionTypeDefinition(models.Model):
 **What it is:** A named resume configuration. Examples: "IIT Bombay (General)", "IIT Bombay (Consult)", "External (Standard)".
 
 A template defines:
+
 - Which **family** it belongs to (iitb, external — determines visual theme options available)
 - Which **domain** it's for (general, tech, consult — determines section set and constraints)
 - Which section types are available to users of this template
@@ -545,18 +547,18 @@ These are the records to seed for the two templates in the system right now.
 
 ### `SectionTypeDefinition` seed
 
-| key | display_name | allow_multiple_entries | default_converter_key |
-|---|---|---|---|
-| `header` | Header | `False` | `convert_header` |
-| `education` | Education | `True` | `convert_education` |
-| `scholastic_achievements` | Scholastic Achievements | `True` | `convert_scholastic_achievements` |
-| `courses` | Relevant Courses Undertaken | `True` | `convert_courses` |
-| `professional_experience` | Professional Experience | `True` | `convert_experience` |
-| `key_projects` | Key Projects | `True` | `convert_key_project` |
-| `positions_of_responsibility` | Positions of Responsibility | `True` | `convert_pors` |
-| `technical_skills` | Technical Skills | `True` | `convert_technical_skills` |
+| key                           | display_name                | allow_multiple_entries | default_converter_key             |
+| ----------------------------- | --------------------------- | ---------------------- | --------------------------------- |
+| `header`                      | Header                      | `False`                | `convert_header`                  |
+| `education`                   | Education                   | `True`                 | `convert_education`               |
+| `scholastic_achievements`     | Scholastic Achievements     | `True`                 | `convert_scholastic_achievements` |
+| `courses`                     | Relevant Courses Undertaken | `True`                 | `convert_courses`                 |
+| `professional_experience`     | Professional Experience     | `True`                 | `convert_experience`              |
+| `key_projects`                | Key Projects                | `True`                 | `convert_key_project`             |
+| `positions_of_responsibility` | Positions of Responsibility | `True`                 | `convert_pors`                    |
+| `technical_skills`            | Technical Skills            | `True`                 | `convert_technical_skills`        |
 
-*(llm_prompt_instructions and json_schema for each row come from the existing prompts.py and jsonschema.py — migrated verbatim)*
+_(llm_prompt_instructions and json_schema for each row come from the existing prompts.py and jsonschema.py — migrated verbatim)_
 
 ---
 
@@ -617,31 +619,31 @@ ResumeTemplate(
 
 **Template: `iitb-general`**
 
-| order | section_type_key | is_default | is_required |
-|---|---|---|---|
-| 0 | `header` | True | True |
-| 1 | `education` | True | True |
-| 2 | `scholastic_achievements` | True | False |
-| 3 | `courses` | True | False |
-| 4 | `professional_experience` | True | False |
-| 5 | `key_projects` | True | False |
-| 6 | `positions_of_responsibility` | True | False |
-| 7 | `technical_skills` | True | False |
+| order | section_type_key              | is_default | is_required |
+| ----- | ----------------------------- | ---------- | ----------- |
+| 0     | `header`                      | True       | True        |
+| 1     | `education`                   | True       | True        |
+| 2     | `scholastic_achievements`     | True       | False       |
+| 3     | `courses`                     | True       | False       |
+| 4     | `professional_experience`     | True       | False       |
+| 5     | `key_projects`                | True       | False       |
+| 6     | `positions_of_responsibility` | True       | False       |
+| 7     | `technical_skills`            | True       | False       |
 
 **Template: `external-standard`**
 
-| order | section_type_key | is_default | is_required |
-|---|---|---|---|
-| 0 | `header` | True | True |
-| 1 | `education` | True | True |
-| 2 | `professional_experience` | True | False |
-| 3 | `key_projects` | True | False |
-| 4 | `technical_skills` | True | False |
-| 5 | `positions_of_responsibility` | False | False |
-| 6 | `courses` | False | False |
-| 7 | `scholastic_achievements` | False | False |
+| order | section_type_key              | is_default | is_required |
+| ----- | ----------------------------- | ---------- | ----------- |
+| 0     | `header`                      | True       | True        |
+| 1     | `education`                   | True       | True        |
+| 2     | `professional_experience`     | True       | False       |
+| 3     | `key_projects`                | True       | False       |
+| 4     | `technical_skills`            | True       | False       |
+| 5     | `positions_of_responsibility` | False      | False       |
+| 6     | `courses`                     | False      | False       |
+| 7     | `scholastic_achievements`     | False      | False       |
 
-*Note: `positions_of_responsibility`, `courses`, and `scholastic_achievements` are `is_default=False` for external — they're in the pool but not added automatically. User can add them if needed.*
+_Note: `positions_of_responsibility`, `courses`, and `scholastic_achievements` are `is_default=False` for external — they're in the pool but not added automatically. User can add them if needed._
 
 ---
 
@@ -673,21 +675,21 @@ No migration. No code change outside of the new converter function and the seed 
 
 ## 7. What Changes From Current Code
 
-| Current | New |
-|---|---|
-| `Section.section_type = CharField(choices=[...])` | `Section.section_type = FK(SectionTypeDefinition)` |
-| `Section.content = JSONField(list)` — stores all entries | `SectionEntry.content` — one row per entry |
-| Section types defined in Python choices | `SectionTypeDefinition` rows in DB |
-| LLM prompts in `prompts.py` | Migrated to `SectionTypeDefinition.llm_prompt_instructions` |
-| JSON schemas in `jsonschema.py` | Migrated to `SectionTypeDefinition.json_schema` |
-| `Resume.header_type + resume_type` CharField | `Resume.template FK` + `Resume.config_override JSONField` |
-| `Resume.meta` JSONField | Removed — frontend manages its own UI state |
-| No template concept | `ResumeTemplate` + `TemplateSectionType` |
-| No visual theme concept | `VisualTheme` |
-| Raw user input not persisted | `SectionEntry.raw_input` |
-| No per-entry LLM status | `SectionEntry.generation_status` |
-| No prompt audit trail | `SectionEntry.last_sent_prompt` |
-| `scholastic_achievements`, `technical_skills`, `courses` stored as single blob | Each entry is one row (`allow_multiple_entries=True`) |
+| Current                                                                        | New                                                         |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| `Section.section_type = CharField(choices=[...])`                              | `Section.section_type = FK(SectionTypeDefinition)`          |
+| `Section.content = JSONField(list)` — stores all entries                       | `SectionEntry.content` — one row per entry                  |
+| Section types defined in Python choices                                        | `SectionTypeDefinition` rows in DB                          |
+| LLM prompts in `prompts.py`                                                    | Migrated to `SectionTypeDefinition.llm_prompt_instructions` |
+| JSON schemas in `jsonschema.py`                                                | Migrated to `SectionTypeDefinition.json_schema`             |
+| `Resume.header_type + resume_type` CharField                                   | `Resume.template FK` + `Resume.config_override JSONField`   |
+| `Resume.meta` JSONField                                                        | Removed — frontend manages its own UI state                 |
+| No template concept                                                            | `ResumeTemplate` + `TemplateSectionType`                    |
+| No visual theme concept                                                        | `VisualTheme`                                               |
+| Raw user input not persisted                                                   | `SectionEntry.raw_input`                                    |
+| No per-entry LLM status                                                        | `SectionEntry.generation_status`                            |
+| No prompt audit trail                                                          | `SectionEntry.last_sent_prompt`                             |
+| `scholastic_achievements`, `technical_skills`, `courses` stored as single blob | Each entry is one row (`allow_multiple_entries=True`)       |
 
 ---
 

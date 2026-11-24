@@ -6,39 +6,19 @@
     "output": [
       {
         "category": "Programming Languages",
-        "skills": [
-          "Python",
-          "C++",
-          "JavaScript",
-          "SQL"
-        ]
+        "skills": ["Python", "C++", "JavaScript", "SQL"]
       },
       {
         "category": "Web Development",
-        "skills": [
-          "React.js",
-          "Django",
-          "HTML",
-          "CSS",
-          "Tailwind CSS"
-        ]
+        "skills": ["React.js", "Django", "HTML", "CSS", "Tailwind CSS"]
       },
       {
         "category": "Machine Learning",
-        "skills": [
-          "TensorFlow",
-          "PyTorch"
-        ]
+        "skills": ["TensorFlow", "PyTorch"]
       },
       {
         "category": "Tools & Databases",
-        "skills": [
-          "PostgreSQL",
-          "Git",
-          "GitHub",
-          "Docker",
-          "Figma"
-        ]
+        "skills": ["PostgreSQL", "Git", "GitHub", "Docker", "Figma"]
       }
     ]
   }

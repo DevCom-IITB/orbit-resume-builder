@@ -5,6 +5,7 @@ New schema: list of {text, year?}
 Old schema (backward compat): list of strings
 """
 
+from ...services.bullet_probe import annotate_bullet
 from ...services.json_sanitizer import sanitize_text
 from ...services.markdown_parser import MARKDOWN_PARSER
 from .iitb_layout import SCHOLASTIC_END_GAP_PT, compute_gap
@@ -24,7 +25,7 @@ def convert_scholastic_achievements(achievements: list, config_override: dict = 
 
     for ach in achievements:
         if isinstance(ach, str):
-            text = MARKDOWN_PARSER.parse(sanitize_text(ach))
+            text = annotate_bullet(ach, MARKDOWN_PARSER.parse(sanitize_text(ach)), config_override, protect_item=True)
             parts.append(rf"    \item {text}")
         elif isinstance(ach, dict):
             text = MARKDOWN_PARSER.parse(sanitize_text(ach.get("text", "")))

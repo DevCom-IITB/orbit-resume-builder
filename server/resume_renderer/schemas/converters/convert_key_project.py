@@ -4,6 +4,7 @@ Converts key project JSON into IITB-format LaTeX.
 Schema: title, organization, summary, timeline, bullets
 """
 
+from ...services.bullet_probe import annotate_bullet, annotate_summary
 from ...services.json_sanitizer import sanitize_text
 from ...services.markdown_parser import MARKDOWN_PARSER
 from .iitb_layout import ENTRY_GAP_PT, LIST_SECTION_END_GAP_PT, compute_gap
@@ -26,7 +27,12 @@ def convert_key_project(projects: list, config_override: dict = None) -> str:
             title = MARKDOWN_PARSER.parse(sanitize_text(proj["title"]))
             organization = MARKDOWN_PARSER.parse(sanitize_text(proj.get("organization", "")))
             timeline = MARKDOWN_PARSER.parse(sanitize_text(proj.get("timeline", "")))
-            summary = MARKDOWN_PARSER.parse(sanitize_text(proj.get("summary", "")))
+            raw_summary = proj.get("summary", "")
+            summary = annotate_summary(
+                raw_summary,
+                MARKDOWN_PARSER.parse(sanitize_text(raw_summary)),
+                config_override,
+            )
             raw_bullets = proj.get("bullets", [])
             if not isinstance(raw_bullets, list):
                 raise ValueError("'bullets' must be a list.")
@@ -37,25 +43,29 @@ def convert_key_project(projects: list, config_override: dict = None) -> str:
 
             entry = rf"""
 \begin{{localsize}}{{11}}
-{{\bf \noindent {title}}}{org_part} \vspace{{-7pt}}
-{time_part}
-\rule{{\linewidth}}{{0.4pt}}
-\end{{localsize}}
-\vspace{{-11pt}}"""
+\noindent{{\bf {title}}}{org_part}{time_part}\par
+\vspace{{-7pt}}
+\noindent\rule{{\linewidth}}{{0.4pt}}\par
+\end{{localsize}}"""
 
             if summary:
                 if bullets:
                     entry += rf"""
-\\{{\it {summary}}}\\
-\vspace{{-18pt}}"""
+\vspace{{-0.5pt}}
+\noindent{{\it {summary}}}\par
+\vspace{{-8pt}}"""
                 else:
                     entry += rf"""
-\\{{\it {summary}}}"""
+\vspace{{-0.5pt}}
+\noindent{{\it {summary}}}\par"""
+            else:
+                entry += r"""
+\vspace{-11pt}"""
 
             if bullets:
                 entry += "\n" + r"\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.75 mm, leftmargin=*]"
                 for bullet in bullets:
-                    b = MARKDOWN_PARSER.parse(sanitize_text(bullet))
+                    b = annotate_bullet(bullet, MARKDOWN_PARSER.parse(sanitize_text(bullet)), config_override, protect_item=True)
                     entry += f"\n    \\item {b}"
                 entry += "\n" + r"\end{itemize}"
 

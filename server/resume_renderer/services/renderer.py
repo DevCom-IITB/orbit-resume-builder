@@ -216,14 +216,17 @@ def fill_placeholders(preamble: str, values: dict) -> str:
     return _PLACEHOLDER_PATTERN.sub(lambda m: values[m.group(0)], preamble)
 
 
-def assemble_resume_latex(resume) -> str:
+def assemble_resume_latex(resume, *, content_overrides=None, probe_ids=None, summary_probe_ids=None, persist=True) -> str:
     """
     Assembles the full LaTeX document for a Resume instance.
     Uses the resume's visual_theme for the preamble and converter set.
     Updates resume.cached_latex and resume.latex_cache_valid.
+    Temporary overrides/probes always bypass cache reads and database writes.
     """
     cache_marker = "% renderer-v2"
-    if resume.latex_cache_valid and resume.cached_latex and cache_marker in resume.cached_latex:
+    if content_overrides is not None or probe_ids is not None or summary_probe_ids is not None:
+        persist = False
+    if persist and resume.latex_cache_valid and resume.cached_latex and cache_marker in resume.cached_latex:
         return resume.cached_latex
 
     from resume_renderer.schemas.converter_registry import get_converter
@@ -241,28 +244,66 @@ def assemble_resume_latex(resume) -> str:
         except KeyError:
             continue
 
-        done_entries = section.entries.filter(generation_status="done").order_by("order")
+        overrides = content_overrides or {}
+        from django.db.models import Q
+        done_entries = [
+            e for e in section.entries.filter(Q(generation_status="done") | Q(pk__in=overrides)).order_by("order")
+        ]
+        probe_queue = {}
+        summary_probe_queue = {}
+        entry_contents = []
+        for e in done_entries:
+            data = overrides.get(str(e.id), e.content)
+            entry_contents.append(data)
+            if probe_ids is not None:
+                from collections import deque
+                from resume_renderer.services.line_fitter import _extract_bullets
+                for ei, field, bi, text in _extract_bullets(data, stdef.key):
+                    key = (str(e.id), ei, field, bi)
+                    probe_queue.setdefault(text, deque()).append(probe_ids.get(key))
+            if summary_probe_ids is not None and stdef.key in ("key_projects", "professional_experience", "positions_of_responsibility"):
+                from collections import deque
+
+                for ei, item in enumerate(data if isinstance(data, list) else [data]):
+                    if isinstance(item, dict) and isinstance(item.get("summary"), str) and item["summary"].strip():
+                        key = (str(e.id), ei, "summary")
+                        summary_probe_queue.setdefault(item["summary"], deque()).append(summary_probe_ids.get(key))
+
+        def probe(raw, rendered, queue=probe_queue):
+            ids = queue.get(raw)
+            probe_id = ids.popleft() if ids else None
+            return rf"\ResumeFitProbe{{{probe_id}}}{{{rendered}}}" if probe_id is not None else rendered
+
+        def summary_probe(raw, rendered, queue=summary_probe_queue):
+            ids = queue.get(raw)
+            probe_id = ids.popleft() if ids else None
+            return rf"\ResumeFitProbe{{{probe_id}}}{{{rendered}}}" if probe_id is not None else rendered
+
+        section_config = {**config_override}
+        if probe_ids is not None:
+            section_config["_bullet_probe"] = probe
+        if summary_probe_ids is not None:
+            section_config["_summary_probe"] = summary_probe
 
         if stdef.allow_multiple_entries:
             # Each entry's content may be a single dict OR a list (LLM returns arrays).
             # Flatten so converters always receive a flat list of items.
             section_data = []
-            for e in done_entries:
-                if e.content is None:
+            for data in entry_contents:
+                if data is None:
                     continue
-                if isinstance(e.content, list):
-                    section_data.extend(e.content)
+                if isinstance(data, list):
+                    section_data.extend(data)
                 else:
-                    section_data.append(e.content)
+                    section_data.append(data)
         else:
-            first = done_entries.first()
-            section_data = first.content if first else None
+            section_data = entry_contents[0] if entry_contents else None
 
         if not section_data:
             continue
 
         try:
-            section_latex = converter_fn(section_data, config_override)
+            section_latex = converter_fn(section_data, section_config)
         except TypeError:
             section_latex = converter_fn(section_data)
 
@@ -288,6 +329,9 @@ def assemble_resume_latex(resume) -> str:
         "__SPACING_SETUP__": spacing_setup,
     }
     full_latex = fill_placeholders(preamble, values)
+    if probe_ids is not None or summary_probe_ids is not None:
+        from resume_renderer.services.bullet_probe import PROBE_SETUP
+        full_latex = full_latex.replace(r"\begin{document}", PROBE_SETUP + r"\begin{document}", 1)
 
     # Safety net: no unfilled __PLACEHOLDER__ must remain
     leftover = re.search(r"__[A-Z0-9_]+__", full_latex)
@@ -297,9 +341,10 @@ def assemble_resume_latex(resume) -> str:
             "Ensure seed_templates has been run and IITB_PREAMBLE contains all required placeholders."
         )
 
-    resume.cached_latex = full_latex
-    resume.latex_cache_valid = True
-    resume.save(update_fields=["cached_latex", "latex_cache_valid"])
+    if persist:
+        resume.cached_latex = full_latex
+        resume.latex_cache_valid = True
+        resume.save(update_fields=["cached_latex", "latex_cache_valid"])
     return full_latex
 
 
@@ -352,7 +397,14 @@ def compile_latex(latex: str) -> bytes:
     if cached_pdf is not None:
         return cached_pdf
 
-    # -- Compile in Docker with per-job workdir isolation --------------------
+    pdf_bytes, _ = compile_latex_job(latex)
+    if len(pdf_bytes) <= _COMPILE_CACHE_MAX_BYTES:
+        cache.set(cache_key, pdf_bytes, _COMPILE_CACHE_TTL)
+    return pdf_bytes
+
+
+def compile_latex_job(latex: str, *, read_pdf=True):
+    """Uncached isolated compile returning PDF bytes and diagnostic output."""
     container = _get_latex_container()
     job_id = uuid.uuid4().hex
     workdir = f"/usr/src/tex/{job_id}"
@@ -401,6 +453,8 @@ def compile_latex(latex: str) -> bytes:
                 f"Log excerpt:\n{logs[-3000:]}"
             )
 
+        if not read_pdf:
+            return b"", out.decode("utf-8", errors="replace")
         bits, _ = container.get_archive(f"{workdir}/main.pdf")
 
         pdf_tar = BytesIO()
@@ -414,11 +468,7 @@ def compile_latex(latex: str) -> bytes:
                 raise RuntimeError("PDF file not found in the container.")
             pdf_bytes = pdf_file.read()
 
-        # Store in compile cache (skip if unusually large)
-        if len(pdf_bytes) <= _COMPILE_CACHE_MAX_BYTES:
-            cache.set(cache_key, pdf_bytes, _COMPILE_CACHE_TTL)
-
-        return pdf_bytes
+        return pdf_bytes, out.decode("utf-8", errors="replace")
 
     except RuntimeError:
         raise

@@ -2,11 +2,21 @@
 
 from pathlib import Path
 from environ import Env
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = Env()
 env.read_env(BASE_DIR / ".env")
+
+BULLET_FIT_MIN_RATIO = env.float("BULLET_FIT_MIN_RATIO", default=0.85)
+BULLET_FIT_MAX_RATIO = env.float("BULLET_FIT_MAX_RATIO", default=1.02)
+BULLET_FIT_MODEL_BATCH_SIZE = env.int("BULLET_FIT_MODEL_BATCH_SIZE", default=3)
+BULLET_FIT_MAX_BULLETS_PER_ITEM = env.int("BULLET_FIT_MAX_BULLETS_PER_ITEM", default=0)
+RESUME_LLM_LITE_PREPROCESSING = env.bool("RESUME_LLM_LITE_PREPROCESSING", default=False)
+ITERATION_CALLS = env.int("ITERATION_CALLS", default=1)
+if ITERATION_CALLS < 0:
+    raise ImproperlyConfigured("ITERATION_CALLS must be a non-negative integer.")
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG")
