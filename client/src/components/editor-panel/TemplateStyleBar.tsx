@@ -83,7 +83,9 @@ const Select = styled.select`
     outline: none;
     cursor: pointer;
     width: 100%;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
 
     &:focus {
         border-color: #2563eb;
@@ -116,7 +118,9 @@ const SwatchButton = styled.button<{ $color: string; $selected: boolean }>`
     align-items: center;
     justify-content: center;
     position: relative;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    transition:
+        transform 0.12s ease,
+        box-shadow 0.12s ease;
 
     &:hover {
         transform: scale(1.15);
@@ -129,12 +133,24 @@ const SwatchButton = styled.button<{ $color: string; $selected: boolean }>`
 
 const NoticeBanner = styled.div<{ $type: 'warning' | 'error' | 'info' }>`
     background-color: ${({ $type }) =>
-        $type === 'error' ? '#fef2f2' : $type === 'warning' ? '#fffbeb' : '#f0fdf4'};
+        $type === 'error'
+            ? '#fef2f2'
+            : $type === 'warning'
+              ? '#fffbeb'
+              : '#f0fdf4'};
     border: 1px solid
         ${({ $type }) =>
-            $type === 'error' ? '#fecaca' : $type === 'warning' ? '#fde68a' : '#bbf7d0'};
+            $type === 'error'
+                ? '#fecaca'
+                : $type === 'warning'
+                  ? '#fde68a'
+                  : '#bbf7d0'};
     color: ${({ $type }) =>
-        $type === 'error' ? '#991b1b' : $type === 'warning' ? '#92400e' : '#166534'};
+        $type === 'error'
+            ? '#991b1b'
+            : $type === 'warning'
+              ? '#92400e'
+              : '#166534'};
     border-radius: 6px;
     padding: 6px 10px;
     font-size: 12px;
@@ -252,20 +268,50 @@ const TEMPLATE_DEFAULTS: Record<
     string,
     { font: string; accent: string; lineSpacing: string; wordSpacing: string }
 > = {
-    'iitb-general': { font: 'lmodern', accent: '#4B41C8', lineSpacing: '1.00', wordSpacing: '1.00' },
-    'external-standard': { font: 'lmodern', accent: '#4B41C8', lineSpacing: '1.00', wordSpacing: '1.00' },
-    'awesome-cv-general': { font: 'sourcesans', accent: '#DC3522', lineSpacing: '1.00', wordSpacing: '1.00' },
-    'jake-general': { font: 'lmodern', accent: '#000000', lineSpacing: '1.00', wordSpacing: '1.00' },
+    'iitb-general': {
+        font: 'lmodern',
+        accent: '#4B41C8',
+        lineSpacing: '1.00',
+        wordSpacing: '1.00',
+    },
+    'external-standard': {
+        font: 'lmodern',
+        accent: '#4B41C8',
+        lineSpacing: '1.00',
+        wordSpacing: '1.00',
+    },
+    'awesome-cv-general': {
+        font: 'sourcesans',
+        accent: '#DC3522',
+        lineSpacing: '1.00',
+        wordSpacing: '1.00',
+    },
+    'jake-general': {
+        font: 'lmodern',
+        accent: '#000000',
+        lineSpacing: '1.00',
+        wordSpacing: '1.00',
+    },
 }
 
-const DEFAULT_SPACING_OPTIONS = ['0.90', '0.95', '1.00', '1.05', '1.10', '1.15', '1.20']
+const DEFAULT_SPACING_OPTIONS = [
+    '0.90',
+    '0.95',
+    '1.00',
+    '1.05',
+    '1.10',
+    '1.15',
+    '1.20',
+]
 
 export interface TemplateStyleBarProps {
     resume: Resume
     onPdfUpdate: (pdfBlobUrl: string, latex: string) => void
     onResumeUpdate: (updatedResume: Resume) => void
     onSectionsChange: (newSections: ResumeSection[]) => void
-    onRenderStatusChange: (status: 'idle' | 'loading' | 'success' | 'error') => void
+    onRenderStatusChange: (
+        status: 'idle' | 'loading' | 'success' | 'error'
+    ) => void
 }
 
 export default function TemplateStyleBar({
@@ -356,7 +402,9 @@ export default function TemplateStyleBar({
                 if (!active) return
                 // Filter out 'external-standard' as it is identical to IITB and redundant in the toggle
                 const filteredTemplates = tmpls.filter(
-                    (t) => t.key !== 'external-standard' && t.displayName.toLowerCase() !== 'external'
+                    (t) =>
+                        t.key !== 'external-standard' &&
+                        t.displayName.toLowerCase() !== 'external'
                 )
                 setTemplates(filteredTemplates)
 
@@ -366,42 +414,46 @@ export default function TemplateStyleBar({
                         : resume.template.key
                 setCurrentTemplateKey(effectiveKey)
 
-                const activeTmpl = filteredTemplates.find((t) => t.key === effectiveKey)
-                const activeDefaults =
-                    TEMPLATE_DEFAULTS[effectiveKey] || {
-                        font: 'lmodern',
-                        accent: '#4B41C8',
-                        lineSpacing: '1.00',
-                        wordSpacing: '1.00',
-                    }
+                const activeTmpl = filteredTemplates.find(
+                    (t) => t.key === effectiveKey
+                )
+                const activeDefaults = TEMPLATE_DEFAULTS[effectiveKey] || {
+                    font: 'lmodern',
+                    accent: '#4B41C8',
+                    lineSpacing: '1.00',
+                    wordSpacing: '1.00',
+                }
                 setCurrentFont(
                     styleData.style?.font ||
-                    activeTmpl?.fontDefault ||
-                    activeDefaults.font
+                        activeTmpl?.fontDefault ||
+                        activeDefaults.font
                 )
                 setCurrentAccent(
                     styleData.style?.accent ||
-                    activeTmpl?.accentDefault ||
-                    activeDefaults.accent
+                        activeTmpl?.accentDefault ||
+                        activeDefaults.accent
                 )
                 setCurrentLineSpacing(
                     styleData.style?.lineSpacing ||
-                    styleData.style?.line_spacing ||
-                    activeTmpl?.lineSpacingDefault ||
-                    activeDefaults.lineSpacing
+                        styleData.style?.line_spacing ||
+                        activeTmpl?.lineSpacingDefault ||
+                        activeDefaults.lineSpacing
                 )
                 setCurrentWordSpacing(
                     styleData.style?.wordSpacing ||
-                    styleData.style?.word_spacing ||
-                    activeTmpl?.wordSpacingDefault ||
-                    activeDefaults.wordSpacing
+                        styleData.style?.word_spacing ||
+                        activeTmpl?.wordSpacingDefault ||
+                        activeDefaults.wordSpacing
                 )
                 setStyleOptions(styleData.options)
                 setInitialLoading(false)
             })
             .catch((err) => {
                 if (!active) return
-                console.error('[TemplateStyleBar] Failed to load template/style options:', err)
+                console.error(
+                    '[TemplateStyleBar] Failed to load template/style options:',
+                    err
+                )
                 setLoadError('Unable to load styling options.')
                 setInitialLoading(false)
             })
@@ -436,8 +488,8 @@ export default function TemplateStyleBar({
         activeTemplate?.lineSpacings && activeTemplate.lineSpacings.length > 0
             ? activeTemplate.lineSpacings
             : styleOptions.lineSpacings && styleOptions.lineSpacings.length > 0
-            ? styleOptions.lineSpacings
-            : DEFAULT_SPACING_OPTIONS
+              ? styleOptions.lineSpacings
+              : DEFAULT_SPACING_OPTIONS
 
     const lineSpacingDefault: string =
         activeTemplate?.lineSpacingDefault ||
@@ -448,8 +500,8 @@ export default function TemplateStyleBar({
         activeTemplate?.wordSpacings && activeTemplate.wordSpacings.length > 0
             ? activeTemplate.wordSpacings
             : styleOptions.wordSpacings && styleOptions.wordSpacings.length > 0
-            ? styleOptions.wordSpacings
-            : DEFAULT_SPACING_OPTIONS
+              ? styleOptions.wordSpacings
+              : DEFAULT_SPACING_OPTIONS
 
     const wordSpacingDefault: string =
         activeTemplate?.wordSpacingDefault ||
@@ -493,7 +545,8 @@ export default function TemplateStyleBar({
                     },
                     controller.signal
                 )
-                if (!isMountedRef.current || seq !== requestSeqRef.current) return
+                if (!isMountedRef.current || seq !== requestSeqRef.current)
+                    return
 
                 if (res.pdf) {
                     const blobUrl = base64ToPdfBlobUrl(res.pdf)
@@ -507,14 +560,26 @@ export default function TemplateStyleBar({
                     if (res.style.font) setCurrentFont(res.style.font)
                     if (res.style.accent) setCurrentAccent(res.style.accent)
                     if (res.style.lineSpacing || res.style.line_spacing) {
-                        setCurrentLineSpacing(res.style.lineSpacing || res.style.line_spacing || '1.00')
+                        setCurrentLineSpacing(
+                            res.style.lineSpacing ||
+                                res.style.line_spacing ||
+                                '1.00'
+                        )
                     }
                     if (res.style.wordSpacing || res.style.word_spacing) {
-                        setCurrentWordSpacing(res.style.wordSpacing || res.style.word_spacing || '1.00')
+                        setCurrentWordSpacing(
+                            res.style.wordSpacing ||
+                                res.style.word_spacing ||
+                                '1.00'
+                        )
                     }
                 }
 
-                if (res.pages && prevPageCountRef.current && res.pages > prevPageCountRef.current) {
+                if (
+                    res.pages &&
+                    prevPageCountRef.current &&
+                    res.pages > prevPageCountRef.current
+                ) {
                     setBannerNotice({
                         type: 'info',
                         text: `Resume is now ${res.pages} pages.`,
@@ -531,7 +596,8 @@ export default function TemplateStyleBar({
                 ) {
                     return
                 }
-                if (!isMountedRef.current || seq !== requestSeqRef.current) return
+                if (!isMountedRef.current || seq !== requestSeqRef.current)
+                    return
 
                 // Revert control values on error
                 setCurrentFont(prevFont)
@@ -540,7 +606,10 @@ export default function TemplateStyleBar({
                 setCurrentWordSpacing(prevWordSpacing)
                 onRenderStatusChange('idle')
 
-                const msg = getErrorMessage(err, 'Failed to apply style changes.')
+                const msg = getErrorMessage(
+                    err,
+                    'Failed to apply style changes.'
+                )
                 setBannerNotice({
                     type: 'error',
                     text: msg,
@@ -554,7 +623,12 @@ export default function TemplateStyleBar({
         const nextFont = e.target.value
         if (nextFont === currentFont) return
         setCurrentFont(nextFont)
-        triggerStylePatch(nextFont, currentAccent, currentLineSpacing, currentWordSpacing)
+        triggerStylePatch(
+            nextFont,
+            currentAccent,
+            currentLineSpacing,
+            currentWordSpacing
+        )
     }
 
     const handleAccentSelect = (hex: string) => {
@@ -562,7 +636,12 @@ export default function TemplateStyleBar({
         const upperHex = hex.toUpperCase()
         if (upperHex === currentAccent.toUpperCase()) return
         setCurrentAccent(upperHex)
-        triggerStylePatch(currentFont, upperHex, currentLineSpacing, currentWordSpacing)
+        triggerStylePatch(
+            currentFont,
+            upperHex,
+            currentLineSpacing,
+            currentWordSpacing
+        )
     }
 
     const handleLineSpacingChange = (val: string) => {
@@ -601,8 +680,12 @@ export default function TemplateStyleBar({
                 setCurrentTemplateKey(res.template.key)
                 setCurrentFont(res.style.font)
                 setCurrentAccent(res.style.accent)
-                setCurrentLineSpacing(res.style.lineSpacing || res.style.line_spacing || '1.00')
-                setCurrentWordSpacing(res.style.wordSpacing || res.style.word_spacing || '1.00')
+                setCurrentLineSpacing(
+                    res.style.lineSpacing || res.style.line_spacing || '1.00'
+                )
+                setCurrentWordSpacing(
+                    res.style.wordSpacing || res.style.word_spacing || '1.00'
+                )
                 setStyleOptions(res.options)
 
                 // Fetch full resume state to ensure database UUIDs, entries, and options align
@@ -618,7 +701,11 @@ export default function TemplateStyleBar({
                     onRenderStatusChange('idle')
                 }
 
-                if (res.pages && prevPageCountRef.current && res.pages > prevPageCountRef.current) {
+                if (
+                    res.pages &&
+                    prevPageCountRef.current &&
+                    res.pages > prevPageCountRef.current
+                ) {
                     setBannerNotice({
                         type: 'info',
                         text: `Resume is now ${res.pages} pages.`,
@@ -659,7 +746,9 @@ export default function TemplateStyleBar({
         }
     }
 
-    const handleTemplateSelectChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleTemplateSelectChange = async (
+        e: React.ChangeEvent<HTMLSelectElement>
+    ) => {
         if (isSwitching) return
         const targetTemplateKey = e.target.value
         if (targetTemplateKey === currentTemplateKey) return
@@ -678,9 +767,12 @@ export default function TemplateStyleBar({
             wordSpacing: '1.00',
         }
         const targetDefaultFont = targetTmpl?.fontDefault || targetDefaults.font
-        const targetDefaultAccent = targetTmpl?.accentDefault || targetDefaults.accent
-        const targetDefaultLineSpacing = targetTmpl?.lineSpacingDefault || targetDefaults.lineSpacing
-        const targetDefaultWordSpacing = targetTmpl?.wordSpacingDefault || targetDefaults.wordSpacing
+        const targetDefaultAccent =
+            targetTmpl?.accentDefault || targetDefaults.accent
+        const targetDefaultLineSpacing =
+            targetTmpl?.lineSpacingDefault || targetDefaults.lineSpacing
+        const targetDefaultWordSpacing =
+            targetTmpl?.wordSpacingDefault || targetDefaults.wordSpacing
 
         setCurrentTemplateKey(targetTemplateKey)
         setCurrentFont(targetDefaultFont)
@@ -717,7 +809,13 @@ export default function TemplateStyleBar({
             }
 
             // Nothing lost or reset, proceed directly
-            await executeRealSwitch(targetTemplateKey, prevFont, prevAccent, prevLineSpacing, prevWordSpacing)
+            await executeRealSwitch(
+                targetTemplateKey,
+                prevFont,
+                prevAccent,
+                prevLineSpacing,
+                prevWordSpacing
+            )
         } catch (err: unknown) {
             if (!isMountedRef.current) return
             setIsSwitching(false)
@@ -726,7 +824,10 @@ export default function TemplateStyleBar({
             setCurrentAccent(prevAccent)
             setCurrentLineSpacing(prevLineSpacing)
             setCurrentWordSpacing(prevWordSpacing)
-            const msg = getErrorMessage(err, 'Failed to inspect template switch.')
+            const msg = getErrorMessage(
+                err,
+                'Failed to inspect template switch.'
+            )
             setBannerNotice({
                 type: 'error',
                 text: msg,
@@ -753,7 +854,13 @@ export default function TemplateStyleBar({
             const prevLineSpacing = confirmModal.prevLineSpacing
             const prevWordSpacing = confirmModal.prevWordSpacing
             setConfirmModal(null)
-            executeRealSwitch(keyToSwitch, prevFont, prevAccent, prevLineSpacing, prevWordSpacing)
+            executeRealSwitch(
+                keyToSwitch,
+                prevFont,
+                prevAccent,
+                prevLineSpacing,
+                prevWordSpacing
+            )
         }
     }
 
@@ -771,7 +878,13 @@ export default function TemplateStyleBar({
         <BarContainer $disabled={initialLoading}>
             {bannerNotice && (
                 <NoticeBanner $type={bannerNotice.type}>
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <div
+                        style={{
+                            display: 'flex',
+                            gap: '6px',
+                            alignItems: 'center',
+                        }}
+                    >
                         <AlertCircle size={14} style={{ flexShrink: 0 }} />
                         <span>{bannerNotice.text}</span>
                     </div>
@@ -795,7 +908,13 @@ export default function TemplateStyleBar({
                 <ControlGroup>
                     <Label htmlFor="template-selector">
                         Template
-                        {isSwitching && <Loader2 size={12} className="lucide-button-icon" style={{ animation: 'spin 1s linear infinite' }} />}
+                        {isSwitching && (
+                            <Loader2
+                                size={12}
+                                className="lucide-button-icon"
+                                style={{ animation: 'spin 1s linear infinite' }}
+                            />
+                        )}
                     </Label>
                     <Select
                         id="template-selector"
@@ -832,10 +951,14 @@ export default function TemplateStyleBar({
 
             <div>
                 <Label style={{ marginBottom: '4px' }}>Accent Color</Label>
-                <AccentRow role="radiogroup" aria-label="Accent color selection">
+                <AccentRow
+                    role="radiogroup"
+                    aria-label="Accent color selection"
+                >
                     {availableAccents.map((accentHex) => {
                         const isSelected =
-                            currentAccent.toUpperCase() === accentHex.toUpperCase()
+                            currentAccent.toUpperCase() ===
+                            accentHex.toUpperCase()
                         return (
                             <SwatchButton
                                 key={accentHex}
@@ -860,7 +983,9 @@ export default function TemplateStyleBar({
                                         size={12}
                                         color="#ffffff"
                                         strokeWidth={3}
-                                        style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' }}
+                                        style={{
+                                            filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))',
+                                        }}
                                     />
                                 )}
                             </SwatchButton>
@@ -892,52 +1017,90 @@ export default function TemplateStyleBar({
                 createPortal(
                     <ModalOverlay
                         onClick={(e) => {
-                            if (e.target === e.currentTarget) handleCancelModal()
+                            if (e.target === e.currentTarget)
+                                handleCancelModal()
                         }}
                     >
-                        <ModalCard role="dialog" aria-modal="true" aria-labelledby="confirm-switch-title">
-                            <ModalTitle id="confirm-switch-title">Confirm Template Switch</ModalTitle>
+                        <ModalCard
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="confirm-switch-title"
+                        >
+                            <ModalTitle id="confirm-switch-title">
+                                Confirm Template Switch
+                            </ModalTitle>
                             <ModalText>
-                                Switching to this template will adjust your resume sections and layout:
+                                Switching to this template will adjust your
+                                resume sections and layout:
                             </ModalText>
 
                             {confirmModal.plan.willHide.length > 0 && (
                                 <div>
-                                    <ModalText style={{ fontWeight: 600, color: '#92400e' }}>
-                                        The following sections have content that is not displayed in the new template and will be hidden:
+                                    <ModalText
+                                        style={{
+                                            fontWeight: 600,
+                                            color: '#92400e',
+                                        }}
+                                    >
+                                        The following sections have content that
+                                        is not displayed in the new template and
+                                        will be hidden:
                                     </ModalText>
                                     <WarningList>
-                                        {confirmModal.plan.willHide.map((secKey) => (
-                                            <li key={secKey}>
-                                                <strong>{secKey.replace(/_/g, ' ')}</strong>
-                                            </li>
-                                        ))}
+                                        {confirmModal.plan.willHide.map(
+                                            (secKey) => (
+                                                <li key={secKey}>
+                                                    <strong>
+                                                        {secKey.replace(
+                                                            /_/g,
+                                                            ' '
+                                                        )}
+                                                    </strong>
+                                                </li>
+                                            )
+                                        )}
                                     </WarningList>
-                                    <ModalText style={{ fontSize: '11px', marginTop: '4px', color: '#6b7280' }}>
-                                        Your content is safe and will be restored if you switch back.
+                                    <ModalText
+                                        style={{
+                                            fontSize: '11px',
+                                            marginTop: '4px',
+                                            color: '#6b7280',
+                                        }}
+                                    >
+                                        Your content is safe and will be
+                                        restored if you switch back.
                                     </ModalText>
                                 </div>
                             )}
 
                             {confirmModal.plan.styleReset.length > 0 && (
                                 <div style={{ marginTop: '4px' }}>
-                                    <ModalText style={{ fontWeight: 600, color: '#374151' }}>
+                                    <ModalText
+                                        style={{
+                                            fontWeight: 600,
+                                            color: '#374151',
+                                        }}
+                                    >
                                         Style resets:
                                     </ModalText>
                                     <WarningList>
-                                        {confirmModal.plan.styleReset.map((prop) => (
-                                            <li key={prop}>
-                                                {prop === 'font'
-                                                    ? 'Font will reset to the template default'
-                                                    : prop === 'accent'
-                                                    ? 'Accent colour will reset to the template default'
-                                                    : prop === 'line_spacing'
-                                                    ? 'Line spacing will reset to the template default'
-                                                    : prop === 'word_spacing'
-                                                    ? 'Word spacing will reset to the template default'
-                                                    : `${prop} will reset to the template default`}
-                                            </li>
-                                        ))}
+                                        {confirmModal.plan.styleReset.map(
+                                            (prop) => (
+                                                <li key={prop}>
+                                                    {prop === 'font'
+                                                        ? 'Font will reset to the template default'
+                                                        : prop === 'accent'
+                                                          ? 'Accent colour will reset to the template default'
+                                                          : prop ===
+                                                              'line_spacing'
+                                                            ? 'Line spacing will reset to the template default'
+                                                            : prop ===
+                                                                'word_spacing'
+                                                              ? 'Word spacing will reset to the template default'
+                                                              : `${prop} will reset to the template default`}
+                                                </li>
+                                            )
+                                        )}
                                     </WarningList>
                                 </div>
                             )}

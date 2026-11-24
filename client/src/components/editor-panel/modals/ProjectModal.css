@@ -24,8 +24,7 @@
 
     padding: clamp(1.5rem, 2vw, 2rem);
 
-    box-shadow:
-        0 1rem 3rem rgba(0, 0, 0, 0.18);
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.18);
 
     animation: modal-pop 180ms ease;
 }
@@ -105,14 +104,13 @@
 }
 
 .project-option-card:hover {
-
     border-color: #2646f2;
 
     background: #f7f9ff;
 
     transform: translateY(-2px);
 
-    box-shadow: 0 0.5rem 1.2rem rgba(38,70,242,0.10);
+    box-shadow: 0 0.5rem 1.2rem rgba(38, 70, 242, 0.1);
 }
 
 .project-option-content {
@@ -163,6 +161,5 @@
 }
 
 .project-option-card:hover .project-option-arrow {
-
     transform: translateX(0.35rem);
 }

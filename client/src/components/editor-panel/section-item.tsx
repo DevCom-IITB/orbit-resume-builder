@@ -55,7 +55,7 @@ const SectionItem = ({
         )
     }
 
-    const handleGenerateClick = async (textVal: string) => {
+    const handleGenerateClick = async (textVal: string, fitToLine: boolean) => {
         setIsGenerating(true)
         setGenerateError(false)
         try {
@@ -63,7 +63,12 @@ const SectionItem = ({
             await updateEntry(resumeId, sectionId, entry.id, {
                 rawInput: textVal,
             })
-            const updated = await apiGenerateEntry(resumeId, sectionId, entry.id)
+            const updated = await apiGenerateEntry(
+                resumeId,
+                sectionId,
+                entry.id,
+                fitToLine
+            )
             setLastGeneratedInput(textVal)
             onEntryUpdated(updated)
             // Generating new content auto-refreshes the PDF preview.
@@ -87,6 +92,7 @@ const SectionItem = ({
             onRenderRequest()
         } catch (err) {
             console.error('[SectionItem] Content save failed:', err)
+            throw err
         }
     }
 
@@ -179,8 +185,8 @@ const SectionItem = ({
                     <ItemTextArea
                         desc={entry.rawInput}
                         updateDesc={handleUpdateRawInput}
-                        onGenerateClicked={(textVal) => {
-                            void handleGenerateClick(textVal)
+                        onGenerateClicked={(textVal, _density, fitToLine) => {
+                            void handleGenerateClick(textVal, fitToLine)
                         }}
                         generateStatus={generateStatus}
                         generateButtonLabel={generateButtonLabel}
@@ -191,6 +197,40 @@ const SectionItem = ({
                     {generateError && (
                         <div className="error-message">
                             Generation failed. Please try again.
+                        </div>
+                    )}
+                    {entry.fitting?.status === 'partial' && (
+                        <div role="status" className="fitting-warning">
+                            Some lines could not fit when last checked. Best
+                            available wording retained.
+                            {entry.fitting.reason && (
+                                <p>{entry.fitting.reason}</p>
+                            )}
+                            {entry.fitting.error && (
+                                <p>{entry.fitting.error.message}</p>
+                            )}
+                            {entry.fitting.bullets
+                                .filter((b) => b.status === 'unfitted')
+                                .map((b, i) => (
+                                    <p key={i}>
+                                        {b.text}:{' '}
+                                        {b.measurement
+                                            ? `${Math.round(b.measurement.ratio * 100)}% width, ${b.measurement.lines} line(s). `
+                                            : ''}
+                                        {b.reason}
+                                    </p>
+                                ))}
+                            {entry.fitting.summaries
+                                ?.filter((s) => s.status === 'unfitted')
+                                .map((s, i) => (
+                                    <p key={`summary-${i}`}>
+                                        Project summary: {s.text}.{' '}
+                                        {s.measurement
+                                            ? `${Math.round(s.measurement.ratio * 100)}% width, ${s.measurement.lines} line(s). `
+                                            : ''}
+                                        {s.reason}
+                                    </p>
+                                ))}
                         </div>
                     )}
                 </div>

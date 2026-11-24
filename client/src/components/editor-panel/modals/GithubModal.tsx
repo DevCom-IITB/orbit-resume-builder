@@ -1,6 +1,6 @@
-import { createPortal } from "react-dom";
-import type { Repo } from "../../../types/editor-panel/repos";
-import './GithubModal.css';
+import { createPortal } from 'react-dom'
+import type { Repo } from '../../../types/editor-panel/repos'
+import './GithubModal.css'
 
 interface GithubModalProps {
     open: boolean
@@ -12,27 +12,35 @@ interface GithubModalProps {
     onClear: () => void
 }
 
-const GithubModal = ({open, repos, isImporting, onClose, onRepoToggle, onImport, onClear}: GithubModalProps) => { 
-    if(!open) return null;
+const GithubModal = ({
+    open,
+    repos,
+    isImporting,
+    onClose,
+    onRepoToggle,
+    onImport,
+    onClear,
+}: GithubModalProps) => {
+    if (!open) return null
 
-    const hasSelectedRepos = repos.some(repo => repo.selected);
+    const hasSelectedRepos = repos.some((repo) => repo.selected)
 
-    return createPortal (
-        <div
-            className="modal-overlay"
-            onClick={onClose}
-        >
+    return createPortal(
+        <div className="modal-overlay" onClick={onClose}>
             <div
                 className="modal-container"
                 onClick={(e) => e.stopPropagation()}
             >
-
                 <h2 className="github-modal-title">
-                    {isImporting ? "Importing Projects" : "Select Projects to Import"} 
+                    {isImporting
+                        ? 'Importing Projects'
+                        : 'Select Projects to Import'}
                 </h2>
 
                 <p className="github-modal-subtitle">
-                    {isImporting ? "We're extracting information from your selected repositories. This may take a few moments." : "Choose one or more repositories to import into your resume."} 
+                    {isImporting
+                        ? "We're extracting information from your selected repositories. This may take a few moments."
+                        : 'Choose one or more repositories to import into your resume.'}
                 </p>
 
                 {!isImporting && (
@@ -41,7 +49,7 @@ const GithubModal = ({open, repos, isImporting, onClose, onRepoToggle, onImport,
                             {repos.map((repo) => (
                                 <div
                                     key={repo.id}
-                                    className={`github-repo-card ${repo.selected ? "selected" : ""}`}
+                                    className={`github-repo-card ${repo.selected ? 'selected' : ''}`}
                                     onClick={() => onRepoToggle(repo.id)}
                                 >
                                     <div className="github-repo-left">
@@ -50,7 +58,9 @@ const GithubModal = ({open, repos, isImporting, onClose, onRepoToggle, onImport,
                                             checked={repo.selected}
                                             className="github-repo-checkbox"
                                             onClick={(e) => e.stopPropagation()}
-                                            onChange={() => onRepoToggle(repo.id)}
+                                            onChange={() =>
+                                                onRepoToggle(repo.id)
+                                            }
                                         />
                                         <div className="github-repo-content">
                                             <span className="github-repo-name">
@@ -67,12 +77,11 @@ const GithubModal = ({open, repos, isImporting, onClose, onRepoToggle, onImport,
                         </div>
 
                         <div className="github-modal-footer">
-
                             <button
                                 className="github-clear-button"
                                 disabled={!hasSelectedRepos}
                                 onClick={onClear}
-                                >
+                            >
                                 Clear All
                             </button>
 
@@ -93,13 +102,11 @@ const GithubModal = ({open, repos, isImporting, onClose, onRepoToggle, onImport,
                         <span>Importing projects...</span>
                     </div>
                 )}
-
             </div>
-
         </div>,
 
         document.body
-    );
-};
+    )
+}
 
 export default GithubModal

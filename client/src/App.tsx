@@ -47,7 +47,8 @@ function App() {
         }
     }, [token, resumeId])
 
-    // Clean up blob URL on unmount
+    // The app owns PDF URLs. Release the previous URL after the viewer switches
+    // documents, and release the final URL when the app unmounts.
     useEffect(() => {
         return () => {
             if (pdfUrl) URL.revokeObjectURL(pdfUrl)
@@ -62,7 +63,6 @@ function App() {
     }
 
     const handlePdfUpdate = (newPdfUrl: string, newLatexCode: string) => {
-        if (pdfUrl) URL.revokeObjectURL(pdfUrl)
         setPdfUrl(newPdfUrl)
         setLatexCode(newLatexCode)
     }
@@ -76,7 +76,6 @@ function App() {
         setRenderStatus('loading')
         try {
             const result = await renderResume(resumeId)
-            if (pdfUrl) URL.revokeObjectURL(pdfUrl)
             setPdfUrl(result.pdfUrl)
             setLatexCode(result.latexCode)
             setRenderStatus('success')
@@ -94,7 +93,9 @@ function App() {
                     style={{ textAlign: 'center', marginTop: '20vh' }}
                 >
                     <h2>Authenticating...</h2>
-                    <p className="muted">Waiting for secure token from REACH.</p>
+                    <p className="muted">
+                        Waiting for secure token from REACH.
+                    </p>
                 </div>
             </div>
         )

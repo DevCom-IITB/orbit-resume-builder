@@ -84,7 +84,9 @@ function App() {
                     style={{ textAlign: 'center', marginTop: '20vh' }}
                 >
                     <h2>Authenticating...</h2>
-                    <p className="muted">Waiting for secure token from REACH.</p>
+                    <p className="muted">
+                        Waiting for secure token from REACH.
+                    </p>
                 </div>
             </div>
         )

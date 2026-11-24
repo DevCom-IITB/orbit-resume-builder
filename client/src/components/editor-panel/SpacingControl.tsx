@@ -52,7 +52,10 @@ const StepButton = styled.button`
     padding: 0;
     cursor: pointer;
     flex-shrink: 0;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
 
     &:hover:not(:disabled) {
         background-color: #f3f4f6;
@@ -176,7 +179,12 @@ export default function SpacingControl({
     const percentage = Math.round((parseFloat(value) || 1.0) * 100) + '%'
 
     return (
-        <Container $disabled={disabled} role="group" aria-label={label} onKeyDown={handleKeyDown}>
+        <Container
+            $disabled={disabled}
+            role="group"
+            aria-label={label}
+            onKeyDown={handleKeyDown}
+        >
             <HeaderRow>
                 <Label>{label}</Label>
                 <ValueBadge aria-hidden="true">{percentage}</ValueBadge>
@@ -200,7 +208,8 @@ export default function SpacingControl({
                         const isFilled = idx <= currentIndex
                         const isDefault = opt === defaultValue
                         const isSelected = opt === value
-                        const optPercentage = Math.round((parseFloat(opt) || 1.0) * 100) + '%'
+                        const optPercentage =
+                            Math.round((parseFloat(opt) || 1.0) * 100) + '%'
 
                         return (
                             <Segment
