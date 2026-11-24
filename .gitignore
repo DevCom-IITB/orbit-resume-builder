@@ -63,5 +63,6 @@ dist-ssr
 
 # Local databases
 chroma_db/
+*chroma_db/
 db.sqlite3
 db.sqlite3-journal
