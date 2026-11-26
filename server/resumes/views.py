@@ -207,11 +207,14 @@ class RenderResumeView(APIView):
                 metadata={"error": str(exc)},
             )
             return Response(
-                {"error": f"Rendering security violation: {str(exc)}"},
+                {"error": "Resume rendering failed security validation."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except Exception as exc:
-            return Response({"error": f"Resume compilation failed: {str(exc)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            return Response(
+                {"error": "Resume compilation failed."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -612,14 +615,13 @@ class GenerateEntryView(APIView):
                 {
                     "error": "llm_provider_error",
                     "message": "The AI service could not complete this request. Please try again later.",
-                    "details": str(exc),
                 },
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-        except Exception as exc:
+        except Exception:
             entry.generation_status = "failed"
             entry.save(update_fields=["generation_status"])
             return Response(
-                {"error": "internal_error", "message": str(exc)},
+                {"error": "internal_error", "message": "An unexpected error occurred."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
