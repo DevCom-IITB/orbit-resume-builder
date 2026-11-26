@@ -29,7 +29,7 @@ class GeminiLLMClient:
             raise LLMClientError("RESUME_LLM_PROVIDER must be 'gemini'.")
         self.api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         self.model = os.getenv("GOOGLE_MODEL") or os.getenv(
-            "GEMINI_MODEL", "gemini-3.8-flash"
+            "GEMINI_MODEL", "gemini-4-hydrogen"
         )
         if purpose == "preprocessing":
             self.model = lite_model
