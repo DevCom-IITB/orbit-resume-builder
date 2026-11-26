@@ -10,7 +10,9 @@ class MarkdownParser:
         # Precompile regex patterns for performance
         self.bold_pattern = re.compile(r"\*\*(.*?)\*\*")
         self.italic_pattern = re.compile(r"\*(.*?)\*")
-        self.underline_pattern = re.compile(r"_(.*?)_")
+        # Converters sanitize first, so underline delimiters arrive as \_.
+        # Consume the escape too; leaving it behind produces unbalanced TeX.
+        self.underline_pattern = re.compile(r"\\?_(.*?)\\?_")
 
     def parse(self, text: str) -> str:
         r"""Parse markdown syntax into LaTeX commands.

@@ -1,6 +1,12 @@
+import hashlib
 import os
+import re
 import tarfile
+import uuid
 from io import BytesIO
+
+from django.conf import settings
+from django.core.cache import cache
 
 try:
     import docker
@@ -77,6 +83,10 @@ if _cache_client is not None:
             cache_volume = _cache_client.volumes.create(LATEX_CACHE_VOLUME)
         except Exception:
             cache_volume = None
+
+# PDF compile cache settings (configurable via Django settings)
+_COMPILE_CACHE_TTL = getattr(settings, "STYLE_CACHE_TTL_SECONDS", 3600)  # 1 hour
+_COMPILE_CACHE_MAX_BYTES = getattr(settings, "STYLE_CACHE_MAX_BYTES", 10 * 1024 * 1024)  # 10 MB
 
 
 TEMPLATE = r"""
@@ -174,7 +184,7 @@ TEMPLATE = r"""
 \longtrue
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{document}
+__SPACING_SETUP__\begin{document}
 \parindent=0em
 
 __CONTENT__
@@ -183,20 +193,48 @@ __CONTENT__
 """
 
 
-def assemble_resume_latex(resume) -> str:
+_PLACEHOLDER_PATTERN = None
+_PLACEHOLDER_KEYS: frozenset = frozenset()
+
+
+def fill_placeholders(preamble: str, values: dict) -> str:
+    """
+    Replace ``__KEY__`` placeholders in *preamble* using a single-pass regex
+    substitution. A one-pass approach prevents double-substitution: user text
+    containing ``__X__`` inside a replacement value is never re-expanded.
+
+    ``values`` keys must include the surrounding underscores (e.g. ``"__CONTENT__"``).
+    """
+    global _PLACEHOLDER_PATTERN, _PLACEHOLDER_KEYS
+
+    current_keys = frozenset(values.keys())
+    if _PLACEHOLDER_PATTERN is None or current_keys != _PLACEHOLDER_KEYS:
+        pattern = "|".join(re.escape(k) for k in sorted(values.keys()))
+        _PLACEHOLDER_PATTERN = re.compile(pattern)
+        _PLACEHOLDER_KEYS = current_keys
+
+    return _PLACEHOLDER_PATTERN.sub(lambda m: values[m.group(0)], preamble)
+
+
+def assemble_resume_latex(resume, *, content_overrides=None, probe_ids=None, summary_probe_ids=None, persist=True) -> str:
     """
     Assembles the full LaTeX document for a Resume instance.
     Uses the resume's visual_theme for the preamble and converter set.
     Updates resume.cached_latex and resume.latex_cache_valid.
+    Temporary overrides/probes always bypass cache reads and database writes.
     """
-    cache_marker = "% renderer-v2"
-    if resume.latex_cache_valid and resume.cached_latex and cache_marker in resume.cached_latex:
+    cache_marker = "% renderer-v3"
+    if content_overrides is not None or probe_ids is not None or summary_probe_ids is not None:
+        persist = False
+    if persist and resume.latex_cache_valid and resume.cached_latex and cache_marker in resume.cached_latex:
         return resume.cached_latex
 
     from resume_renderer.schemas.converter_registry import get_converter
+    from resume_renderer.services.styling import FONTS, build_spacing_setup, resolve_style
 
     converter_set_key = resume.visual_theme.converter_set_key
-    config_override = resume.config_override or {}
+    style = resolve_style(resume)
+    config_override = {**(resume.config_override or {}), "style": style}
     sections_latex = []
 
     for section in resume.sections.filter(is_visible=True).order_by("order").select_related("section_type"):
@@ -206,45 +244,107 @@ def assemble_resume_latex(resume) -> str:
         except KeyError:
             continue
 
-        done_entries = section.entries.filter(generation_status="done").order_by("order")
+        overrides = content_overrides or {}
+        from django.db.models import Q
+        done_entries = [
+            e for e in section.entries.filter(Q(generation_status="done") | Q(pk__in=overrides)).order_by("order")
+        ]
+        probe_queue = {}
+        summary_probe_queue = {}
+        entry_contents = []
+        for e in done_entries:
+            data = overrides.get(str(e.id), e.content)
+            entry_contents.append(data)
+            if probe_ids is not None:
+                from collections import deque
+                from resume_renderer.services.line_fitter import _extract_bullets
+                for ei, field, bi, text in _extract_bullets(data, stdef.key):
+                    key = (str(e.id), ei, field, bi)
+                    probe_queue.setdefault(text, deque()).append(probe_ids.get(key))
+            if summary_probe_ids is not None and stdef.key in ("key_projects", "professional_experience", "positions_of_responsibility"):
+                from collections import deque
+
+                for ei, item in enumerate(data if isinstance(data, list) else [data]):
+                    if isinstance(item, dict) and isinstance(item.get("summary"), str) and item["summary"].strip():
+                        key = (str(e.id), ei, "summary")
+                        summary_probe_queue.setdefault(item["summary"], deque()).append(summary_probe_ids.get(key))
+
+        def probe(raw, rendered, queue=probe_queue):
+            ids = queue.get(raw)
+            probe_id = ids.popleft() if ids else None
+            return rf"\ResumeFitProbe{{{probe_id}}}{{{rendered}}}" if probe_id is not None else rendered
+
+        def summary_probe(raw, rendered, queue=summary_probe_queue):
+            ids = queue.get(raw)
+            probe_id = ids.popleft() if ids else None
+            return rf"\ResumeFitProbe{{{probe_id}}}{{{rendered}}}" if probe_id is not None else rendered
+
+        section_config = {**config_override}
+        if probe_ids is not None:
+            section_config["_bullet_probe"] = probe
+        if summary_probe_ids is not None:
+            section_config["_summary_probe"] = summary_probe
 
         if stdef.allow_multiple_entries:
             # Each entry's content may be a single dict OR a list (LLM returns arrays).
             # Flatten so converters always receive a flat list of items.
             section_data = []
-            for e in done_entries:
-                if e.content is None:
+            for data in entry_contents:
+                if data is None:
                     continue
-                if isinstance(e.content, list):
-                    section_data.extend(e.content)
+                if isinstance(data, list):
+                    section_data.extend(data)
                 else:
-                    section_data.append(e.content)
+                    section_data.append(data)
         else:
-            first = done_entries.first()
-            section_data = first.content if first else None
+            section_data = entry_contents[0] if entry_contents else None
 
         if not section_data:
             continue
 
         try:
-            section_latex = converter_fn(section_data, config_override)
+            section_latex = converter_fn(section_data, section_config)
         except TypeError:
             section_latex = converter_fn(section_data)
 
         sections_latex.append(section_latex)
 
-    #preamble = (resume.visual_theme.latex_preamble or "").strip() or TEMPLATE
-    full_latex = resume.visual_theme.latex_preamble.replace(
-    "__CONTENT__", "\n".join(sections_latex)
-)
-    # Seeded theme preambles don't contain the marker, which made every cache
-    # lookup above miss. Stamp it so cached LaTeX is actually reused.
-    if cache_marker not in full_latex:
-        full_latex = f"{cache_marker}\n{full_latex}"
+    font_setup = FONTS[style["font"]]
+    accent_hex = style["accent"].lstrip("#").upper()  # 6 uppercase hex digits, no leading '#'
+    spacing_setup = build_spacing_setup(style.get("line_spacing", "1.00"), style.get("word_spacing", "1.00"))
 
-    resume.cached_latex = full_latex
-    resume.latex_cache_valid = True
-    resume.save(update_fields=["cached_latex", "latex_cache_valid"])
+    preamble = resume.visual_theme.latex_preamble
+    if preamble.count("__SPACING_SETUP__") != 1:
+        raise RuntimeError(
+            f"Preamble for theme '{resume.visual_theme.key}' must contain '__SPACING_SETUP__' exactly once, "
+            f"found {preamble.count('__SPACING_SETUP__')}."
+        )
+
+    content = "\n".join(sections_latex)
+    values = {
+        "__CONTENT__": content if content.strip() else r"\null",
+        "__FONT_SETUP__": font_setup,
+        "__ACCENT_HEX__": accent_hex,
+        "__SPACING_SETUP__": spacing_setup,
+    }
+    full_latex = fill_placeholders(preamble, values)
+    if probe_ids is not None or summary_probe_ids is not None:
+        from resume_renderer.services.bullet_probe import PROBE_SETUP
+        full_latex = full_latex.replace(r"\begin{document}", PROBE_SETUP + r"\begin{document}", 1)
+
+    # Safety net: no unfilled __PLACEHOLDER__ must remain
+    leftover = re.search(r"__[A-Z0-9_]+__", full_latex)
+    if leftover:
+        raise RuntimeError(
+            f"Unfilled LaTeX placeholder '{leftover.group()}' remains in the final document. "
+            "Ensure seed_templates has been run and IITB_PREAMBLE contains all required placeholders."
+        )
+
+    if persist:
+        full_latex = f"{cache_marker}\n{full_latex}"
+        resume.cached_latex = full_latex
+        resume.latex_cache_valid = True
+        resume.save(update_fields=["cached_latex", "latex_cache_valid"])
     return full_latex
 
 
@@ -278,13 +378,36 @@ def _get_latex_container():
 
 
 def compile_latex(latex: str) -> bytes:
-    """Compile LaTeX into PDF bytes using a persistent Dockerized TeX Live container."""
+    """Compile LaTeX into PDF bytes using a persistent Dockerized TeX Live container.
+
+    Results are cached by SHA-256 of the latex string to avoid redundant compiles
+    when the same document is requested multiple times (e.g. rapid style toggling).
+    Each compile job runs in an isolated per-job subdirectory inside the container
+    so concurrent requests cannot interfere with each other.
+    """
     if _get_docker_client() is None:
         raise RuntimeError(
             "Docker client is not available. Start Docker Desktop and try again."
         )
 
+    # -- Cache lookup --------------------------------------------------------
+    latex_hash = hashlib.sha256(latex.encode("utf-8")).hexdigest()
+    cache_key = f"pdf_compile_{latex_hash}"
+    cached_pdf = cache.get(cache_key)
+    if cached_pdf is not None:
+        return cached_pdf
+
+    pdf_bytes, _ = compile_latex_job(latex)
+    if len(pdf_bytes) <= _COMPILE_CACHE_MAX_BYTES:
+        cache.set(cache_key, pdf_bytes, _COMPILE_CACHE_TTL)
+    return pdf_bytes
+
+
+def compile_latex_job(latex: str, *, read_pdf=True):
+    """Uncached isolated compile returning PDF bytes and diagnostic output."""
     container = _get_latex_container()
+    job_id = uuid.uuid4().hex
+    workdir = f"/usr/src/tex/{job_id}"
 
     try:
         encoded = latex.encode("utf-8")
@@ -307,17 +430,32 @@ def compile_latex(latex: str) -> bytes:
                     tar.addfile(tarinfo=logo_info, fileobj=BytesIO(logo_data))
 
         tar_buffer.seek(0)
-        container.put_archive("/usr/src/tex", tar_buffer.read())
+        # Create isolated job directory and place files in it
+        container.exec_run(cmd=f"mkdir -p {workdir}")
+        container.put_archive(workdir, tar_buffer.read())
 
         exit_code, out = container.exec_run(
-            cmd="pdflatex -interaction=nonstopmode -output-directory=/usr/src/tex main.tex",
-            workdir="/usr/src/tex",
+            cmd=(
+                f"timeout 30 pdflatex -no-shell-escape -halt-on-error -interaction=nonstopmode "
+                f"-output-directory={workdir} {workdir}/main.tex"
+            ),
+            workdir=workdir,
         )
         if exit_code != 0:
             logs = out.decode("utf-8", errors="replace")
-            raise RuntimeError(f"Compilation failed with exit code {exit_code}: {logs}")
+            if exit_code == 124:
+                raise RuntimeError(
+                    "LaTeX compilation timed out after 30 seconds. "
+                    "The document may be too complex or contain an infinite loop."
+                )
+            raise RuntimeError(
+                f"LaTeX compilation failed (exit code {exit_code}).\n"
+                f"Log excerpt:\n{logs[-3000:]}"
+            )
 
-        bits, _ = container.get_archive("/usr/src/tex/main.pdf")
+        if not read_pdf:
+            return b"", out.decode("utf-8", errors="replace")
+        bits, _ = container.get_archive(f"{workdir}/main.pdf")
 
         pdf_tar = BytesIO()
         for chunk in bits:
@@ -328,12 +466,17 @@ def compile_latex(latex: str) -> bytes:
             pdf_file = tar.extractfile("main.pdf")
             if pdf_file is None:
                 raise RuntimeError("PDF file not found in the container.")
-            return pdf_file.read()
+            pdf_bytes = pdf_file.read()
+
+        return pdf_bytes, out.decode("utf-8", errors="replace")
+
     except RuntimeError:
-        # If compilation failed, the container is still healthy — keep it.
         raise
-    except Exception as e:
-        # On unexpected errors, reset the global so the next call gets a fresh container.
-        global _latex_container
-        _latex_container = None
-        raise RuntimeError(f"Unexpected docker error: {str(e)}")
+    except Exception as exc:
+        raise RuntimeError(f"Unexpected docker error: {str(exc)}") from exc
+    finally:
+        # Always clean up the per-job workdir, even on failure
+        try:
+            container.exec_run(cmd=f"rm -rf {workdir}")
+        except Exception:
+            pass

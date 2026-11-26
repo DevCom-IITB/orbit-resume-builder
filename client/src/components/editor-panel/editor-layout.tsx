@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import ResumeSection from './resume-section'
+import TemplateStyleBar from './TemplateStyleBar'
+import RefitControl from './RefitControl'
 import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import {
     SortableContext,
@@ -15,7 +17,12 @@ import type {
     LocalEntry,
 } from '../../types/editor-panel/local-state'
 import { toLocalSection } from '../../types/editor-panel/local-state'
-import { updateSection, addEntry } from '../../lib/api'
+import {
+    updateSection,
+    addEntry,
+    getResume,
+    base64ToPdfBlobUrl,
+} from '../../lib/api'
 import type { Project } from '../../types/editor-panel/repos'
 
 // Maps section_type key → short label used in "Experience 1", "Project 2" etc.
@@ -49,12 +56,20 @@ interface EditorPanelProps {
     resume: Resume
     onTitleSave: (title: string) => Promise<void>
     onRenderRequest: () => void
+    onPdfUpdate?: (pdfBlobUrl: string, latex: string) => void
+    onResumeUpdate?: (updatedResume: Resume) => void
+    onRenderStatusChange?: (
+        status: 'idle' | 'loading' | 'success' | 'error'
+    ) => void
 }
 
 const EditorPanel = ({
     resume,
     onTitleSave,
     onRenderRequest,
+    onPdfUpdate = () => {},
+    onResumeUpdate = () => {},
+    onRenderStatusChange = () => {},
 }: EditorPanelProps) => {
     const navigate = useNavigate()
     const [sections, setSections] = useState<LocalSection[]>(() =>
@@ -68,10 +83,10 @@ const EditorPanel = ({
         setFileName(resume.title)
     }, [resume.title])
 
-    // Re-initialize sections only when switching to a different resume
+    // Re-initialize sections when switching resume or when template changes
     useEffect(() => {
         setSections(resume.sections.map(toLocalSection))
-    }, [resume.id]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [resume.id, resume.template.key, resume.updatedAt, resume.sections])
 
     const handleFileNameBlur = async () => {
         const trimmed = fileName.trim()
@@ -229,6 +244,31 @@ const EditorPanel = ({
                     <span>Back to Resumes</span>
                 </button>
             </div>
+
+            <TemplateStyleBar
+                resume={resume}
+                onPdfUpdate={onPdfUpdate}
+                onResumeUpdate={onResumeUpdate}
+                onSectionsChange={(newSections) =>
+                    setSections(newSections.map(toLocalSection))
+                }
+                onRenderStatusChange={onRenderStatusChange}
+            />
+
+            <RefitControl
+                key={resume.id}
+                resumeId={resume.id}
+                onApplied={async (result) => {
+                    const updated = await getResume(resume.id)
+                    setSections(updated.sections.map(toLocalSection))
+                    onResumeUpdate(updated)
+                    if (result.pdf)
+                        onPdfUpdate(
+                            base64ToPdfBlobUrl(result.pdf),
+                            result.latex ?? ''
+                        )
+                }}
+            />
 
             <div className="resume-header">
                 <textarea

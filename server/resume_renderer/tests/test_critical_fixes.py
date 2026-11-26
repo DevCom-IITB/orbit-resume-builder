@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.test import override_settings
 from rest_framework.test import APIClient
 
-from resume_renderer.services import line_fitter, renderer
+from resume_renderer.services import renderer
 
 
 @pytest.fixture
@@ -234,12 +234,12 @@ def test_line_fitter_uses_unique_workdir_and_cleans_up(monkeypatch):
     container = _FakeContainer()
     monkeypatch.setattr(renderer, "_get_latex_container", lambda: container)
 
-    assert line_fitter._measure_via_container(["one"]) == [250.0]
-    line_fitter._measure_via_container(["two"])
+    assert renderer.compile_latex_job("one", read_pdf=False) == (b"", "W:250.0pt\n")
+    renderer.compile_latex_job("two", read_pdf=False)
 
     first, second = container.archive_paths
     assert first != second
-    assert first.startswith("/usr/src/tex/measure-")
+    assert first.startswith("/usr/src/tex/")
     assert container.workdirs == [first, second]
-    assert ["rm", "-rf", first] in container.commands
-    assert ["rm", "-rf", second] in container.commands
+    assert f"rm -rf {first}" in container.commands
+    assert f"rm -rf {second}" in container.commands

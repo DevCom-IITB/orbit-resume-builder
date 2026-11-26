@@ -109,6 +109,10 @@ class SectionEntry(models.Model):
     order = models.IntegerField(default=0)
     raw_input = models.TextField(blank=True, default="")
     content = models.JSONField(null=True, blank=True)
+    content_origin = models.CharField(max_length=8, default="unknown", choices=[
+        ("unknown", "Unknown"), ("ai", "AI"), ("manual", "Manual"),
+    ])
+    fitting = models.JSONField(default=dict, blank=True)
     last_sent_prompt = models.TextField(blank=True, default="")
     generation_status = models.CharField(
         max_length=16,

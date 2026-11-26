@@ -1,0 +1,137 @@
+\documentclass[a4paper,10.9pt]{article}
+\usepackage[a4paper, bottom = 0.4mm, left = 14.11mm, right = 14.11mm, top = 0.6in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{tabularx}
+\usepackage{wrapfig}
+\usepackage{titlesec}
+\usepackage{comment}
+\usepackage{booktabs}
+\usepackage{verbatim}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[colorlinks=false,pdfborder={0 0 0}]{hyperref}
+\usepackage{colortbl}
+\definecolor{myblue}{HTML}{4B41C8}
+\newcommand{\xfilll}[2][1ex]{
+\dimen0=#2\advance\dimen0 by #1
+\leaders\hrule height \dimen0 depth -#1\hfill}
+\titleformat{\section}{\scshape\raggedright}{}{0em}{}
+\renewcommand\labelitemi{\raisebox{0.4ex}{\tiny$\bullet$}}
+\renewcommand{\labelitemii}{$\cdot$}
+\pagenumbering{gobble}
+
+\newenvironment{localsize}[1]
+{%
+  \let\orignewcommand\newcommand
+  \let\newcommand\renewcommand
+  \makeatletter
+  \input{bk#1.clo}%
+  \makeatother
+  \let\newcommand\orignewcommand
+}
+{%
+}
+\begin{document}
+\parindent=0em
+
+
+\noindent
+\begin{minipage}{0.15\textwidth}
+    \includegraphics[width=\linewidth]{iitb-logo.png}
+\end{minipage}%
+\hspace{1cm}
+\begin{minipage}{0.8\textwidth}
+    \renewcommand{\arraystretch}{1.25}
+    \begin{tabular}{@{}p{7.5cm} p{5cm}@{}}
+        \large{\textbf{Jane Doe}} & \textbf{210050001} \\
+        \textbf{Computer Science} & \textbf{B.Tech.} \\
+        \textbf{IIT Bombay} & \textbf{Gender: } \\
+        \href{mailto:jane@example.com}{jane@example.com} & \textbf{+91 9876543210} \\
+    \end{tabular}
+\end{minipage}
+
+\vspace{3pt}
+
+
+\noindent
+\begin{tabularx}{\textwidth}{p{3.2cm} p{4cm} p{5.5cm} p{2cm} p{2cm}}
+    \midrule
+    \textbf{Examination} & \textbf{University} & \textbf{Institute} & \textbf{Year} & \textbf{CPI} \\
+    \midrule
+
+    B.Tech. in Computer Science & IIT Bombay & IIT Bombay & 2021 - 2025 & 9.8/10 \\
+    \bottomrule
+\end{tabularx}
+
+\vspace{10pt}
+\noindent Dean's List \\
+\vspace{-18pt}
+\section*{\color{myblue}{\large PROFESSIONAL EXPERIENCE}\xfilll[0pt]{0.5pt}}
+\vspace{-8pt}
+
+\begin{localsize}{11}
+\noindent{\bf Software Engineering Intern} $\vert$\ \it\small{Google} $\vert$\ \it\small{Mountain View, CA}\hfill{\small\it(May 2024 - Aug 2024)}\par
+\vspace{-7pt}
+\noindent\rule{\linewidth}{0.4pt}\par
+\end{localsize}
+\vspace{-0.5pt}
+\noindent{\it Core infrastructure team.}\par
+\vspace{-8pt}
+\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.75 mm, leftmargin=*]
+    \item Reduced backend latency by 25\% through async processing.
+\end{itemize}
+\vspace{-18pt}
+\section*{\color{myblue}{\large KEY PROJECTS}\xfilll[0pt]{0.5pt}}
+\vspace{-8pt}
+
+\begin{localsize}{11}
+\noindent{\bf Resume Builder Engine} $\vert$\ \it\small{Personal Project}\hfill{\small\it(Jan 2025 - Mar 2025)}\par
+\vspace{-7pt}
+\noindent\rule{\linewidth}{0.4pt}\par
+\end{localsize}
+\vspace{-0.5pt}
+\noindent{\it Full-stack resume compiler.}\par
+\vspace{-8pt}
+\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.75 mm, leftmargin=*]
+    \item Implemented Awesome-CV renderer with dynamic accent colours.
+\end{itemize}
+\vspace{-18pt}
+\section*{\color{myblue}{\large TECHNICAL SKILLS}\xfilll[0pt]{0.5pt}}
+\vspace{-10pt}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{p{4cm} p{12.9cm}}
+    \textbf{Languages} & Python, C++, Go, TypeScript \\
+\end{tabular}
+\vspace{-12pt}
+\section*{\color{myblue}{\large POSITIONS OF RESPONSIBILITY}\xfilll[0pt]{0.5pt}}
+\vspace{-8pt}
+
+\begin{localsize}{11}
+\noindent{\bf Overall Coordinator} $\vert$\ \it\small{Computer Society}\hfill{\small\it(2023 - 2024)}\par
+\vspace{-7pt}
+\noindent\rule{\linewidth}{0.4pt}\par
+\end{localsize}
+\vspace{-11pt}
+\begin{itemize}[label=\textcolor{myblue}{\textbullet}, itemsep = -0.80 mm, leftmargin=*]
+    \item Led a 40-member team organizing technical events.
+\end{itemize}
+\vspace{-18pt}
+\section*{\color{myblue}{\large COURSES UNDERTAKEN}\xfilll[0pt]{0.5pt}}
+\vspace{-8pt}
+\begin{tabular}{p{4cm} p{12.9cm}}
+    \textbf{Core Computer Science} & Data Structures, Algorithms, Operating Systems \\
+\end{tabular}
+\vspace{-12pt}
+\section*{\color{myblue}{\large SCHOLASTIC ACHIEVEMENTS}\xfilll[0pt]{0.5pt}}
+\vspace{-8pt}
+\begin{itemize}[label=\textcolor{myblue}{\textbullet},itemsep = -0.75 mm, leftmargin=*]
+    \item All India Rank 42 in JEE Advanced \hfill{\small(2021)}
+\end{itemize}
+\vspace{-20pt}
+
+\end{document}

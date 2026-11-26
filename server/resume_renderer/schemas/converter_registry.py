@@ -1,3 +1,5 @@
+from .converters import awesome_cv as awesome
+from .converters import jake
 from .converters.convert_courses import convert_courses
 from .converters.convert_education import convert_education
 from .converters.convert_experience import convert_experience
@@ -27,6 +29,26 @@ CONVERTER_SETS = {
         "key_projects": convert_key_project,
         "positions_of_responsibility": convert_pors,
         "technical_skills": convert_technical_skills,
+    },
+    "awesome-cv": {
+        "header": awesome.convert_header,
+        "education": awesome.convert_education,
+        "scholastic_achievements": awesome.convert_scholastic_achievements,
+        "courses": awesome.convert_courses,
+        "professional_experience": awesome.convert_experience,
+        "key_projects": awesome.convert_key_project,
+        "positions_of_responsibility": awesome.convert_pors,
+        "technical_skills": awesome.convert_technical_skills,
+    },
+    "jake-classic": {
+        "header": jake.convert_header,
+        "education": jake.convert_education,
+        "scholastic_achievements": jake.convert_scholastic_achievements,
+        "courses": jake.convert_courses,
+        "professional_experience": jake.convert_experience,
+        "key_projects": jake.convert_key_project,
+        "positions_of_responsibility": jake.convert_pors,
+        "technical_skills": jake.convert_technical_skills,
     },
 }
 

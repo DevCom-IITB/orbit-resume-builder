@@ -6,9 +6,10 @@ New schema fields: name, roll_no, department, degree, institution, gender, email
 
 from ...services.json_sanitizer import sanitize_text
 from ...services.markdown_parser import MARKDOWN_PARSER
+from .iitb_layout import HEADER_GAP_PT, compute_gap
 
 
-def convert_header(header: dict) -> str:
+def convert_header(header: dict, config_override: dict = None) -> str:
     if not isinstance(header, dict):
         raise ValueError("Header must be a dictionary.")
 
@@ -24,6 +25,9 @@ def convert_header(header: dict) -> str:
         email = sanitize_text(header.get("email", ""))
         phone = sanitize_text(header.get("phone", ""))
 
+        gap = compute_gap(HEADER_GAP_PT, config_override)
+        gap_suffix = f"\n\n{gap}\n" if gap else "\n"
+
         return rf"""
 \noindent
 \begin{{minipage}}{{0.15\textwidth}}
@@ -38,7 +42,6 @@ def convert_header(header: dict) -> str:
         \textbf{{{institution}}} & \textbf{{Gender: {gender}}} \\
         \href{{mailto:{email}}}{{{email}}} & \textbf{{{phone}}} \\
     \end{{tabular}}
-\end{{minipage}}
-"""
+\end{{minipage}}{gap_suffix}"""
     except KeyError as e:
         raise ValueError(f"Missing key in header data: {e}")

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import GeneratedTextArea from './generated-textarea'
 import ItemTextArea from './item-textarea'
 import type { LocalEntry } from '../../types/editor-panel/local-state'
@@ -38,7 +38,10 @@ const SectionItem = ({
 }: SectionItemProps) => {
     const [isGenerating, setIsGenerating] = useState(false)
     const [generateError, setGenerateError] = useState(false)
-    const [feedback, setFeedback] = useState<LLMGenerationErrorPayload | null>(null)
+    const [feedback, setFeedback] = useState<LLMGenerationErrorPayload | null>(
+        null
+    )
+    const lastAttempt = useRef({ text: entry.rawInput, fitToLine: true })
     const [lastGeneratedInput, setLastGeneratedInput] = useState(
         entry.generationStatus === 'done' && entry.content != null
             ? entry.rawInput
@@ -61,7 +64,8 @@ const SectionItem = ({
         )
     }
 
-    const handleGenerateClick = async (textVal: string) => {
+    const handleGenerateClick = async (textVal: string, fitToLine: boolean) => {
+        lastAttempt.current = { text: textVal, fitToLine }
         setIsGenerating(true)
         setGenerateError(false)
         try {
@@ -72,7 +76,8 @@ const SectionItem = ({
             const updated = await apiGenerateEntry(
                 resumeId,
                 sectionId,
-                entry.id
+                entry.id,
+                fitToLine
             )
             setLastGeneratedInput(textVal)
             setFeedback(null)
@@ -106,7 +111,9 @@ const SectionItem = ({
                     status: errorObj.response.status || 500,
                     error: resData.error || 'generation_failed',
                     limitType: resData.limit_type,
-                    message: resData.message || 'Generation failed. Please try again.',
+                    message:
+                        resData.message ||
+                        'Generation failed. Please try again.',
                     retryAfter: resData.retry_after,
                     resetAt: resData.reset_at,
                     blockedUntil: resData.blocked_until,
@@ -116,7 +123,8 @@ const SectionItem = ({
                 setFeedback({
                     status: 500,
                     error: 'network_or_unknown',
-                    message: 'Could not connect to the generation service. Please check your network and try again.',
+                    message:
+                        'Could not connect to the generation service. Please check your network and try again.',
                 })
             }
         } finally {
@@ -135,6 +143,7 @@ const SectionItem = ({
             onRenderRequest()
         } catch (err) {
             console.error('[SectionItem] Content save failed:', err)
+            throw err
         }
     }
 
@@ -227,8 +236,8 @@ const SectionItem = ({
                     <ItemTextArea
                         desc={entry.rawInput}
                         updateDesc={handleUpdateRawInput}
-                        onGenerateClicked={(textVal) => {
-                            void handleGenerateClick(textVal)
+                        onGenerateClicked={(textVal, _density, fitToLine) => {
+                            void handleGenerateClick(textVal, fitToLine)
                         }}
                         generateStatus={generateStatus}
                         generateButtonLabel={generateButtonLabel}
@@ -239,6 +248,40 @@ const SectionItem = ({
                     {generateError && (
                         <div className="error-message">
                             Generation failed. Please try again.
+                        </div>
+                    )}
+                    {entry.fitting?.status === 'partial' && (
+                        <div role="status" className="fitting-warning">
+                            Some lines could not fit when last checked. Best
+                            available wording retained.
+                            {entry.fitting.reason && (
+                                <p>{entry.fitting.reason}</p>
+                            )}
+                            {entry.fitting.error && (
+                                <p>{entry.fitting.error.message}</p>
+                            )}
+                            {entry.fitting.bullets
+                                .filter((b) => b.status === 'unfitted')
+                                .map((b, i) => (
+                                    <p key={i}>
+                                        {b.text}:{' '}
+                                        {b.measurement
+                                            ? `${Math.round(b.measurement.ratio * 100)}% width, ${b.measurement.lines} line(s). `
+                                            : ''}
+                                        {b.reason}
+                                    </p>
+                                ))}
+                            {entry.fitting.summaries
+                                ?.filter((s) => s.status === 'unfitted')
+                                .map((s, i) => (
+                                    <p key={`summary-${i}`}>
+                                        Project summary: {s.text}.{' '}
+                                        {s.measurement
+                                            ? `${Math.round(s.measurement.ratio * 100)}% width, ${s.measurement.lines} line(s). `
+                                            : ''}
+                                        {s.reason}
+                                    </p>
+                                ))}
                         </div>
                     )}
                 </div>
@@ -256,7 +299,10 @@ const SectionItem = ({
                 onClose={() => setFeedback(null)}
                 onRetry={() => {
                     setFeedback(null)
-                    void handleGenerateClick(entry.rawInput)
+                    void handleGenerateClick(
+                        lastAttempt.current.text,
+                        lastAttempt.current.fitToLine
+                    )
                 }}
                 onEditInput={() => {
                     setFeedback(null)

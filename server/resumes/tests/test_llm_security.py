@@ -1,6 +1,5 @@
-import json
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from django.contrib.auth.models import User
@@ -14,7 +13,6 @@ from resumes.models import (
     SectionEntry,
     SectionTypeDefinition,
     SecurityEvent,
-    UserSecurityState,
     VisualTheme,
 )
 from resume_renderer.services.llm_rate_limiter import LLMRateLimiter, rate_limiter

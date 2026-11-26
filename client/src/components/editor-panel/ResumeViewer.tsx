@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import styled from 'styled-components'
 import PdfCanvas from './PdfCanvas'
 import PdfToolbar from './PdfToolbar'
@@ -8,14 +8,19 @@ const ViewerContainer = styled.div`
     flex-direction: column;
     gap: 16px;
     height: 100%;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
 `
 
 const CanvasContainer = styled.div`
     position: relative;
-    flex-grow: 1;
+    flex: 1 1 0;
     width: 100%;
     display: flex;
     min-height: 0;
+    min-width: 0;
 `
 
 const ExpandButton = styled.button`
@@ -77,12 +82,6 @@ export default function ResumeViewer({
         setFitMode(mode)
         setZoom(null)
     }
-
-    useEffect(() => {
-        return () => {
-            if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-        }
-    }, [pdfUrl])
 
     const handleDownloadPdf = () => {
         if (!pdfUrl) return alert('Render the resume first!')

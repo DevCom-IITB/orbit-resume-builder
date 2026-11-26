@@ -4,6 +4,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         lmodern \
+        tex-gyre \
         texlive-latex-base \
         texlive-latex-recommended \
         texlive-latex-extra \

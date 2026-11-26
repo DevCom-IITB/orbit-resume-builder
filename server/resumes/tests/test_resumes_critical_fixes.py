@@ -45,12 +45,12 @@ def _section(resume_json, key):
 
 def test_generate_entry_uses_llm_client(client, monkeypatch):
     class FakeLLMClient:
-        def generate_json(self, prompt):
+        def generate_json(self, prompt, response_schema=None):
             return [{"category": "Languages", "skills": ["Python", "C++"]}]
 
     monkeypatch.setattr("resumes.views.LLMClient", FakeLLMClient)
     monkeypatch.setattr(
-        "resumes.views.fit_bullets_in_content", lambda content, key, llm: content
+        "resumes.views.fit_bullets_in_content", lambda content, key, llm, **kwargs: (content, {"status": "complete", "bullets": []})
     )
 
     resume = _create_resume(client)

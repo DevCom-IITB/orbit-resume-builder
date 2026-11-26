@@ -1,5 +1,3 @@
-import json
-from datetime import datetime, timezone
 from django.core.management.base import BaseCommand
 from resumes.models import UserSecurityState, SecurityEvent
 from resume_renderer.services.llm_rate_limiter import rate_limiter
@@ -33,7 +31,7 @@ class Command(BaseCommand):
         ttl_30m_min = round(usage["ttl_30m"] / 60, 1) if usage["ttl_30m"] > 0 else 0
         ttl_daily_hr = round(usage["ttl_daily"] / 3600, 1) if usage["ttl_daily"] > 0 else 0
 
-        self.stdout.write(f"\n[Redis Quotas]")
+        self.stdout.write("\n[Redis Quotas]")
         self.stdout.write(
             f"  30-Min Window : {usage['count_30m']}/{usage['limit_30m']} used "
             f"(resets in {usage['ttl_30m']}s ~ {ttl_30m_min} min)"
@@ -45,7 +43,7 @@ class Command(BaseCommand):
 
         # 2. MySQL UserSecurityState
         state = UserSecurityState.objects.filter(ldap_id=ldap_id).first()
-        self.stdout.write(f"\n[Abuse & Cooldown State (MySQL)]")
+        self.stdout.write("\n[Abuse & Cooldown State (MySQL)]")
         if not state:
             self.stdout.write("  No abuse record found (User has 0 violations).")
         else:
@@ -58,7 +56,7 @@ class Command(BaseCommand):
 
         # 3. Recent Security Events
         events = SecurityEvent.objects.filter(ldap_id=ldap_id).order_by("-created_at")[:5]
-        self.stdout.write(f"\n[Recent Security Events (Last 5)]")
+        self.stdout.write("\n[Recent Security Events (Last 5)]")
         if not events.exists():
             self.stdout.write("  None")
         else:

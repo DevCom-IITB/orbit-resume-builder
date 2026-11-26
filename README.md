@@ -10,6 +10,7 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 python3 manage.py migrate
+python3 manage.py seed_templates
 python3 manage.py runserver
 ```
 
@@ -22,6 +23,7 @@ npm start
 ```
 
 ## Note to contributors
+
 - Please run `ruff . --fix` in the `server` directory before committing to ensure code quality and consistency.
 - Please run `pytest` in the `server` directory to ensure all tests pass before pushing your changes.
 - Please run `npm test` in the `client` directory to ensure all frontend tests pass before pushing your changes.

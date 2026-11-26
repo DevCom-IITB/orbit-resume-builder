@@ -1240,6 +1240,8 @@ body {
 /* 2. Left side: Takes half, but scrolls internally if content is too long */
 .editor-pane {
     flex: 1; /* This is a cleaner way to say take up half the remaining space */
+    min-width: 0;
+    min-height: 0;
     height: 100%;
     overflow-y: auto; /* Adds a scrollbar ONLY to the left side when dropdowns open */
     padding-right: 8px; /* Optional: adds a little breathing room for the scrollbar */
@@ -1248,7 +1250,72 @@ body {
 /* 3. Right side: Takes half, stays exactly 100% height constantly */
 .viewer-pane {
     flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
     height: 100%;
     display: flex;
     flex-direction: column; /* Ensures children (like the iframe) can fill the space */
+}
+.refit-button {
+    align-self: flex-start;
+    margin: 8px 0;
+    padding-block: 0.65rem;
+    padding-inline: 0.8rem;
+    border-radius: 0.75rem;
+
+    border: 1.5px solid #3b4eff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 0.8rem;
+    background-color: white;
+    color: #2145f3;
+    transition:
+        background-color 180ms ease,
+        color 180ms ease,
+        border-color 180ms ease,
+        transform 180ms ease,
+        box-shadow 180ms ease;
+}
+
+.refit-button:hover {
+    background-color: #f4f7ff;
+    border-color: #2646f2;
+}
+
+.refit-dialog {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    width: min(680px, 90vw);
+    max-height: 85vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    color: #111827;
+}
+
+.refit-dialog button {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+.refit-dialog button:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+.refit-proposal {
+    border: 1px solid #d1d5db;
+    padding: 12px;
+    border-radius: 6px;
+}
+.fitting-warning {
+    background: #fffbeb;
+    color: #92400e;
+    padding: 10px;
+    font-size: 13px;
 }

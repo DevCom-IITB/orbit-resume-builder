@@ -3,9 +3,12 @@
 from django.contrib import admin
 from django.urls import include, path
 
+from resumes.views import TemplateListView
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/templates/", TemplateListView.as_view()),
     path("api/sso/", include("ssoAuth.urls")),
     path("api/resume-renderer/", include("resume_renderer.urls")),
     path("api/bridge/", include("bridge.urls")),

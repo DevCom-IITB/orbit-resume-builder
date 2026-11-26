@@ -14,16 +14,11 @@
       },
       {
         "category": "Mathematics and Statistics",
-        "courses": [
-          "Linear Algebra",
-          "Probability and Statistics"
-        ]
+        "courses": ["Linear Algebra", "Probability and Statistics"]
       },
       {
         "category": "Machine Learning",
-        "courses": [
-          "Machine Learning"
-        ]
+        "courses": ["Machine Learning"]
       }
     ]
   }

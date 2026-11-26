@@ -40,12 +40,11 @@ function App() {
                     try {
                         const result = await renderResume(resumeId)
                         if (!cancelled) {
-                            setPdfUrl((prev) => {
-                                if (prev) URL.revokeObjectURL(prev)
-                                return result.pdfUrl
-                            })
+                            setPdfUrl(result.pdfUrl)
                             setLatexCode(result.latexCode)
                             setRenderStatus('success')
+                        } else {
+                            URL.revokeObjectURL(result.pdfUrl)
                         }
                     } catch (renderErr) {
                         console.error('[App] Initial render failed:', renderErr)
@@ -65,7 +64,8 @@ function App() {
         }
     }, [token, resumeId])
 
-    // Clean up blob URL on unmount
+    // The app owns PDF URLs. Release the previous URL after the viewer switches
+    // documents, and release the final URL when the app unmounts.
     useEffect(() => {
         return () => {
             if (pdfUrl) URL.revokeObjectURL(pdfUrl)
@@ -79,15 +79,21 @@ function App() {
         setResume((prev) => (prev ? { ...prev, title } : prev))
     }
 
+    const handlePdfUpdate = (newPdfUrl: string, newLatexCode: string) => {
+        setPdfUrl(newPdfUrl)
+        setLatexCode(newLatexCode)
+    }
+
+    const handleResumeUpdate = (updatedResume: Resume) => {
+        setResume(updatedResume)
+    }
+
     const handleRenderRequest = async () => {
         if (!resumeId) return
         setRenderStatus('loading')
         try {
             const result = await renderResume(resumeId)
-            setPdfUrl((prev) => {
-                if (prev) URL.revokeObjectURL(prev)
-                return result.pdfUrl
-            })
+            setPdfUrl(result.pdfUrl)
             setLatexCode(result.latexCode)
             setRenderStatus('success')
         } catch (err) {
@@ -158,6 +164,9 @@ function App() {
                         resume={resume}
                         onTitleSave={handleTitleSave}
                         onRenderRequest={handleRenderRequest}
+                        onPdfUpdate={handlePdfUpdate}
+                        onResumeUpdate={handleResumeUpdate}
+                        onRenderStatusChange={setRenderStatus}
                     />
                 </div>
             )}

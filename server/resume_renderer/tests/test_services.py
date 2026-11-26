@@ -14,6 +14,11 @@ def test_markdown_parser():
     assert MARKDOWN_PARSER.parse(text2) == expected2
 
 
+def test_sanitized_underline_remains_valid_latex():
+    from resume_renderer.services.json_sanitizer import sanitize_text
+    assert MARKDOWN_PARSER.parse(sanitize_text("_builds_ improved 20%")) == r"\underline{builds} improved 20\%"
+
+
 def test_renderer_template_has_section_spacing_directive():
     assert "\\renewcommand{\\section}" in renderer.TEMPLATE
 

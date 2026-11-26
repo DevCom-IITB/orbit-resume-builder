@@ -30,7 +30,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from utils.token_dec import token_required
 
-import jsonschema
 from resume_renderer.JSONSchema.jsonschema import (
     get_schema,
     get_supported_section_types,

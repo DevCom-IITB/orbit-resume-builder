@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import styled, { keyframes } from 'styled-components'
 
 const pulse = keyframes`
@@ -8,7 +9,10 @@ const pulse = keyframes`
 
 const CanvasWrapper = styled.div`
     width: 100%;
-    flex-grow: 1;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    position: relative;
     background-color: #b0b2b4;
     border-radius: 8px;
     display: flex;
@@ -30,6 +34,16 @@ const EmptyText = styled.p`
     font-family: monospace;
 `
 
+const Overlay = styled.div`
+    position: absolute;
+    inset: 0;
+    background-color: rgba(255, 255, 255, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+`
+
 interface PdfCanvasProps {
     url: string | null
     isLoading: boolean
@@ -43,41 +57,88 @@ export default function PdfCanvas({
     fitMode,
     zoom,
 }: PdfCanvasProps) {
-    if (isLoading) {
-        return (
-            <CanvasWrapper>
-                <Skeleton />
-            </CanvasWrapper>
-        )
-    }
+    const wrapperRef = useRef<HTMLDivElement>(null)
+    const [viewport, setViewport] = useState({ width: 0, height: 0 })
 
-    if (url) {
-        // We hardcode page=1 to ensure it always starts at the top
-        let fragment = `#toolbar=0&page=1`
-
-        if (zoom !== null) {
-            fragment += `&zoom=${zoom}`
-        } else {
-            fragment += `&view=${fitMode === 'width' ? 'FitH' : 'Fit'}`
+    useEffect(() => {
+        const wrapper = wrapperRef.current
+        if (!wrapper) return
+        let timer: ReturnType<typeof setTimeout>
+        const scheduleSize = (width: number, height: number) => {
+            clearTimeout(timer)
+            // Initialize the native PDF viewer only after the pane has settled.
+            timer = setTimeout(() => {
+                const next = {
+                    width: Math.round(width),
+                    height: Math.round(height),
+                }
+                setViewport((previous) =>
+                    previous.width === next.width &&
+                    previous.height === next.height
+                        ? previous
+                        : next
+                )
+            }, 100)
         }
+        const measure = () => {
+            const { width, height } = wrapper.getBoundingClientRect()
+            scheduleSize(width, height)
+        }
+        measure()
+        const observer =
+            typeof ResizeObserver !== 'undefined'
+                ? new ResizeObserver(([entry]) => {
+                      if (entry)
+                          scheduleSize(
+                              entry.contentRect.width,
+                              entry.contentRect.height
+                          )
+                  })
+                : null
+        observer?.observe(wrapper)
+        if (!observer) window.addEventListener('resize', measure)
+        return () => {
+            observer?.disconnect()
+            window.removeEventListener('resize', measure)
+            clearTimeout(timer)
+        }
+    }, [])
 
-        return (
-            <CanvasWrapper>
-                <iframe
-                    key={`${fitMode}-${zoom}`}
-                    src={`${url}${fragment}`}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 'none' }}
-                    title="Resume PDF"
-                />
-            </CanvasWrapper>
-        )
-    }
+    const hasViewport = viewport.width > 0 && viewport.height > 0
+    const view =
+        zoom !== null
+            ? `zoom=${zoom},0,0`
+            : `view=${fitMode === 'width' ? 'FitH,0' : 'Fit'}`
+    const source = `${url}#toolbar=0&navpanes=0&page=1&${view}`
 
     return (
-        <CanvasWrapper>
-            <EmptyText>PDF Preview</EmptyText>
+        <CanvasWrapper ref={wrapperRef}>
+            {url && hasViewport ? (
+                <iframe
+                    // A new document or pane size needs a fresh native viewer;
+                    // reusing it can retain the previous document's viewport.
+                    key={`${source}-${viewport.width}-${viewport.height}`}
+                    src={source}
+                    width="100%"
+                    height="100%"
+                    style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'block',
+                        border: 'none',
+                    }}
+                    title="Resume PDF"
+                />
+            ) : isLoading || url ? (
+                <Skeleton />
+            ) : (
+                <EmptyText>PDF Preview</EmptyText>
+            )}
+            {url && hasViewport && isLoading && (
+                <Overlay>
+                    <Skeleton />
+                </Overlay>
+            )}
         </CanvasWrapper>
     )
 }

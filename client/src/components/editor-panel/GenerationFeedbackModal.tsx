@@ -39,12 +39,20 @@ const ModalCard = styled.div`
     width: 470px;
     max-width: calc(100vw - 32px);
     border: 1px solid #0f0c0ca9;
-    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.14), 0 0 1px 1px rgba(0, 0, 0, 0.04);
+    box-shadow:
+        0 20px 40px -15px rgba(0, 0, 0, 0.14),
+        0 0 1px 1px rgba(0, 0, 0, 0.04);
     overflow: hidden;
     animation: ${scaleUp} 0.18s ease-out;
     display: flex;
     flex-direction: column;
-    font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family:
+        'Lato',
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        Roboto,
+        sans-serif;
 `
 
 const ModalHeader = styled.div`
@@ -199,18 +207,18 @@ function formatTimeString(isoString?: string): string {
     if (!isoString) return ''
     try {
         const date = new Date(isoString)
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        return date.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+        })
     } catch {
         return isoString
     }
 }
 
-export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = ({
-    feedback,
-    onClose,
-    onRetry,
-    onEditInput,
-}) => {
+export const GenerationFeedbackModal: React.FC<
+    GenerationFeedbackModalProps
+> = ({ feedback, onClose, onRetry, onEditInput }) => {
     const [secondsRemaining, setSecondsRemaining] = useState<number>(() => {
         return feedback?.retryAfter ?? 0
     })
@@ -232,10 +240,12 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
 
     const status = feedback.status
     const errorType = feedback.error
-    const is30MinRateLimit = status === 429 && feedback.limitType === '30_minute'
+    const is30MinRateLimit =
+        status === 429 && feedback.limitType === '30_minute'
     const isDailyRateLimit = status === 429 && feedback.limitType === 'daily'
     const isRestricted = status === 403 || errorType === 'account_restricted'
-    const isInvalidContent = status === 422 || errorType === 'invalid_resume_content'
+    const isInvalidContent =
+        status === 422 || errorType === 'invalid_resume_content'
     const isProviderFailure =
         status === 502 ||
         status === 500 ||
@@ -258,7 +268,11 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
 
     return createPortal(
         <Overlay onClick={onClose}>
-            <ModalCard onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+            <ModalCard
+                onClick={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+            >
                 <ModalHeader>
                     <ModalTitle>{title}</ModalTitle>
                     <CloseButton onClick={onClose} aria-label="Close dialog">
@@ -270,19 +284,25 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
                     {is30MinRateLimit && (
                         <>
                             <DescriptionText>
-                                You have reached the short-term AI generation limit. To ensure fair
-                                availability for all students on campus, generation requests are
+                                You have reached the short-term AI generation
+                                limit. To ensure fair availability for all
+                                students on campus, generation requests are
                                 briefly paused.
                             </DescriptionText>
                             {secondsRemaining > 0 && (
                                 <StatusPanel>
-                                    <StatusLabel>Cooldown remaining</StatusLabel>
-                                    <StatusValue>{formatDuration(secondsRemaining)}</StatusValue>
+                                    <StatusLabel>
+                                        Cooldown remaining
+                                    </StatusLabel>
+                                    <StatusValue>
+                                        {formatDuration(secondsRemaining)}
+                                    </StatusValue>
                                 </StatusPanel>
                             )}
                             <Subtext>
-                                Manual resume editing and LaTeX compilation remain fully available
-                                while the cooldown resets.
+                                Manual resume editing and LaTeX compilation
+                                remain fully available while the cooldown
+                                resets.
                             </Subtext>
                         </>
                     )}
@@ -290,24 +310,31 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
                     {isDailyRateLimit && (
                         <>
                             <DescriptionText>
-                                You have reached today&apos;s AI generation allowance. Generation
-                                will be available again when the daily quota resets.
+                                You have reached today&apos;s AI generation
+                                allowance. Generation will be available again
+                                when the daily quota resets.
                             </DescriptionText>
                             {feedback.resetAt && (
                                 <StatusPanel>
                                     <StatusLabel>Quota resets at</StatusLabel>
-                                    <StatusValue>{formatTimeString(feedback.resetAt)}</StatusValue>
+                                    <StatusValue>
+                                        {formatTimeString(feedback.resetAt)}
+                                    </StatusValue>
                                 </StatusPanel>
                             )}
                             {secondsRemaining > 0 && !feedback.resetAt && (
                                 <StatusPanel>
-                                    <StatusLabel>Reset in approximately</StatusLabel>
-                                    <StatusValue>{formatDuration(secondsRemaining)}</StatusValue>
+                                    <StatusLabel>
+                                        Reset in approximately
+                                    </StatusLabel>
+                                    <StatusValue>
+                                        {formatDuration(secondsRemaining)}
+                                    </StatusValue>
                                 </StatusPanel>
                             )}
                             <Subtext>
-                                You can continue editing, rearranging sections, and rendering your
-                                resume PDF as normal.
+                                You can continue editing, rearranging sections,
+                                and rendering your resume PDF as normal.
                             </Subtext>
                         </>
                     )}
@@ -315,18 +342,25 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
                     {isRestricted && (
                         <>
                             <DescriptionText>
-                                AI generation is temporarily restricted for this account following
-                                repeated policy flags or off-topic inputs.
+                                AI generation is temporarily restricted for this
+                                account following repeated policy flags or
+                                off-topic inputs.
                             </DescriptionText>
                             {feedback.blockedUntil && (
                                 <StatusPanel>
-                                    <StatusLabel>Access restores at</StatusLabel>
-                                    <StatusValue>{formatTimeString(feedback.blockedUntil)}</StatusValue>
+                                    <StatusLabel>
+                                        Access restores at
+                                    </StatusLabel>
+                                    <StatusValue>
+                                        {formatTimeString(
+                                            feedback.blockedUntil
+                                        )}
+                                    </StatusValue>
                                 </StatusPanel>
                             )}
                             <Subtext>
-                                You may continue manual resume editing and LaTeX rendering without
-                                interruption.
+                                You may continue manual resume editing and LaTeX
+                                rendering without interruption.
                             </Subtext>
                         </>
                     )}
@@ -338,9 +372,10 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
                                     'The input provided does not appear to contain content relevant to this resume section.'}
                             </DescriptionText>
                             <Subtext>
-                                Please verify that your rough notes include relevant achievements,
-                                metrics, titles, or technical responsibilities suited for this specific
-                                section.
+                                Please verify that your rough notes include
+                                relevant achievements, metrics, titles, or
+                                technical responsibilities suited for this
+                                specific section.
                             </Subtext>
                         </>
                     )}
@@ -352,8 +387,8 @@ export const GenerationFeedbackModal: React.FC<GenerationFeedbackModalProps> = (
                                     'The AI generation service is currently experiencing high load and could not complete this request.'}
                             </DescriptionText>
                             <Subtext>
-                                Your entered notes have been preserved. You can click Retry below or try
-                                again in a moment.
+                                Your entered notes have been preserved. You can
+                                click Retry below or try again in a moment.
                             </Subtext>
                         </>
                     )}

@@ -13,7 +13,6 @@ import logging
 import re
 from typing import Any, Dict, Optional, Tuple
 
-from django.utils import timezone
 import jsonschema
 
 from resumes.models import SecurityEvent, UserSecurityState
