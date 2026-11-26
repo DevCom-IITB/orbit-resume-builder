@@ -19,6 +19,7 @@ const Overlay = styled.div`
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    animation: ${fadeIn} 0.18s ease-out;
 `
 
 const Modal = styled.div`

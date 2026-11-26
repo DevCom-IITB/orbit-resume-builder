@@ -33,7 +33,25 @@ function App() {
         ;(async () => {
             try {
                 const data = await getResume(resumeId)
-                if (!cancelled) setResume(data)
+                if (!cancelled) {
+                    setResume(data)
+                    // Automatically compile and render the saved resume on first load
+                    setRenderStatus('loading')
+                    try {
+                        const result = await renderResume(resumeId)
+                        if (!cancelled) {
+                            setPdfUrl((prev) => {
+                                if (prev) URL.revokeObjectURL(prev)
+                                return result.pdfUrl
+                            })
+                            setLatexCode(result.latexCode)
+                            setRenderStatus('success')
+                        }
+                    } catch (renderErr) {
+                        console.error('[App] Initial render failed:', renderErr)
+                        if (!cancelled) setRenderStatus('error')
+                    }
+                }
             } catch (err) {
                 console.error('[Editor] Failed to load resume:', err)
                 if (!cancelled) setLoadError('Could not load resume.')
@@ -66,8 +84,10 @@ function App() {
         setRenderStatus('loading')
         try {
             const result = await renderResume(resumeId)
-            if (pdfUrl) URL.revokeObjectURL(pdfUrl)
-            setPdfUrl(result.pdfUrl)
+            setPdfUrl((prev) => {
+                if (prev) URL.revokeObjectURL(prev)
+                return result.pdfUrl
+            })
             setLatexCode(result.latexCode)
             setRenderStatus('success')
         } catch (err) {

@@ -15,12 +15,16 @@ class LLMClientError(Exception):
 
 class GeminiLLMClient:
     def __init__(self):
-        # To be changed to match the API that is actually going to be used
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        self.model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+        # Checks GEMINI_API_KEY or GOOGLE_API_KEY from .env
+        self.api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        self.model = os.getenv("GEMINI_MODEL") or os.getenv(
+            "GOOGLE_MODEL", "gemini-3.8-flash"
+        )
 
         if not self.api_key:
-            raise LLMClientError("GEMINI_API_KEY is missing. Add it to your .env file.")
+            raise LLMClientError(
+                "GEMINI_API_KEY (or GOOGLE_API_KEY) is missing. Add it to your .env file."
+            )
 
         self.client = genai.Client(api_key=self.api_key)
 
@@ -105,6 +109,5 @@ class GeminiLLMClient:
 
         return text
 
-# Provider-agnostic name used by the views and line fitter. Point this at a
-# different client class to switch LLM backends.
+# Backward-compatibility alias for codebase views and tests
 LLMClient = GeminiLLMClient
