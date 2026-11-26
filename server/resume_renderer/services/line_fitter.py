@@ -13,6 +13,7 @@ import copy
 import json
 import re
 import tarfile
+import uuid
 from io import BytesIO
 
 BULLET_LINE_WIDTH_PT = 500.0
@@ -84,15 +85,24 @@ def _measure_via_container(texts: list[str]) -> list[float]:
         tar.addfile(tarinfo=info, fileobj=BytesIO(latex_src))
     tar_buf.seek(0)
 
+    # Each measurement gets its own directory: the container is shared by all
+    # requests, so a fixed path let concurrent jobs overwrite each other.
+    workdir = f"/usr/src/tex/measure-{uuid.uuid4().hex}"
     try:
-        container.put_archive("/usr/src/tex", tar_buf.read())
+        container.exec_run(cmd=["mkdir", "-p", workdir])
+        container.put_archive(workdir, tar_buf.read())
         _, out = container.exec_run(
             cmd="pdflatex -interaction=nonstopmode measure.tex",
-            workdir="/usr/src/tex",
+            workdir=workdir,
         )
         log = out.decode("utf-8", errors="replace")
     except Exception:
         return [-1.0] * len(texts)
+    finally:
+        try:
+            container.exec_run(cmd=["rm", "-rf", workdir])
+        except Exception:
+            pass
 
     widths: list[float] = [float(m.group(1)) for m in re.finditer(r"W:([\d.]+)pt", log)]
     while len(widths) < len(texts):

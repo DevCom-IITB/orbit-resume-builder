@@ -67,7 +67,30 @@ def extract_bullets(section_type: str, output):
     return bullets
 
 
-@pytest.mark.parametrize("section_type,inputs", TEST_INPUTS_BY_SECTION.items())
+# These fixtures are recorded LLM outputs from before the schema change in
+# 5dba970 ("fixed issues with pdf gen"), so they no longer validate. They need
+# to be regenerated with a real LLM run; editing them by hand would make them
+# fake "recorded" outputs. strict=True flags the marker once they pass again.
+STALE_FIXTURE_SECTIONS = {
+    "header",
+    "education",
+    "professional_experience",
+    "scholastic_achievements",
+}
+
+
+def _section_params():
+    for section_type, inputs in TEST_INPUTS_BY_SECTION.items():
+        marks = ()
+        if section_type in STALE_FIXTURE_SECTIONS:
+            marks = pytest.mark.xfail(
+                reason="Recorded fixture predates the current JSON schema; regenerate it.",
+                strict=True,
+            )
+        yield pytest.param(section_type, inputs, marks=marks, id=section_type)
+
+
+@pytest.mark.parametrize("section_type,inputs", list(_section_params()))
 def test_llm_prompt_outputs_match_schema(section_type, inputs):
     """
     Integration test for LLM prompt outputs using static fixtures.

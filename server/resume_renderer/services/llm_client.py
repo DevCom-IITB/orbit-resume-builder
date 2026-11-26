@@ -17,7 +17,9 @@ class GeminiLLMClient:
     def __init__(self):
         # Checks GEMINI_API_KEY or GOOGLE_API_KEY from .env
         self.api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        self.model = os.getenv("GEMINI_MODEL") or os.getenv("GOOGLE_MODEL", "gemini-3.8-flash")
+        self.model = os.getenv("GEMINI_MODEL") or os.getenv(
+            "GOOGLE_MODEL", "gemini-3.8-flash"
+        )
 
         if not self.api_key:
             raise LLMClientError(
@@ -107,6 +109,5 @@ class GeminiLLMClient:
 
         return text
 
-
 # Backward-compatibility alias for codebase views and tests
-LLMClient = GeminiLLMClient
+LLMClient = GeminiLLMClient

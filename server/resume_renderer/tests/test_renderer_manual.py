@@ -3,7 +3,6 @@ import pytest
 
 pytest.importorskip("docker")
 
-from resume_renderer.services.renderer import compile_latex
 
 from resume_renderer.schemas.converters.convert_header import convert_header
 from resume_renderer.schemas.converters.convert_education import convert_education

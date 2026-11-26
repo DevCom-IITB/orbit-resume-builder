@@ -1,5 +1,4 @@
 from resume_renderer.JSONSchema.jsonschema import get_schema
-from resume_renderer.services.renderer import compile_latex
 
 from resume_renderer.schemas.converters.convert_header import convert_header
 from resume_renderer.schemas.converters.convert_education import convert_education
@@ -61,6 +60,13 @@ def load_full_resume_fixture() -> dict:
     return json.loads(FULL_RESUME_FIXTURE.read_text(encoding="utf-8"))
 
 
+# The fixture is a recorded LLM output from before the schema change in 5dba970
+# ("fixed issues with pdf gen"); it must be regenerated with a real LLM run.
+# strict=True flags this marker once the fixture validates again.
+@pytest.mark.xfail(
+    reason="Recorded fixture predates the current JSON schema; regenerate it.",
+    strict=True,
+)
 def test_user_input_to_full_pdf(tmp_path, monkeypatch):
     """
     End-to-end test:

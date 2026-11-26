@@ -150,7 +150,7 @@ class Command(BaseCommand):
 
             # Skip if already imported in db
             if ReferenceResume.objects.filter(resume_file__endswith=pdf_path.name).exists() and not dry_run:
-                self.stdout.write(f"  [SKIP] Already exists in database.")
+                self.stdout.write("  [SKIP] Already exists in database.")
                 skip_count += 1
                 continue
 

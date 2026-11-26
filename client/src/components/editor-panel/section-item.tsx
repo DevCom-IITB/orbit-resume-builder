@@ -69,7 +69,11 @@ const SectionItem = ({
             await updateEntry(resumeId, sectionId, entry.id, {
                 rawInput: textVal,
             })
-            const updated = await apiGenerateEntry(resumeId, sectionId, entry.id)
+            const updated = await apiGenerateEntry(
+                resumeId,
+                sectionId,
+                entry.id
+            )
             setLastGeneratedInput(textVal)
             setFeedback(null)
             onEntryUpdated(updated)

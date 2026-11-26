@@ -2,7 +2,6 @@ import tempfile
 from pathlib import Path
 from unittest import TestCase
 from django.test import TestCase as DjangoTestCase
-from rag.models import ReferenceResume
 from rag.utils import (
     EmbeddingService,
     ChromaService,
@@ -69,7 +68,12 @@ class DjangoRAGPipelineTest(DjangoTestCase):
         self.assertEqual(len(vector), 384)
 
         # 2. Test ChromaDB Service Ingestion and Queries
-        chroma_service = ChromaService()
+        # ChromaService persists under BASE_DIR/chroma_db; point it at a temp
+        # dir so test chunks never land in the real index used by prompts.
+        tmp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp_dir.cleanup)
+        with self.settings(BASE_DIR=Path(tmp_dir.name)):
+            chroma_service = ChromaService()
         
         test_ids = ["test_1", "test_2"]
         test_docs = [

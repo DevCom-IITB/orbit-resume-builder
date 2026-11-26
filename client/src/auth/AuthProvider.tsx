@@ -7,6 +7,7 @@ import React, {
 } from 'react'
 
 import { APIInstance } from '../lib/api'
+import { isFromReach, postToReach } from './reachMessaging'
 
 type AuthContextType = {
     token: string | null
@@ -34,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     useEffect(() => {
         const onMessage = (ev: MessageEvent) => {
             // Expect messages from parent with shape { type: 'REACH_TOKEN', token: '...' }
+            if (!isFromReach(ev)) return
             if (!ev.data || typeof ev.data !== 'object') return
             if (ev.data.type === 'REACH_TOKEN') {
                 const t = ev.data.token || null
@@ -47,13 +49,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             // Parent can also request handshake
             if (ev.data.type === 'REQUEST_TOKEN_ACK') {
                 // reply to let parent know we are ready
-                window.parent.postMessage({ type: 'RB_READY' }, '*')
+                postToReach({ type: 'RB_READY' })
             }
         }
 
         window.addEventListener('message', onMessage)
         // Notify parent we are ready to receive token
-        window.parent.postMessage({ type: 'RB_READY' }, '*')
+        postToReach({ type: 'RB_READY' })
 
         return () => window.removeEventListener('message', onMessage)
     }, [])
@@ -62,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const requestTokenFromParent = (): Promise<string | null> =>
         new Promise((resolve) => {
             pendingRefresh.current = resolve
-            window.parent.postMessage({ type: 'REQUEST_TOKEN' }, '*')
+            postToReach({ type: 'REQUEST_TOKEN' })
             // fallback timeout
             setTimeout(() => {
                 if (pendingRefresh.current) {

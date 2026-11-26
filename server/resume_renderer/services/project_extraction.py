@@ -2,7 +2,7 @@ import logging
 from typing import Dict, Any
 from jsonschema import validate, ValidationError
 
-from .llm_client import GeminiLLMClient, LLMClientError
+from .llm_client import GeminiLLMClient
 from .github_services import get_authenticated_repos, get_readme
 
 logger = logging.getLogger(__name__)

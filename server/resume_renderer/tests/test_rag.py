@@ -63,6 +63,10 @@ class FakeCrossEncoder:
 fake_module = types.ModuleType("sentence_transformers")
 fake_module.SentenceTransformer = FakeSentenceTransformer
 fake_module.CrossEncoder = FakeCrossEncoder
+# Remember the real entry (if already imported) so it can be put back below:
+# pytest imports every test module before running any test, so leaving the
+# fake in sys.modules made other tests (rag/tests.py) get 3-dim "embeddings".
+_real_sentence_transformers = sys.modules.get("sentence_transformers")
 sys.modules["sentence_transformers"] = fake_module
 
 # ---------------------------------------------------------------------------
@@ -80,6 +84,25 @@ from rag.retrieval.filtering import (  # noqa: E402
 from rag.retrieval.re_ranker import rerank_chunks  # noqa: E402
 from rag.retrieval.query import clean_query, process_query  # noqa: E402
 from rag.retrieval.main_pipeline import run_retrieval_pipeline  # noqa: E402
+
+
+def _restore_sentence_transformers():
+    if _real_sentence_transformers is None:
+        sys.modules.pop("sentence_transformers", None)
+    else:
+        sys.modules["sentence_transformers"] = _real_sentence_transformers
+
+
+_restore_sentence_transformers()
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _fake_sentence_transformers():
+    """Re-install the stub only while this module's tests run (the re-ranker
+    imports CrossEncoder lazily, at call time)."""
+    sys.modules["sentence_transformers"] = fake_module
+    yield
+    _restore_sentence_transformers()
 
 
 # ---------------------------------------------------------------------------

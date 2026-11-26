@@ -1,9 +1,12 @@
 import base64
+import hmac
 import json
 import os
+import secrets
 from urllib.parse import urlencode
 
 import requests
+from django.conf import settings
 from django.contrib.auth import get_user_model, login
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
@@ -38,16 +41,22 @@ def _basic_auth_token() -> str:
     return ""
 
 
+SSO_STATE_SESSION_KEY = "sso_oauth_state"
+
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def gymkhana_login(request):
+    # Per-login random state, checked in the callback to block login CSRF.
+    state = secrets.token_urlsafe(32)
+    request.session[SSO_STATE_SESSION_KEY] = state
     params = urlencode(
         {
             "client_id": CLIENT_ID,
             "response_type": "code",
             "scope": "basic profile ldap program",
             "redirect_uri": REDIRECT_URI,
-            "state": "secure_random_state",
+            "state": state,
         }
     )
     return redirect(f"{AUTH_URL}?{params}")
@@ -56,6 +65,11 @@ def gymkhana_login(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def gymkhana_callback(request):
+    expected_state = request.session.pop(SSO_STATE_SESSION_KEY, None)
+    received_state = request.GET.get("state") or ""
+    if not expected_state or not hmac.compare_digest(expected_state, received_state):
+        return JsonResponse({"error": "Invalid OAuth state"}, status=400)
+
     code = request.GET.get("code")
     if not code:
         return JsonResponse({"error": "Authorization code missing"}, status=400)
@@ -116,7 +130,6 @@ def gymkhana_callback(request):
     email = profile_data.get("email", "")
     first_name = profile_data.get("first_name", "")
     last_name = profile_data.get("last_name", "")
-    full_name = f"{first_name} {last_name}".strip() or username
 
     user_model = get_user_model()
     user, _ = user_model.objects.get_or_create(
@@ -130,33 +143,36 @@ def gymkhana_callback(request):
     login(request, user)
     refresh = RefreshToken.for_user(user)
 
-    payload = {
-        "detail": "Successfully logged in",
-        "role": "unknown",
-        "user": username,
-        "full_name": full_name,
-        "access_token": str(refresh.access_token),
-        "refresh_token": str(refresh),
-    }
+    message = {"type": "REACH_TOKEN", "token": str(refresh.access_token)}
+
+    # postMessage only to the allow-listed REACH origins: a message whose
+    # targetOrigin doesn't match the receiving window is dropped by the browser,
+    # so an unrelated opener/parent never sees the token. JSON is escaped so
+    # profile data can't break out of the <script> block.
+    def _script_json(value):
+        return json.dumps(value).replace("<", "\\u003c")
 
     response_html = f"""<!doctype html>
 <html>
   <body>
     <script>
-      const payload = {json.dumps(payload)};
+      const message = {_script_json(message)};
+      const origins = {_script_json(settings.REACH_ORIGINS)};
       try {{
-        if (window.opener && !window.opener.closed) {{
-          window.opener.postMessage({{ type: 'REACH_TOKEN', token: payload.access_token }}, '*');
-        }}
-        if (window.parent && window.parent !== window) {{
-          window.parent.postMessage({{ type: 'REACH_TOKEN', token: payload.access_token }}, '*');
+        for (const origin of origins) {{
+          if (window.opener && !window.opener.closed) {{
+            window.opener.postMessage(message, origin);
+          }}
+          if (window.parent && window.parent !== window) {{
+            window.parent.postMessage(message, origin);
+          }}
         }}
       }} finally {{
         document.body.innerText = 'Login successful. You may close this tab.';
         setTimeout(() => window.close(), 500);
       }}
     </script>
-    <noscript>{json.dumps(payload)}</noscript>
+    <noscript>Login successful. Enable JavaScript to continue.</noscript>
   </body>
 </html>"""
     return HttpResponse(response_html, content_type="text/html")
@@ -211,9 +227,11 @@ class VerifyView(APIView):
         service_key = request.headers.get("X-Service-Key") or request.META.get(
             "HTTP_X_SERVICE_KEY"
         )
-        if not service_key or service_key != os.getenv(
-            "RB_SERVICE_KEY", "dev-resume-key-1"
-        ):
+        expected_key = settings.RB_SERVICE_KEY
+        if not expected_key:
+            # Fail closed: production without RB_SERVICE_KEY verifies nothing.
+            return JsonResponse({"error": "Service key not configured"}, status=503)
+        if not service_key or not hmac.compare_digest(service_key, expected_key):
             return JsonResponse({"error": "Invalid service key"}, status=403)
 
         return JsonResponse(

@@ -28,10 +28,10 @@ from .serializers import (
     ResumeDetailSerializer,
     ResumeListSerializer,
     ResumePatchSerializer,
+    ResumeSnapshotSerializer,
     ResumeTemplateSerializer,
     SectionEntrySerializer,
     SectionSerializer,
-    VersionSerializer,
     VisualThemeSerializer,
 )
 from rag.retrieval.filtering import SectionKey
@@ -72,11 +72,13 @@ class TemplateListView(APIView):
 class VisualThemeListView(APIView):
     @token_required
     def get(self, request):
-        qs = VisualTheme.objects.all()
+        themes = list(VisualTheme.objects.all())
         family = request.GET.get("family")
         if family:
-            qs = qs.filter(compatible_families__contains=family)
-        return Response(VisualThemeSerializer(qs, many=True).data)
+            # JSONField `__contains` isn't supported on SQLite, so filter in
+            # Python (the theme table is tiny).
+            themes = [t for t in themes if family in (t.compatible_families or [])]
+        return Response(VisualThemeSerializer(themes, many=True).data)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -121,11 +123,13 @@ class ResumeDetail(APIView):
         serializer = ResumePatchSerializer(resume, data=request.data, partial=True)
         if serializer.is_valid():
             updated = serializer.save()
-            Version.objects.create(
-                resume=updated,
-                snapshot=ResumeDetailSerializer(updated).data,
-                created_by=request.user,
-            )
+            # Pin toggles aren't content edits, so they don't get a version.
+            if set(serializer.validated_data) - {"is_pinned"}:
+                Version.objects.create(
+                    resume=updated,
+                    snapshot=ResumeSnapshotSerializer(updated).data,
+                    created_by=request.user,
+                )
             return Response(ResumeDetailSerializer(updated).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -203,11 +207,14 @@ class RenderResumeView(APIView):
                 metadata={"error": str(exc)},
             )
             return Response(
-                {"error": f"Rendering security violation: {str(exc)}"},
+                {"error": "Resume rendering failed security validation."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except Exception as exc:
-            return Response({"error": f"Resume compilation failed: {str(exc)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            return Response(
+                {"error": "Resume compilation failed."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -284,6 +291,8 @@ class SectionDetail(APIView):
             section.order = int(request.data["order"])
         if "is_visible" in request.data:
             section.is_visible = bool(request.data["is_visible"])
+        if "order" in request.data or "is_visible" in request.data:
+            # Both change the rendered document, so drop the cached LaTeX.
             resume.latex_cache_valid = False
             resume.save(update_fields=["latex_cache_valid"])
         section.save()
@@ -361,10 +370,12 @@ class EntryDetail(APIView):
             entry.raw_input = request.data["raw_input"]
         if "content" in request.data:
             entry.content = request.data["content"]
-            resume.latex_cache_valid = False
-            resume.save(update_fields=["latex_cache_valid"])
         if "order" in request.data:
             entry.order = int(request.data["order"])
+        if "content" in request.data or "order" in request.data:
+            # Both change the rendered document, so drop the cached LaTeX.
+            resume.latex_cache_valid = False
+            resume.save(update_fields=["latex_cache_valid"])
 
         entry.save()
         return Response(SectionEntrySerializer(entry).data)
@@ -604,14 +615,13 @@ class GenerateEntryView(APIView):
                 {
                     "error": "llm_provider_error",
                     "message": "The AI service could not complete this request. Please try again later.",
-                    "details": str(exc),
                 },
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-        except Exception as exc:
+        except Exception:
             entry.generation_status = "failed"
             entry.save(update_fields=["generation_status"])
             return Response(
-                {"error": "internal_error", "message": str(exc)},
+                {"error": "internal_error", "message": "An unexpected error occurred."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
