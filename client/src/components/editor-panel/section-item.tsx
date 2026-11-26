@@ -14,6 +14,7 @@ import { Trash2, GripHorizontal, Plus, Minus } from 'lucide-react'
 interface SectionItemProps {
     entry: LocalEntry
     label: string
+    placeholder: string
     displayIndex: number
     resumeId: string
     sectionId: string
@@ -27,6 +28,7 @@ interface SectionItemProps {
 const SectionItem = ({
     entry,
     label,
+    placeholder,
     displayIndex,
     resumeId,
     sectionId,
@@ -235,6 +237,7 @@ const SectionItem = ({
                 <div className="section-item-inner-card">
                     <ItemTextArea
                         desc={entry.rawInput}
+                        placeholder={placeholder}
                         updateDesc={handleUpdateRawInput}
                         onGenerateClicked={(textVal, _density, fitToLine) => {
                             void handleGenerateClick(textVal, fitToLine)

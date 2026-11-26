@@ -358,6 +358,9 @@ const ResumeSection = ({
                                         key={entry.id}
                                         entry={entry}
                                         label={itemLabel}
+                                        placeholder={
+                                            section.sectionType.entryHintText
+                                        }
                                         displayIndex={index}
                                         resumeId={resumeId}
                                         sectionId={section.id}

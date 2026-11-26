@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 
 interface ItemTextAreaProps {
     desc: string
+    placeholder: string
     lastGeneratedNormalized: string
     updateDesc: (updatedDesc: string) => void
     // FIX: Add density to the accepted arguments!
@@ -18,6 +19,7 @@ interface ItemTextAreaProps {
 
 const ItemTextArea = ({
     desc = '',
+    placeholder,
     lastGeneratedNormalized,
     updateDesc,
     onGenerateClicked,
@@ -87,7 +89,9 @@ const ItemTextArea = ({
                     ref={textareaRef}
                     className="item-description-textarea"
                     value={textVal}
-                    placeholder="Describe your experience..."
+                    placeholder={
+                        placeholder || 'Add details for this section...'
+                    }
                     onChange={(event) => {
                         setTextVal(event.target.value)
                     }}
