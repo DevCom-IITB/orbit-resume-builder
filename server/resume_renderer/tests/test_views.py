@@ -215,9 +215,9 @@ def test_render_accepts_new_sections_and_passes_latex(api_client, user, monkeypa
 
     assert response.status_code == 200
     assert response["Content-Type"] == "application/json"
-    assert "Key Projects" in seen["latex"]
-    assert "Relevant Courses Undertaken" in seen["latex"]
-    assert "Technical Skills" in seen["latex"]
+    assert "KEY PROJECTS" in seen["latex"]
+    assert "COURSES UNDERTAKEN" in seen["latex"]
+    assert "TECHNICAL SKILLS" in seen["latex"]
 
 
 def test_render_rejects_invalid_courses_shape(api_client, user):

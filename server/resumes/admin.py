@@ -7,6 +7,8 @@ from .models import (
     SectionEntry,
     SectionTypeDefinition,
     TemplateSectionType,
+    UserSecurityState,
+    SecurityEvent,
     Version,
     VisualTheme,
 )
@@ -64,3 +66,18 @@ class SectionEntryAdmin(admin.ModelAdmin):
 class VersionAdmin(admin.ModelAdmin):
     list_display = ["resume", "created_by", "created_at"]
     raw_id_fields = ["resume", "created_by"]
+
+
+@admin.register(UserSecurityState)
+class UserSecurityStateAdmin(admin.ModelAdmin):
+    list_display = ["ldap_id", "blocked_until", "abuse_score", "violation_count", "last_violation_at", "updated_at"]
+    search_fields = ["ldap_id"]
+    list_filter = ["blocked_until"]
+
+
+@admin.register(SecurityEvent)
+class SecurityEventAdmin(admin.ModelAdmin):
+    list_display = ["created_at", "ldap_id", "event_type", "severity", "section_type", "ip_address"]
+    list_filter = ["event_type", "severity", "section_type"]
+    search_fields = ["ldap_id", "endpoint", "metadata"]
+    readonly_fields = ["created_at"]
